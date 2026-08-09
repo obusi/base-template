@@ -2,7 +2,7 @@
   "extends": "@tooling/typescript-config/react-library.json",
   "compilerOptions": {
     "paths": {
-      "@workspace/ui/*": ["./src/*"]
+      "@packages/ui/*": ["./src/*"]
     }
   },
   "include": ["."],

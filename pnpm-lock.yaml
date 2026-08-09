@@ -29,7 +29,7 @@ importers:
 
   apps/web:
     dependencies:
-      '@workspace/ui':
+      '@packages/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       lucide-react:
