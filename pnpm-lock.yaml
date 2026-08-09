@@ -8,10 +8,10 @@ importers:
 
   .:
     devDependencies:
-      '@workspace/eslint-config':
+      '@tooling/eslint-config':
         specifier: workspace:*
         version: link:tooling/eslint-config
-      '@workspace/typescript-config':
+      '@tooling/typescript-config':
         specifier: workspace:*
         version: link:tooling/typescript-config
       prettier:
@@ -51,6 +51,12 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4
         version: 4.3.0
+      '@tooling/eslint-config':
+        specifier: workspace:*
+        version: link:../../tooling/eslint-config
+      '@tooling/typescript-config':
+        specifier: workspace:*
+        version: link:../../tooling/typescript-config
       '@types/node':
         specifier: ^20
         version: 20.19.41
@@ -60,12 +66,6 @@ importers:
       '@types/react-dom':
         specifier: ^19
         version: 19.2.3(@types/react@19.2.15)
-      '@workspace/eslint-config':
-        specifier: workspace:^
-        version: link:../../tooling/eslint-config
-      '@workspace/typescript-config':
-        specifier: workspace:*
-        version: link:../../tooling/typescript-config
       eslint:
         specifier: ^9
         version: 9.39.4(jiti@2.7.0)
@@ -112,6 +112,12 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4
         version: 4.3.0
+      '@tooling/eslint-config':
+        specifier: workspace:*
+        version: link:../../tooling/eslint-config
+      '@tooling/typescript-config':
+        specifier: workspace:*
+        version: link:../../tooling/typescript-config
       '@turbo/gen':
         specifier: ^2.9.15
         version: 2.9.15(@types/node@20.19.41)
@@ -124,12 +130,6 @@ importers:
       '@types/react-dom':
         specifier: ^19
         version: 19.2.3(@types/react@19.2.15)
-      '@workspace/eslint-config':
-        specifier: workspace:*
-        version: link:../../tooling/eslint-config
-      '@workspace/typescript-config':
-        specifier: workspace:*
-        version: link:../../tooling/typescript-config
       eslint:
         specifier: ^9
         version: 9.39.4(jiti@2.7.0)
