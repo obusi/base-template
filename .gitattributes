@@ -1,0 +1,10 @@
+# Check every text file out with LF endings, on every platform.
+#
+# Without this, git on Windows converts to CRLF on checkout (core.autocrlf),
+# while .prettierrc requires `endOfLine: "lf"`. The two fight forever: prettier
+# --check fails, `prettier --write` fixes it, and the next checkout undoes the
+# fix. Anything running that check gets stuck in a loop with no cause visible
+# in the code.
+#
+# `text=auto` still lets git detect binary files and leave them alone.
+* text=auto eol=lf
