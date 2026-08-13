@@ -275,9 +275,32 @@ Drizzle v1 deprecated the older `pgTable(...).enableRLS()` in favour of the
 `withRLS` table builder. Both still compile; only the new form should appear in
 new code.
 
-- Drizzle connects as `postgres`, which owns the tables, and Postgres bypasses RLS for table owners → the app is unaffected.
-- `anon` and `authenticated` are not owners → RLS applies → no policies → zero rows.
+- Drizzle connects as `postgres`, which both owns the tables and carries the
+  `BYPASSRLS` attribute → the app is unaffected. Measured on a real project,
+  not assumed; see setup-plan.md, Phase 6.
+- `anon` and `authenticated` have neither → RLS applies → no policies → zero rows.
 - Result: **a leaked anon key reads nothing**, with no SQL policies to debug.
+
+`postgres` is not a superuser on Supabase, so the exemption rests on those two
+properties. They are a function of how the project was provisioned, which is why
+`pnpm --filter @packages/db db:check` exists: run it once per project, after the
+first migration. It reads the catalogue, then proves the mechanism by inserting
+a row into a throwaway protected table and confirming `anon` and
+`authenticated` see none of it.
+
+### Two checks, two different questions
+
+| | Runs against | Catches |
+|---|---|---|
+| `rls-guard.test.ts` | PGlite, every `pnpm test` | a table whose schema forgot `withRLS()` |
+| `db:check` | the real database, once per project | a deployment where the app is locked out, or a public role is not |
+
+They are not interchangeable. A Supabase project created with **Enable
+automatic RLS** carries an event trigger that turns RLS on for every new table —
+verified: `create table` with no `ALTER` still reports `relrowsecurity = true`.
+That trigger would hide a missing `withRLS()` from `db:check`, and only the
+PGlite test, which runs without it, still fails. Conversely the PGlite test knows
+nothing about which role the deployment connects as.
 
 Never enable `FORCE ROW LEVEL SECURITY`; that would apply RLS to the owner as well.
 

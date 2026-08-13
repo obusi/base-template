@@ -492,14 +492,36 @@ Confirmed against a running build (2026-08-13), no database present:
 
 `defined: true` on the 401 is the useful part: the error came from the contract, not from something that leaked out of a handler.
 
-**Also verify, against the real Supabase project — this is the first phase where one exists.** The RLS deny-all design rests on the app connecting as the role that *owns* the tables, because Postgres exempts table owners from row security. Postgres documents the exemption, and Supabase documents that `anon` and `authenticated` do not bypass RLS, but no Supabase page states which role a `DATABASE_URL` connection uses or who ends up owning tables created by `drizzle-kit migrate`. Until it is checked, the security model is an assumption:
+**Also verified against the real Supabase project — this was the first phase where one existed.** The RLS deny-all design rests on the app's connection not being subject to row security. Postgres documents two ways that happens, ownership and the `BYPASSRLS` attribute, but no Supabase page states which role a `DATABASE_URL` connection uses or who ends up owning tables created by `drizzle-kit migrate`. Until checked, the security model was an assumption.
 
-```sql
-select current_user, usesuper, usebypassrls from pg_user where usename = current_user;
-select tablename, tableowner from pg_tables where schemaname = 'public';
+Measured 2026-08-13, after `db:migrate` against a fresh project:
+
+```
+connected as : {"role":"postgres","is_superuser":false,"bypasses_rls":true}
+
+account        owner=postgres  rls=true  policies=0
+post           owner=postgres  rls=true  policies=0
+session        owner=postgres  rls=true  policies=0
+user           owner=postgres  rls=true  policies=0
+verification   owner=postgres  rls=true  policies=0
 ```
 
-`tableowner` must equal `current_user` (or that role must show `usebypassrls`). If it does not, deny-all locks out the application itself, and the failure appears as empty result sets rather than as an error.
+Both conditions hold at once: the connecting role carries `BYPASSRLS`, and it also owns every table. RLS is on with zero policies, so every other role reads nothing. Note that `postgres` is **not** a superuser on Supabase — the exemption comes from the attribute and the ownership, not from superuser status.
+
+Worth re-running per project, since it depends on how that project was provisioned. If neither condition holds, deny-all locks out the application itself and the symptom is empty result sets rather than an error. That is what `pnpm --filter @packages/db db:check` is for.
+
+Two Supabase project settings matter, both chosen at creation:
+
+- **Enable Data API** — turn it **off**. It publishes a REST endpoint that reaches the database with the anon key, and nothing in this repo uses it (no `@supabase/*` package is installed anywhere). RLS deny-all is the wall; not opening the door at all is better.
+- **Enable automatic RLS** — turn it **on**. An event trigger enables RLS on every new table. Verified: `create table` with no `ALTER` still reports `relrowsecurity = true`. This is a backstop for tables created by hand in the SQL editor, and the reason `db:check` cannot replace `rls-guard.test.ts`.
+
+`db:check` is verified to fail: disabling RLS on its probe table produces
+
+```
+2 problem(s):
+  - probe: anon read 1 of 1 row from a table with RLS on and no policies.
+  - probe: authenticated read 1 of 1 row from a table with RLS on and no policies.
+```
 
 ### Phase 7 — the `post` example domain
 
