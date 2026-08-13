@@ -8,3 +8,4 @@
 // the `@packages/db/schema` path mapping as a prefix and tries to resolve
 // `.../schema/index.ts/auth`. Siblings in this folder are imported relatively.
 export * from "./auth"
+export * from "./post"

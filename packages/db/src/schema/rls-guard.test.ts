@@ -27,9 +27,14 @@ describe("migrations", () => {
   // "Every table has RLS" is also true of a database with no tables, so a
   // migration that silently failed to apply would leave this suite green.
   // Pinning the list means the guard below is known to be checking something.
-  it("create the tables Better Auth needs", async () => {
+  //
+  // Adding a table is meant to fail this test. Update the list in the same
+  // commit that adds the table, and the diff then records the schema change
+  // rather than hiding it.
+  it("create every table the schema declares", async () => {
     expect(await tableNames(db)).toEqual([
       "account",
+      "post",
       "session",
       "user",
       "verification",
