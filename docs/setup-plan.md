@@ -243,6 +243,24 @@ Error  Cannot find module '.../packages/db/src/schema/index.ts/auth'
 
 **Fix:** files inside `src/schema/` import their siblings relatively (`./auth`). Cross-package imports keep using the alias.
 
+### C16 — `server-only` throws when Vitest imports it 🟡
+
+`packages/api`'s tests import `@packages/auth/server`, which carries the marker. The marker resolves to a module whose only statement is `throw`, unless the `react-server` condition is set:
+
+```
+Error: This module cannot be imported from a Client Component module.
+```
+
+Vitest hands node_modules to Node directly, so neither `resolve.conditions` nor `server.deps.inline` changes it.
+
+**Fix:** `ssr.resolve.conditions: ["react-server"]` in the package's `vitest.config.ts`. This is a statement of fact rather than a workaround — the suite genuinely runs on the server side of that boundary, which is the same condition Next.js sets for Server Components.
+
+### C17 — oRPC error messages are humanised, codes are not 🟢
+
+`throw errors.NOT_FOUND()` produces an error whose `message` is `"Not Found"`, not `"NOT_FOUND"`. Asserting with `rejects.toThrow("NOT_FOUND")` therefore fails against correct behaviour.
+
+**Fix:** assert on the code — `rejects.toMatchObject({ code: "NOT_FOUND" })`. The code is the contract; the message is presentation.
+
 ### C9 — Small corrections to `architecture.md`
 
 - The oRPC Next.js adapter docs export **six** methods from the route handler, not two:
@@ -413,24 +431,29 @@ Nothing in oRPC's documentation conflicted with the plan this phase: `oc`, `.inp
 
 ### Phase 5 — `packages/api`
 
-Install: `@orpc/server`
+Install: `@orpc/server`, `@orpc/client`, `drizzle-orm`
 
 ```
-packages/api/
-├── src/
-│   ├── orpc.ts               implement(contract) + publicProcedure/protectedProcedure
-│   ├── context.ts            headers → session → user
-│   ├── middleware/auth.ts    requireAuth
-│   ├── router/post.ts
-│   └── index.ts
-└── test/
-    ├── helpers/seed.ts
-    └── post.test.ts          integration tests via createRouterClient
+packages/api/src/
+├── orpc.ts                   implement(contract).$context<ApiContext>()
+├── context.ts                { db, auth, headers } — all injected
+├── middleware/auth.ts        requireAuth
+├── router/post.ts
+├── router/seed.ts            test helpers: real signup, real cookie
+├── router/post.test.ts       integration tests via createRouterClient
+└── index.ts
 ```
+
+Tests sit beside the code rather than in a `test/` folder, matching the convention the rest of the repo settled on in `refactor: co-locate tests with the code they cover`.
 
 Must **not** re-export `db` — that would reopen the shortcut the package split exists to close.
 
-**Verify:** `pnpm --filter @packages/api test` — including a test asserting one user cannot modify another's row.
+Two changes outside this package come first, both consequences of decision 5:
+
+- `packages/db` widens `Database` from `typeof db` to `PgAsyncDatabase<PgQueryResultHKT>`. The postgres-js and PGlite databases are separate classes assignable to neither, and only their shared base accepts both. A compile-time assertion keeps the widening honest.
+- `packages/auth` gains `createAuth(database)`. The concrete `auth` export stays, because the schema generator needs one.
+
+**Verify:** `pnpm --filter @packages/api test` — eight tests, including one user failing to modify another's row. Proven by deleting `eq(post.authorId, context.user.id)` from `update`, which turns that test red with `promise resolved instead of rejecting`.
 
 ### Phase 6 — `apps/web` wiring
 
@@ -483,9 +506,11 @@ Complete the vertical slice through every layer and wire the UI: a Server Compon
 | 2 | **C4** — Better Auth adapter import path | Phase 3 | ✅ `@better-auth/drizzle-adapter` |
 | 3 | `docs/` structure and `AGENTS.md` content | Phase 8 | ⏸ open |
 | 4 | Local quality gate (`pnpm verify`, hooks) | every phase's verify step | ✅ `pnpm verify` + a `Stop` hook |
-| 5 | How tests get a database into `auth` and `api` | Phase 5 | ⏸ open |
+| 5 | How tests get a database into `auth` and `api` | Phase 5 | ✅ injected, not imported |
 
-Decision 5 surfaced during Phase 3. `packages/auth/src/config.ts` reads the module-level `db`, which is bound to `DATABASE_URL` and cannot be redirected at PGlite, so auth has no runtime test. The same question decides how oRPC handlers are tested, so it belongs to Phase 5 rather than being settled early.
+Decision 5 surfaced during Phase 3 and was settled at the start of Phase 5: both packages take the database as an argument. `packages/api` receives it through oRPC's context, which it needs anyway to carry the session, so `db` rides along at no extra cost. `packages/auth` gains `createAuth(database)`.
+
+The alternative — leaving auth as it was and fabricating sessions in tests — would have covered most of the same ground, since faking `{ user: { id } }` still exercises every ownership check. What it could not cover is `requireAuth` itself, and any auth rule a project built on this template adds later: blocked email domains, lockout after failed attempts, a profile row created on signup. A template should not hand its users a corner they have to refactor out of.
 
 Phases 0 through 7 are unblocked.
 

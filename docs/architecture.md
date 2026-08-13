@@ -147,7 +147,15 @@ export default async function Page() {
 1. **Undeclared dependency** — `apps/web/package.json` does not list `@packages/db`. pnpm's strict layout means the module cannot be resolved, so `tsc` fails.
 2. **`import "server-only"`** — at the top of `auth/server.ts`. Any `"use client"` file that reaches it breaks the build.
 3. **`packages/api` must not re-export `db`** — otherwise the shortcut reopens.
-4. **`packages/contract` may depend on `@orpc/contract` and `zod`, and nothing else** — checked by `packages/contract/src/dependencies.test.ts`, which reads the package's own `package.json`. This is the boundary a future Expo app depends on, and the one nobody would notice breaking until a React Native build tried to bundle Drizzle.
+4. **Nothing imports a database, it is handed one** — `packages/api` and
+   `packages/auth` both take a `Database` as an argument (`ApiContext.db`,
+   `createAuth(db)`) instead of importing the module-level `db`. A module-level
+   import binds the code to `DATABASE_URL` at load time, which makes every
+   handler untestable: there is no way to point it at the throwaway PGlite
+   instance a test just seeded. `Database` is deliberately the shared
+   `PgAsyncDatabase` base rather than `typeof db`, because the two drivers are
+   otherwise incompatible types.
+5. **`packages/contract` may depend on `@orpc/contract` and `zod`, and nothing else** — checked by `packages/contract/src/dependencies.test.ts`, which reads the package's own `package.json`. This is the boundary a future Expo app depends on, and the one nobody would notice breaking until a React Native build tried to bundle Drizzle.
 
 ---
 
@@ -232,12 +240,16 @@ Correct approach: keep `page.tsx` a Server Component and extract only the intera
 
 ```ts
 // packages/api/src/middleware/auth.ts
-const requireAuth = base.middleware(async ({ context, next }) => {
-  const session = await auth.api.getSession({ headers: context.headers })
+export const requireAuth = os.middleware(async ({ context, next }) => {
+  const session = await context.auth.api.getSession({ headers: context.headers })
   if (!session) throw new ORPCError("UNAUTHORIZED")
   return next({ context: { user: session.user } })
 })
 ```
+
+Procedures carrying it can read `context.user`; procedures without it have no
+`context.user` to read, so forgetting the middleware is a type error rather
+than an open door.
 
 Every query filters explicitly:
 
@@ -372,11 +384,24 @@ Logging happens in a single interceptor in `packages/api` that `console.error`s 
 Nearly all logic lives in handlers that talk to the database, so tests that mock the database verify almost nothing.
 
 ```ts
-it("cannot update another user's post", async () => {
-  const client = createRouterClient(postRouter, { context: { db, user: alice } })
-  await expect(client.update({ id: postOfBob.id, title: "x" })).rejects.toThrow("NOT_FOUND")
+it("cannot touch another user's post", async () => {
+  const bobs = await as(bob).post.create({ title: "Bob's", content: "..." })
+
+  await expect(
+    as(alice).post.update({ id: bobs.id, title: "Stolen" }),
+  ).rejects.toMatchObject({ code: "NOT_FOUND" })
 })
 ```
+
+Assert on `code`, never on the error message: the code is what the contract
+declares and what client code branches on, while the message is a humanised
+default ("Not Found") that oRPC is free to reword.
+
+`alice` and `bob` are real rows created by a real `signUpEmail`, and `as(user)`
+builds a context holding their actual session cookie. Fabricating
+`{ user: { id } }` instead would skip `requireAuth` — the one piece of glue
+between Better Auth and oRPC that this repo owns, and the seam where "signed in
+but treated as anonymous" bugs live.
 
 **Why PGlite:** it is Postgres compiled to WASM, running in the test process, so there is no Docker daemon to start and no shared database to clean up between runs. Fast enough that AI actually runs tests on every edit instead of guessing.
 
