@@ -1,0 +1,11 @@
+{
+  "extends": "@tooling/typescript-config/base.json",
+  "compilerOptions": {
+    "paths": {
+      "@packages/db/schema": ["./src/schema/index.ts"],
+      "@packages/db/*": ["./src/*"]
+    }
+  },
+  "include": ["."],
+  "exclude": ["node_modules", "dist", "drizzle"]
+}

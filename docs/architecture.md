@@ -329,7 +329,18 @@ it("cannot update another user's post", async () => {
 })
 ```
 
-**Why PGlite:** spinning up a fresh database costs ~50ms, so every test file gets full isolation and the suite runs in parallel. Fast enough that AI actually runs tests on every edit instead of guessing.
+**Why PGlite:** it is Postgres compiled to WASM, running in the test process, so there is no Docker daemon to start and no shared database to clean up between runs. Fast enough that AI actually runs tests on every edit instead of guessing.
+
+**Measured cost (2026-08-13):** booting a PGlite instance takes ~1.4s *every* time — it is a real Postgres boot, not a cached one. Statements against a live instance take ~6ms.
+
+The pattern that follows, and which every test file must use:
+
+```ts
+beforeAll(async () => { db = await createTestDb() })   // ~1.4s, once per file
+afterEach(async () => { await resetDb(db) })           // ~6ms, between tests
+```
+
+Creating an instance per test instead of per file made the three-test guard suite take 4.8s rather than 1.7s. Vitest runs files in parallel, so the boot cost is paid once per file, concurrently.
 
 **Limitations:** PGlite is WASM — some extensions are unavailable and role/permission support is incomplete.
 `test/helpers/db.ts` accepts `TEST_DATABASE_URL` from the start, so adding a real Postgres run in CI later requires no test changes.

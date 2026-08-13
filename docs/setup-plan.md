@@ -292,7 +292,16 @@ Create root `vitest.config.ts` using `projects` (C6), and add `"test": "turbo te
 
 Install: `drizzle-orm@1.0.0-rc.4`, `postgres`, `@t3-oss/env-core`, `zod` · dev: `drizzle-kit@1.0.0-rc.4`, `@electric-sql/pglite`, `vitest`
 
-⚠️ Highest remaining risk: `drizzle-kit` v1 uses a new DDL-snapshot migration format that the spike did not exercise. Generate and apply one migration before writing any real schema.
+✅ **Verified during Phase 2.** A throwaway table was added, generated, inspected, and removed:
+
+- `drizzle-kit generate` reads `drizzle.config.ts` and emits `drizzle/<timestamp>_<name>/{migration.sql,snapshot.json}` — one folder per migration, no `journal.json`.
+- `pgTable.withRLS()` produces `ALTER TABLE "probe" ENABLE ROW LEVEL SECURITY;` and records `"isRlsEnabled": true` in the snapshot (`"version": "8"`).
+- `createTestDb()` applies those migrations into PGlite; the table appears with `relrowsecurity = true`.
+
+Two further findings, both fixed:
+
+- `drizzle-orm/pglite` and `drizzle-orm/postgres-js` return **different shapes** from `db.execute()` — `Results` with `.rows` versus an array-like `RowList`. Helpers that read raw rows must normalise.
+- `migrate()` throws `ENOENT` if the migrations folder is missing. Git cannot track an empty directory, so a fresh clone of the template would fail on first `pnpm test`. Fixed with `packages/db/drizzle/.gitkeep`, to be removed once real migrations exist.
 
 ```
 packages/db/

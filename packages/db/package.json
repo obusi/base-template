@@ -1,0 +1,37 @@
+{
+  "name": "@packages/db",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "lint": "eslint",
+    "format": "prettier --write \"**/*.ts\"",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "dependencies": {
+    "@t3-oss/env-core": "^0.13.11",
+    "drizzle-orm": "1.0.0-rc.4",
+    "postgres": "^3.4.9",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.4",
+    "@tooling/eslint-config": "workspace:*",
+    "@tooling/typescript-config": "workspace:*",
+    "@tooling/vitest-config": "workspace:*",
+    "drizzle-kit": "1.0.0-rc.4",
+    "eslint": "^9",
+    "typescript": "^5",
+    "vitest": "^4.1.10"
+  }
+}
