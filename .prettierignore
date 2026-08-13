@@ -5,3 +5,8 @@ node_modules/
 coverage/
 pnpm-lock.yaml
 .pnpm-store/
+
+# Markdown is written by hand and by agents, and prettier pads table cells to
+# align them. One word changing width then rewrites every row of the table, so
+# diffs stop showing what actually changed.
+*.md

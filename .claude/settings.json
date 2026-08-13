@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "out=$(pnpm verify 2>&1) || { echo \"$out\" >&2; exit 2; }",
+            "statusMessage": "Verifying (typecheck, lint, test, format)",
+            "timeout": 600
+          }
+        ]
+      }
+    ]
+  }
+}

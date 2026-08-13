@@ -6,9 +6,11 @@
     "build": "turbo build",
     "dev": "turbo dev",
     "lint": "turbo lint",
-    "format": "turbo format",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "typecheck": "turbo typecheck",
-    "test": "turbo test"
+    "test": "turbo test",
+    "verify": "turbo typecheck lint test && pnpm format:check"
   },
   "devDependencies": {
     "@tooling/eslint-config": "workspace:*",
