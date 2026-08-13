@@ -6,7 +6,7 @@ import {
   resetDb,
   tablesWithoutRLS,
   type TestDb,
-} from "./helpers/db.js"
+} from "@packages/db/testing"
 
 let db: TestDb
 

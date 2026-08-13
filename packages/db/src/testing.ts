@@ -1,3 +1,8 @@
+// Test helpers for this package and for any package that needs a real
+// database in its tests — packages/api imports these too, which is why they
+// live in src/ behind the `@packages/db/testing` entry point rather than in a
+// test/ folder the exports map cannot reach.
+
 import { fileURLToPath } from "node:url"
 
 import { PGlite } from "@electric-sql/pglite"
@@ -8,10 +13,9 @@ import { drizzle as drizzlePostgres } from "drizzle-orm/postgres-js"
 import { migrate as migratePostgres } from "drizzle-orm/postgres-js/migrator"
 import postgres from "postgres"
 
-// Resolved from this file so tests pass regardless of the working directory.
-const MIGRATIONS_FOLDER = fileURLToPath(
-  new URL("../../drizzle", import.meta.url)
-)
+// Resolved from this file so tests pass regardless of the working directory,
+// including when another package imports these helpers.
+const MIGRATIONS_FOLDER = fileURLToPath(new URL("../drizzle", import.meta.url))
 
 export type TestDb = Awaited<ReturnType<typeof createTestDb>>
 

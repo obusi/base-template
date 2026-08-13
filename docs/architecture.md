@@ -216,7 +216,7 @@ export const posts = pgTable("posts", { ... }).enableRLS()
 
 Never enable `FORCE ROW LEVEL SECURITY`; that would apply RLS to the owner as well.
 
-A guard test prevents forgetting, in `packages/db/test/rls-guard.test.ts`:
+A guard test prevents forgetting, in `packages/db/src/schema/rls-guard.test.ts`:
 
 ```ts
 it("every table has RLS enabled", async () => {
@@ -343,7 +343,7 @@ afterEach(async () => { await resetDb(db) })           // ~6ms, between tests
 Creating an instance per test instead of per file made the three-test guard suite take 4.8s rather than 1.7s. Vitest runs files in parallel, so the boot cost is paid once per file, concurrently.
 
 **Limitations:** PGlite is WASM — some extensions are unavailable and role/permission support is incomplete.
-`test/helpers/db.ts` accepts `TEST_DATABASE_URL` from the start, so adding a real Postgres run in CI later requires no test changes.
+`src/testing.ts` accepts `TEST_DATABASE_URL` from the start, so adding a real Postgres run in CI later requires no test changes.
 
 ---
 

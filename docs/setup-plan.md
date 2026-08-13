@@ -122,7 +122,7 @@ Both are real: `better-auth@1.6.27` still exports the `./adapters/drizzle` subpa
 
 The Better Auth CLI does not know about our RLS deny-all rule, so regenerating the schema silently drops `.enableRLS()` from `user`, `session`, `account`, and `verification`.
 
-**Mitigation:** the RLS guard test in `packages/db/test/rls-guard.test.ts` catches this. It must exist **before** the auth schema is generated, not after — see the phase order below.
+**Mitigation:** the RLS guard test in `packages/db/src/schema/rls-guard.test.ts` catches this. It must exist **before** the auth schema is generated, not after — see the phase order below.
 
 ### C6 — `vitest.workspace.ts` is deprecated 🟡
 
@@ -307,15 +307,17 @@ Two further findings, both fixed:
 packages/db/
 ├── .env.example              DATABASE_URL
 ├── drizzle.config.ts
-├── src/
-│   ├── env.ts                createEnv({ server: { DATABASE_URL: z.url() } })
-│   ├── client.ts             postgres(url, { prepare: false }) → drizzle   (C9)
-│   ├── schema/index.ts
-│   └── index.ts
-└── test/
-    ├── helpers/db.ts         createTestDb() — PGlite + migrate, accepts TEST_DATABASE_URL
-    └── rls-guard.test.ts     ← written before any table exists
+└── src/
+    ├── env.ts                createEnv({ server: { DATABASE_URL: z.url() } })
+    ├── client.ts             postgres(url, { prepare: false }) → drizzle   (C9)
+    ├── testing.ts            createTestDb() — PGlite + migrate, accepts TEST_DATABASE_URL
+    ├── index.ts
+    └── schema/
+        ├── index.ts
+        └── rls-guard.test.ts ← written before any table exists
 ```
+
+Tests sit next to the code they cover, and `testing.ts` lives in `src/` rather than a `test/` folder because `packages/api` imports it in Phase 5 — the exports map cannot reach outside `src/`.
 
 The guard test must exist before Phase 3 so that generated auth tables cannot slip through without RLS (C5).
 
