@@ -2,8 +2,7 @@
 
 import { useState } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-
-import { ThemeProvider } from "@/components/theme-provider"
+import { ThemeProvider } from "next-themes"
 
 export function Providers({ children }: { children: React.ReactNode }) {
   // Created in state, not at module scope. A module-level client is shared by
@@ -24,7 +23,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>{children}</ThemeProvider>
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="system"
+        enableSystem
+        disableTransitionOnChange
+      >
+        {children}
+      </ThemeProvider>
     </QueryClientProvider>
   )
 }
