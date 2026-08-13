@@ -186,6 +186,32 @@ Without the switch, a Server Component fetching data would make an HTTP request 
 
 The context both paths hand over is built in `packages/api/src/live.ts`, not in `apps/web`. Assembling it in the app would require `apps/web` to depend on `@packages/db`, and the absence of that dependency is the boundary.
 
+### A third door: REST at `/api/v1`
+
+The same router is also served over plain HTTP, using the paths and methods each
+procedure declares with `.route()` in the contract:
+
+```
+/rpc        oRPC protocol   this app's own client, and Expo later
+/api/v1     REST            anything else — curl, a partner, another language
+/api/auth   Better Auth     sign in, sign up, sign out
+```
+
+Both doors run the same procedures, the same `requireAuth`, and the same
+`where` clauses, so there is no second implementation to keep in step.
+`GET /api/v1/posts` returns rows; `POST /api/v1/posts` without a cookie returns
+`401 UNAUTHORIZED` exactly as `/rpc` does.
+
+`/api/spec` generates the OpenAPI document from the contract — nothing is
+written by hand, so it cannot describe an API that no longer exists — and
+`/api/docs` renders it with Scalar, including a request playground.
+
+`.route()` is inert for `/rpc`, which addresses procedures by their position in
+the contract object. Adding routes changed no existing caller.
+
+Under `/api/v1` and not `/api`, because `/api/auth` is already a catch-all and
+two of them at the same level would be ambiguous.
+
 ### Auth does not use either path
 
 Signing in, signing up, and signing out go straight to Better Auth's own

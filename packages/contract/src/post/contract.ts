@@ -19,14 +19,26 @@ import {
   UpdatePostInput,
 } from "./schema"
 
+// `.route()` is what the OpenAPI handler and the generated spec read. The RPC
+// protocol at /rpc ignores it entirely and addresses procedures by their path
+// in this object, so adding routes costs the existing clients nothing — it just
+// gives the same procedures a second, REST-shaped door.
 export const postContract = {
-  list: oc.input(ListPostsInput).output(ListPostsOutput),
+  list: oc
+    .route({ method: "GET", path: "/posts" })
+    .input(ListPostsInput)
+    .output(ListPostsOutput),
 
-  byId: oc.input(PostIdInput).output(PostSchema).errors({
-    NOT_FOUND: commonErrors.NOT_FOUND,
-  }),
+  byId: oc
+    .route({ method: "GET", path: "/posts/{id}" })
+    .input(PostIdInput)
+    .output(PostSchema)
+    .errors({
+      NOT_FOUND: commonErrors.NOT_FOUND,
+    }),
 
   create: oc
+    .route({ method: "POST", path: "/posts" })
     .input(CreatePostInput)
     .output(PostSchema)
     .errors({
@@ -40,10 +52,20 @@ export const postContract = {
       },
     }),
 
-  update: oc.input(UpdatePostInput).output(PostSchema).errors(commonErrors),
+  // PATCH, not PUT: every field of UpdatePostInput except `id` is optional, so
+  // a request that omits `content` leaves it alone rather than clearing it.
+  update: oc
+    .route({ method: "PATCH", path: "/posts/{id}" })
+    .input(UpdatePostInput)
+    .output(PostSchema)
+    .errors(commonErrors),
 
   // Returns the deleted id rather than nothing: the client needs it to drop
   // the row from its cache, and `void` would make the call indistinguishable
   // from one that silently did nothing.
-  delete: oc.input(PostIdInput).output(PostIdInput).errors(commonErrors),
+  delete: oc
+    .route({ method: "DELETE", path: "/posts/{id}" })
+    .input(PostIdInput)
+    .output(PostIdInput)
+    .errors(commonErrors),
 }
