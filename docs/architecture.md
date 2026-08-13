@@ -1,8 +1,14 @@
 # Architecture & Tech Stack
 
-> **Status: this document describes the target design, not what currently exists in the repo.**
-> As of now the repo contains only Next.js + shadcn/ui — there is no oRPC, Drizzle, Better Auth, or test infrastructure yet.
-> Last updated: 2026-08-13
+> **Status: built.** Everything below exists in the repo and is exercised by
+> `pnpm verify` — oRPC, Drizzle, Better Auth, the test infrastructure, and the
+> `post` example wired from contract to screen.
+>
+> Still outstanding: `AGENTS.md` and the shape of `docs/` (§13), and a
+> getting-started path for a project forked from this one — `README.md` is
+> still the shadcn starter's.
+>
+> Last updated: 2026-08-14
 
 ---
 
@@ -31,11 +37,12 @@ Every decision below follows from these principles:
 | Framework | Next.js 16 (App Router) | Very new — AI must read `node_modules/next/dist/docs/` before writing Next.js code |
 | Language | TypeScript (strict) | |
 | UI | Tailwind v4 + shadcn/ui on Base UI | Already in `packages/ui` |
-| API | **oRPC** (contract-first) | Type-safe, emits OpenAPI, and the contract is shareable with mobile |
+| API | **oRPC** (contract-first) | Type-safe, and the contract is shareable with mobile |
+| API docs | **`@orpc/openapi`** + **Scalar** | The spec is generated from the contract at `/api/spec`, so it cannot describe an API that no longer exists. Browsable at `/api/docs` |
 | ORM | **Drizzle** | Schema is TypeScript rather than a separate DSL, no codegen step, query errors surface in `tsc` |
 | Database | **Supabase** (used as hosted Postgres) | |
 | Auth | **Better Auth** | |
-| Client data fetching | **TanStack Query** via `@orpc/tanstack-query` | |
+| Client data fetching | **TanStack Query** via `@orpc/tanstack-query` | Devtools included as a devDependency; the package compiles away outside development |
 | Forms | **react-hook-form** + `zodResolver` | Reuses the same zod schema the contract validates with |
 | Validation | **zod v4** | |
 | Testing | **Vitest** + **PGlite** | PGlite is Postgres compiled to WASM, running in-process — no Docker required |
@@ -433,8 +440,16 @@ Logging happens in a single interceptor in `packages/api` that `console.error`s 
 |---|---|---|---|
 | Unit | Pure functions with no external dependencies | Vitest | Few |
 | Integration | A full oRPC handler: zod → auth middleware → Drizzle → real Postgres | Vitest + PGlite | **The bulk of the suite** |
+| Structural | Rules no runtime check would notice: every table has RLS, `packages/contract` depends on nothing else | Vitest | One per rule |
+| Deployment | Whether *this* database is configured the way the design assumes | `db:check`, run by hand | Once per project |
 
 Nearly all logic lives in handlers that talk to the database, so tests that mock the database verify almost nothing.
+
+**Every guard needs a test that proves it can fail.** A check that cannot go red
+is indistinguishable from one that is not running, and this repo has produced
+both: an RLS guard that passed against an empty schema for two phases, and a
+`db:check` probe that would have reported success on an empty table. Each is now
+paired with a case that fails on purpose.
 
 ```ts
 it("cannot touch another user's post", async () => {
@@ -546,14 +561,23 @@ That is a further reason to keep the template **small and stable**.
 | Topic | Outstanding question |
 |---|---|
 | `docs/` + `AGENTS.md` | What goes where, and which rules belong in the always-loaded `AGENTS.md` |
-| Local quality gate | `pnpm verify` / Claude Code hook / git hook |
+| `README.md` | Still the shadcn starter's. A project forked from this one has no written path from clone to running app |
+
+Settled since this list was written: the quality gate is `pnpm verify` plus a
+`Stop` hook (`.claude/settings.json`); tests receive a database rather than
+importing one (§4); `user` fields belong either to Better Auth or to the project,
+never both (§5).
 
 ---
 
-## 14. Fixes needed in the current repo
+## 14. What a new project has to do
 
-| File | Problem |
-|---|---|
-| `.gitignore:38` | `.env*` also ignores `.env.example` — add `!.env.example` |
-| `turbo.json` | No `test` task defined |
-| `pnpm-workspace.yaml:9` | Leftover `msw: false` entry although msw is not used |
+The template cannot carry these — they depend on a database that does not exist
+until someone creates one.
+
+1. `apps/web/.env` and `packages/db/.env`, from the `.env.example` beside each.
+   Two files because they belong to two processes; see §10.
+2. `pnpm --filter @packages/db db:migrate`
+3. `pnpm --filter @packages/db db:check` — proves the deployment's roles are what
+   RLS deny-all assumes. Both ways of getting this wrong are silent.
+4. Delete the `post` example (§11) once there is a real domain to replace it.

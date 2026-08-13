@@ -2,7 +2,11 @@
 
 > Derived from the official docs of every library in the stack, checked against the npm registry and the local `node_modules` tree on **2026-08-13**.
 > Read [architecture.md](./architecture.md) first — this document is the executable plan for reaching that target.
-> **Nothing here has been implemented yet.**
+>
+> **Phases 0 through 7 are done.** Phase 8 is open. Each phase's **Verify** block
+> now records what was actually measured rather than what was intended, and the
+> conflicts in §2 are the ways the libraries turned out to differ from their own
+> documentation — worth reading before touching the packages they concern.
 
 ---
 
@@ -20,6 +24,10 @@ Resolved from the npm registry on 2026-08-13. Pin these; do not use `latest` in 
 | `@orpc/client` | 1.15.0 | |
 | `@orpc/contract` | 1.15.0 | |
 | `@orpc/tanstack-query` | 1.15.0 | |
+| `@orpc/openapi` | 1.15.0 | added after Phase 7 — the REST door at `/api/v1` |
+| `@orpc/zod` | 1.15.0 | import from `@orpc/zod/zod4`, not the root (**C18**) |
+| `@scalar/nextjs-api-reference` | 0.11.14 | serves `/api/docs` from a route handler |
+| `@tanstack/react-query-devtools` | 5.101.4 | **devDependency** — App Router requires it there |
 | `drizzle-orm` | **1.0.0-rc.4** | decided in **C1** — pin exactly, no `^` |
 | `drizzle-kit` | **1.0.0-rc.4** | must match `drizzle-orm` |
 | `postgres` | 3.4.9 | postgres-js driver for Supabase |
@@ -260,6 +268,14 @@ Vitest hands node_modules to Node directly, so neither `resolve.conditions` nor 
 `throw errors.NOT_FOUND()` produces an error whose `message` is `"Not Found"`, not `"NOT_FOUND"`. Asserting with `rejects.toThrow("NOT_FOUND")` therefore fails against correct behaviour.
 
 **Fix:** assert on the code — `rejects.toMatchObject({ code: "NOT_FOUND" })`. The code is the contract; the message is presentation.
+
+### C18 — `@orpc/zod` reads Zod 3 unless you import the `/zod4` path 🟡
+
+Found while adding OpenAPI. The package root exports a `ZodToJsonSchemaConverter` that understands Zod 3. Point it at this repo's Zod 4 schemas and it does not error — it produces **empty** schemas, so the generated spec documents endpoints with no fields.
+
+**Fix:** `import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4"`.
+
+On that path the query-string coercion plugin is still named `experimental_ZodSmartCoercionPlugin`; the unprefixed name exists only on the root. Without it, `?limit=20` arrives as the string `"20"` and fails the contract's `z.number()`.
 
 ### C9 — Small corrections to `architecture.md`
 
@@ -562,6 +578,23 @@ Before this phase every table was empty, so every line read `inconclusive`.
 
 ⚠️ **Blocked — still an open decision.** See [architecture.md §13](./architecture.md).
 
+Whatever shape it takes, these are the rules the work so far produced. They are
+currently written only in code comments and commit messages, which is to say an
+agent opening a fresh project will not find them:
+
+- Never set Better Auth's `experimental: { joins: true }` (**C10**)
+- Tables use `pgTable.withRLS()`; `.enableRLS()` is deprecated in Drizzle v1
+- Only Zod 4, and `@orpc/zod/zod4` for the converter (**C7**, **C18**)
+- Use `@better-auth/drizzle-adapter`, not `better-auth/adapters/drizzle` (**C4**)
+- Tests sit beside the code they cover, named `*.test.ts`
+- Every guard test needs a companion that proves it can fail
+- `apps/web` never depends on `@packages/db`
+- Ownership belongs in the `where` clause, never a read-then-check
+- Assert on an error's `code`, never its message (**C17**)
+- Regenerating `schema/auth.ts` undoes three edits; the verify gate names them
+- Read Next.js docs at `apps/web/node_modules/next/dist/docs/`
+- A page that needs SEO fetches in a Server Component
+
 ---
 
 ## 4. Decisions needed before implementation starts
@@ -578,7 +611,9 @@ Decision 5 surfaced during Phase 3 and was settled at the start of Phase 5: both
 
 The alternative — leaving auth as it was and fabricating sessions in tests — would have covered most of the same ground, since faking `{ user: { id } }` still exercises every ownership check. What it could not cover is `requireAuth` itself, and any auth rule a project built on this template adds later: blocked email domains, lockout after failed attempts, a profile row created on signup. A template should not hand its users a corner they have to refactor out of.
 
-Phases 0 through 7 are unblocked.
+Phases 0 through 7 are done. Phase 8 is the only one left, and decision 3 is what blocks it.
+
+Two things were added after Phase 7, outside the phase order: React Query devtools, and the OpenAPI/Scalar surface at `/api/v1`, `/api/spec` and `/api/docs` (**C18**).
 
 ---
 
