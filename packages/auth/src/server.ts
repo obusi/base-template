@@ -3,4 +3,7 @@
 // between the auth secret and the browser bundle.
 import "server-only"
 
-export { auth, type Auth, type Session } from "@packages/auth/config"
+// Relative, because `config.ts` is deliberately absent from this package's
+// `exports` map — that is what keeps anything outside from reaching around
+// this file. A path alias would need it exported to resolve.
+export { auth, createAuth, type Auth, type Session } from "./config"
