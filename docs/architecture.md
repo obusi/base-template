@@ -494,9 +494,14 @@ Delete when starting a real project:
 packages/contract/src/post/
 packages/db/src/schema/post.ts
 packages/api/src/router/post.ts
-packages/api/test/post.test.ts
+packages/api/src/router/post.test.ts
+packages/api/src/router/seed.ts
 apps/web/app/posts/
+apps/web/app/login/
 ```
+
+`login/` goes with them: it is a bare email-and-password form built to exercise
+the example, not a sign-in page any real project would ship.
 
 ---
 

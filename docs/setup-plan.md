@@ -527,7 +527,36 @@ Two Supabase project settings matter, both chosen at creation:
 
 Complete the vertical slice through every layer and wire the UI: a Server Component list (path 1) and a client form using `useMutation` + `zodResolver` (path 2).
 
-**Verify:** `pnpm verify` green, and the page works in the browser.
+```
+apps/web/app/
+├── login/page.tsx              authClient — no oRPC involved
+└── posts/
+    ├── page.tsx                Server Component, both paths' data
+    └── create-post-form.tsx    react-hook-form + useMutation
+```
+
+`shadcn add input textarea label` writes into `packages/ui`, not into the app — the `ui` alias in `components.json` points there.
+
+The form's resolver is `CreatePostInput` imported from `@packages/contract`: the object the server validates with, not a copy of it. Errors are narrowed with `isDefinedError` from `@orpc/client`, which is what gives `error.data.limit` a type.
+
+**Verify:** `pnpm verify` green, and the whole path exercised in a browser against the real database:
+
+```
+POST /api/auth/sign-up/email   200
+GET  /posts                    200   form appears — the Server Component read the cookie
+POST /rpc/post/create          200
+GET  /posts                    200   the post is on the page
+```
+
+Then `db:check` again, now that rows exist — the run that finally means something:
+
+```
+anon   post      0 of 1 rows
+anon   user      0 of 1 rows
+anon   session   0 of 1 rows
+```
+
+Before this phase every table was empty, so every line read `inconclusive`.
 
 ### Phase 8 — docs and agent rules
 
