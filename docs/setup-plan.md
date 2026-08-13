@@ -449,6 +449,15 @@ apps/web/
 
 **Verify:** `pnpm build` succeeds, and adding `import { db } from "@packages/db"` to any file under `apps/web` fails typecheck.
 
+**Also verify, against the real Supabase project — this is the first phase where one exists.** The RLS deny-all design rests on the app connecting as the role that *owns* the tables, because Postgres exempts table owners from row security. Postgres documents the exemption, and Supabase documents that `anon` and `authenticated` do not bypass RLS, but no Supabase page states which role a `DATABASE_URL` connection uses or who ends up owning tables created by `drizzle-kit migrate`. Until it is checked, the security model is an assumption:
+
+```sql
+select current_user, usesuper, usebypassrls from pg_user where usename = current_user;
+select tablename, tableowner from pg_tables where schemaname = 'public';
+```
+
+`tableowner` must equal `current_user` (or that role must show `usebypassrls`). If it does not, deny-all locks out the application itself, and the failure appears as empty result sets rather than as an error.
+
 ### Phase 7 — the `post` example domain
 
 Complete the vertical slice through every layer and wire the UI: a Server Component list (path 1) and a client form using `useMutation` + `zodResolver` (path 2).
