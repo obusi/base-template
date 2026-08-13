@@ -397,14 +397,19 @@ Install: `@orpc/contract`, `zod@4.4.3` only (C7)
 packages/contract/src/
 ├── index.ts
 ├── errors.ts                 shared error codes
+├── dependencies.test.ts      turns the hard rule below into a check
 └── post/
     ├── schema.ts
     └── contract.ts           oc.input().output().errors()
 ```
 
-Hard rule: no dependency other than `@orpc/contract` and `zod`. Anything else breaks the future Expo app.
+Hard rule: no dependency other than `@orpc/contract` and `zod`. Anything else breaks the future Expo app — and breaks it months later, in a bundler, far from whoever added the import. `dependencies.test.ts` reads the package's own `package.json` and fails the moment a third name appears.
 
-**Verify:** `pnpm --filter @packages/contract typecheck`
+For the same reason, files inside this package import each other **relatively** rather than through the `@packages/contract/*` alias. Metro's support for package `exports` maps and self-referencing imports is the shakiest part of this chain, and nothing here is more readable for the alias.
+
+**Verify:** `pnpm --filter @packages/contract test` — the guard passes, and adding `@packages/db` to the dependencies makes it fail with `+ "@packages/db"`.
+
+Nothing in oRPC's documentation conflicted with the plan this phase: `oc`, `.input()`, `.output()`, `.errors()`, and plain-object routers are all current.
 
 ### Phase 5 — `packages/api`
 

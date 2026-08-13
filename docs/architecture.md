@@ -147,6 +147,7 @@ export default async function Page() {
 1. **Undeclared dependency** — `apps/web/package.json` does not list `@packages/db`. pnpm's strict layout means the module cannot be resolved, so `tsc` fails.
 2. **`import "server-only"`** — at the top of `auth/server.ts`. Any `"use client"` file that reaches it breaks the build.
 3. **`packages/api` must not re-export `db`** — otherwise the shortcut reopens.
+4. **`packages/contract` may depend on `@orpc/contract` and `zod`, and nothing else** — checked by `packages/contract/src/dependencies.test.ts`, which reads the package's own `package.json`. This is the boundary a future Expo app depends on, and the one nobody would notice breaking until a React Native build tried to bundle Drizzle.
 
 ---
 
@@ -172,6 +173,49 @@ Exactly two paths, with clearly separate jobs:
 | Create / update / delete | 2 | `useMutation(orpc.post.create.mutationOptions())` |
 
 The switch lives in `apps/web/lib/orpc.ts`: on the server it resolves to the direct caller, in the browser to the HTTP client — automatically.
+
+### Auth does not use either path
+
+Signing in, signing up, and signing out go straight to Better Auth's own
+endpoints under `/api/auth`, not through oRPC:
+
+```
+login / signup / logout   →  /api/auth   (Better Auth's handler)
+everything else           →  /rpc        (oRPC)
+```
+
+There is no contract for auth, and writing one would be a mistake. Better Auth
+already ships a typed client, and its Expo integration talks to the same
+`/api/auth` endpoints with `expo-secure-store` swapped in for browser cookies —
+so the portability problem `packages/contract` exists to solve does not apply
+here. Wrapping it would mean redeclaring schemas Better Auth owns,
+reimplementing its cookie and session handling, and falling silently behind
+every time a plugin (2FA, social login, magic links) adds endpoints of its own.
+
+oRPC's relationship to auth is different: it does not perform authentication, it
+*reads* the result. That is what `requireAuth` in `packages/api` does.
+
+### Every user field has exactly one owner
+
+Better Auth can add columns to the `user` table through `additionalFields`. Use
+it only for fields Better Auth itself needs in order to work.
+
+| Field | Owner | Where it lives |
+|---|---|---|
+| `email`, `name`, `image`, `role` | Better Auth | `user` table, edited via `authClient.updateUser()` |
+| `bio`, `location`, preferences | The project | Its own table, its own contract, edited via oRPC |
+
+The test is not how user-related a field feels, it is whether authentication
+breaks without it. `email` sends the password-reset link, so it belongs to
+Better Auth; taking it over gains nothing and risks two copies disagreeing.
+`bio` is business data wearing a user-shaped hat.
+
+Putting business fields in `additionalFields` costs four things: their
+validation rules move out of `packages/contract` into the auth config, so there
+are two places to look; forms lose the single schema source described in section
+7; `.output()` no longer constrains what goes back to the client; and every new
+field means regenerating `schema/auth.ts`, a file with three edits that have to
+be reapplied by hand each time.
 
 ### SEO rule
 
