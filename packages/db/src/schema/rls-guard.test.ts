@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm"
-import { afterEach, beforeAll, describe, expect, it } from "vitest"
+import { beforeAll, beforeEach, describe, expect, it } from "vitest"
 
 import {
   createTestDb,
@@ -16,7 +16,10 @@ beforeAll(async () => {
   db = await createTestDb()
 })
 
-afterEach(async () => {
+// Before rather than after, so that every assertion below runs on the far side
+// of a reset. `resetDb` is itself a place bugs hide — it once left the database
+// empty instead of migrated — and a check that runs before it never sees them.
+beforeEach(async () => {
   await resetDb(db)
 })
 
