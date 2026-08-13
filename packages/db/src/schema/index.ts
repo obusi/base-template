@@ -4,4 +4,7 @@
 // Every table must enable row level security. `rls-guard.test.ts` next to this
 // file fails the build if one does not — see docs/architecture.md section 6.
 
-export {}
+// Relative, not `@packages/db/schema/auth`: drizzle-kit's module loader reads
+// the `@packages/db/schema` path mapping as a prefix and tries to resolve
+// `.../schema/index.ts/auth`. Siblings in this folder are imported relatively.
+export * from "./auth"

@@ -10,3 +10,7 @@ pnpm-lock.yaml
 # align them. One word changing width then rewrites every row of the table, so
 # diffs stop showing what actually changed.
 *.md
+
+# Written by drizzle-kit and read by drizzle-kit. Formatting them would put the
+# working tree at odds with what the next `db:generate` writes back.
+packages/db/drizzle/
