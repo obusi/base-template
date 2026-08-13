@@ -180,7 +180,11 @@ Exactly two paths, with clearly separate jobs:
 | Data that changes with interaction | 2 | `useQuery(orpc.post.list.queryOptions())` |
 | Create / update / delete | 2 | `useMutation(orpc.post.create.mutationOptions())` |
 
-The switch lives in `apps/web/lib/orpc.ts`: on the server it resolves to the direct caller, in the browser to the HTTP client — automatically.
+The switch lives in `apps/web/lib/orpc.ts`: on the server it resolves to the direct caller, in the browser to the HTTP client — automatically. `instrumentation.ts` installs the direct caller once at server start, before the first request.
+
+Without the switch, a Server Component fetching data would make an HTTP request to its own process: a wasted round trip, and a way to exhaust the request pool under load.
+
+The context both paths hand over is built in `packages/api/src/live.ts`, not in `apps/web`. Assembling it in the app would require `apps/web` to depend on `@packages/db`, and the absence of that dependency is the boundary.
 
 ### Auth does not use either path
 

@@ -462,7 +462,8 @@ Install: `@orpc/client`, `@orpc/tanstack-query`, `@tanstack/react-query`, `react
 ```
 apps/web/
 ├── .env.example
-├── env.ts
+├── env.ts                    imported by next.config.ts so it actually runs
+├── instrumentation.ts        installs the in-process client at server start
 ├── lib/
 │   ├── orpc.ts               globalThis.$client ?? createORPCClient(link)
 │   ├── orpc.server.ts        import "server-only" + createRouterClient
@@ -473,9 +474,23 @@ apps/web/
     └── api/auth/[...all]/route.ts      toNextJsHandler(auth)
 ```
 
-`apps/web/package.json` must **not** declare `@packages/db`. This is the enforcement mechanism, not a convention.
+`apps/web/package.json` must **not** declare `@packages/db`. This is the enforcement mechanism, not a convention — which is why the context is assembled in `packages/api/src/live.ts` rather than here. Building it in `apps/web` would have meant adding the dependency and dissolving the boundary in the same commit.
 
-**Verify:** `pnpm build` succeeds, and adding `import { db } from "@packages/db"` to any file under `apps/web` fails typecheck.
+`env.ts` is imported for its side effect from `next.config.ts`. Without that line it is only checked when some module happens to read it, so a missing variable surfaces on a request rather than at build.
+
+**Verify:** `pnpm build` succeeds, and adding `import { db } from "@packages/db"` to any file under `apps/web` fails typecheck with `TS2307: Cannot find module '@packages/db'`.
+
+Confirmed against a running build (2026-08-13), no database present:
+
+| Request | Result |
+|---|---|
+| `GET /` | `200` |
+| `POST /rpc/post/create`, no cookie | `401`, `{"code":"UNAUTHORIZED","defined":true}` |
+| `POST /rpc/post/list` | `500` — reaches Drizzle and emits the expected SQL, failing only at `connect ECONNREFUSED 127.0.0.1:5432` |
+| `GET /api/auth/get-session` | `200 null` |
+| `next build` with no env | fails, naming all three missing variables |
+
+`defined: true` on the 401 is the useful part: the error came from the contract, not from something that leaked out of a handler.
 
 **Also verify, against the real Supabase project — this is the first phase where one exists.** The RLS deny-all design rests on the app connecting as the role that *owns* the tables, because Postgres exempts table owners from row security. Postgres documents the exemption, and Supabase documents that `anon` and `authenticated` do not bypass RLS, but no Supabase page states which role a `DATABASE_URL` connection uses or who ends up owning tables created by `drizzle-kit migrate`. Until it is checked, the security model is an assumption:
 
