@@ -4,19 +4,34 @@ import { afterEach, beforeAll, describe, expect, it } from "vitest"
 import {
   createTestDb,
   resetDb,
+  tableNames,
   tablesWithoutRLS,
   type TestDb,
 } from "@packages/db/testing"
 
 let db: TestDb
 
-// One instance per file: booting PGlite costs ~1.4s, resetting it ~6ms.
+// One instance per file: booting PGlite costs ~1.4s, resetting it ~40ms.
 beforeAll(async () => {
   db = await createTestDb()
 })
 
 afterEach(async () => {
   await resetDb(db)
+})
+
+describe("migrations", () => {
+  // "Every table has RLS" is also true of a database with no tables, so a
+  // migration that silently failed to apply would leave this suite green.
+  // Pinning the list means the guard below is known to be checking something.
+  it("create the tables Better Auth needs", async () => {
+    expect(await tableNames(db)).toEqual([
+      "account",
+      "session",
+      "user",
+      "verification",
+    ])
+  })
 })
 
 describe("row level security", () => {
