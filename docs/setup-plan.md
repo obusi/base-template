@@ -99,10 +99,10 @@ apps/web/node_modules/next/dist/docs/
 
 `npx auth@latest generate` emits `schema.ts` at the **project root**. Our design requires the auth tables to live in `packages/db/src/schema/auth.ts` so foreign keys such as `posts.authorId → user.id` resolve within a single Drizzle schema and a single migration set.
 
-**Fix:** always run generate with an explicit output path, and record the command in `packages/db/package.json`:
+**Fix:** always run generate with an explicit output path, recorded as a script in `packages/auth/package.json` so nobody has to remember the flags:
 
-```bash
-npx auth@latest generate --config packages/auth/src/server.ts --output packages/db/src/schema/auth.ts --yes
+```json
+"auth:generate": "auth generate --config ./src/config.ts --output ../db/src/schema/auth.ts --yes"
 ```
 
 Generated tables must then be edited to add RLS (see C5).
@@ -120,7 +120,7 @@ Both are real: `better-auth@1.6.27` still exports the `./adapters/drizzle` subpa
 
 ### C5 — Generated auth tables will not have RLS 🟡
 
-The Better Auth CLI does not know about our RLS deny-all rule, so regenerating the schema silently drops `.enableRLS()` from `user`, `session`, `account`, and `verification`.
+The Better Auth CLI does not know about our RLS deny-all rule, so regenerating the schema silently turns `pgTable.withRLS(` back into `pgTable(` for `user`, `session`, `account`, and `verification`.
 
 **Mitigation:** the RLS guard test in `packages/db/src/schema/rls-guard.test.ts` catches this. It must exist **before** the auth schema is generated, not after — see the phase order below.
 
@@ -201,6 +201,47 @@ Setting `peerDependencyRules` under a `"pnpm"` key in `package.json` is silently
 These settings now live in `pnpm-workspace.yaml`. Verified: moving the block there changes `pnpm peers check` from one unmet peer to `No peer dependency issues found`.
 
 Relevant because `pnpm-workspace.yaml` already carries the `allowBuilds` block, and most tutorials still show the old `package.json` location.
+
+### C12 — The Better Auth CLI moved packages, and the old one is stale 🟡
+
+Found while installing Phase 3. `@better-auth/cli` is stuck at **1.4.21** while the library is at 1.6.27; the current CLI ships as the plain **`auth`** package, which exposes both an `auth` and a `better-auth` binary.
+
+```
+ERR_PNPM_NO_MATCHING_VERSION  No matching version found for @better-auth/cli@^1.6.27
+The latest release of @better-auth/cli is "1.4.21".
+```
+
+**Fix:** depend on `auth@^1.6.27`. This is also why the docs write `npx auth@latest generate` rather than naming a `@better-auth/*` package.
+
+### C13 — The schema generator refuses to load a file containing `server-only` 🟡
+
+The CLI imports the config file directly and bails out:
+
+> Please remove import 'server-only' from your auth config file temporarily. The CLI cannot resolve the configuration with it included.
+
+Removing and restoring the import around every regeneration is exactly the kind of manual step that gets skipped.
+
+**Fix:** split the package in two. `src/config.ts` holds `betterAuth({...})` with no marker and is what the CLI reads; `src/server.ts` is `import "server-only"` plus a re-export, and is the only server path listed in the `exports` map. Nothing outside the package can reach `config.ts`, so the protection is not weakened.
+
+### C14 — The generated schema uses Drizzle v0's relations API 🟡
+
+`auth generate` emits `import { relations } from "drizzle-orm"`. Drizzle v1 replaced that API with `defineRelations`, so the generated file does not compile:
+
+```
+error TS2724: '"drizzle-orm"' has no exported member named 'relations'. Did you mean 'Relation'?
+```
+
+**Fix:** delete the `relations(...)` exports after generating. Nothing in this architecture uses relational queries — the adapter only reaches for them behind `experimental: { joins: true }`, which C10 forbids — so they are dead weight rather than a lost feature. `tsc` reports it if a regeneration puts them back.
+
+### C15 — drizzle-kit misreads the `@packages/db/schema` path mapping 🟡
+
+Re-exporting a sibling as `export * from "@packages/db/schema/auth"` type-checks, but drizzle-kit's loader treats the `@packages/db/schema` mapping as a prefix:
+
+```
+Error  Cannot find module '.../packages/db/src/schema/index.ts/auth'
+```
+
+**Fix:** files inside `src/schema/` import their siblings relatively (`./auth`). Cross-package imports keep using the alias.
 
 ### C9 — Small corrections to `architecture.md`
 
@@ -325,23 +366,28 @@ The guard test must exist before Phase 3 so that generated auth tables cannot sl
 
 ### Phase 3 — `packages/auth`
 
-Install: `better-auth`, `@better-auth/drizzle-adapter` (C4), `@t3-oss/env-core`, `zod`
+Install: `better-auth`, `@better-auth/drizzle-adapter` (C4), `auth` (C12), `@t3-oss/env-core`, `zod`
 
 🚫 **Never set `experimental: { joins: true }`** — it is the only Better Auth option that uses removed Drizzle v1 APIs (C10).
 
 ```
 packages/auth/
-├── .env.example              BETTER_AUTH_SECRET, BETTER_AUTH_URL
+├── .env.example              documents the vars; the real file is apps/web/.env
 ├── src/
-│   ├── env.ts
-│   ├── server.ts             import "server-only" + betterAuth({...})
+│   ├── env.ts                fails startup on a missing or short secret
+│   ├── config.ts             betterAuth({...}) — no marker, so the CLI can read it (C13)
+│   ├── server.ts             import "server-only" + re-export of config.ts
 │   └── client.ts             createAuthClient() — no Drizzle import
-└── package.json              exports: "./server", "./client"
+└── package.json              exports: "./server", "./client", "./env" — config.ts is unreachable
 ```
 
-Then generate the schema into `packages/db` with an explicit `--output` (C3) and add RLS to each generated table.
+Then `pnpm --filter @packages/auth auth:generate` writes the schema into `packages/db/src/schema/auth.ts` (C3). Three post-generation edits follow, each of them caught by the verify gate rather than by memory: `pgTable(` → `pgTable.withRLS(` (C5), delete the `relations(...)` block (C14), and `pnpm format`.
 
-**Verify:** `pnpm --filter @packages/db test` — the RLS guard now covers four new tables and still passes.
+Finally `pnpm --filter @packages/db db:generate` turns the schema into the first migration.
+
+**Verify:** `pnpm --filter @packages/db test` — the RLS guard now covers four real tables. Proven by removing `withRLS` from `user` and watching three tests go red with `expected [ 'user' ] to deeply equal []`.
+
+**Not covered:** nothing exercises `signUp`/`signIn` at runtime in this phase. `config.ts` binds the module-level `db`, which is fixed to `DATABASE_URL`, so a test cannot point it at PGlite. The compatibility spike in §2.5 proved the combination works; making it a standing test needs an injection seam, which is an open question for Phase 5.
 
 ### Phase 4 — `packages/contract`
 
@@ -422,7 +468,10 @@ Complete the vertical slice through every layer and wire the UI: a Server Compon
 | 1 | **C1** — Drizzle version | Phase 2 onward | ✅ v1.0.0-rc.4, verified by spike |
 | 2 | **C4** — Better Auth adapter import path | Phase 3 | ✅ `@better-auth/drizzle-adapter` |
 | 3 | `docs/` structure and `AGENTS.md` content | Phase 8 | ⏸ open |
-| 4 | Local quality gate (`pnpm verify`, hooks) | every phase's verify step | ⏸ open |
+| 4 | Local quality gate (`pnpm verify`, hooks) | every phase's verify step | ✅ `pnpm verify` + a `Stop` hook |
+| 5 | How tests get a database into `auth` and `api` | Phase 5 | ⏸ open |
+
+Decision 5 surfaced during Phase 3. `packages/auth/src/config.ts` reads the module-level `db`, which is bound to `DATABASE_URL` and cannot be redirected at PGlite, so auth has no runtime test. The same question decides how oRPC handlers are tested, so it belongs to Phase 5 rather than being settled early.
 
 Phases 0 through 7 are unblocked.
 

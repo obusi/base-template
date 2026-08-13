@@ -67,7 +67,8 @@ base-template/
 │   └── ui/                  shadcn components
 ├── tooling/
 │   ├── eslint-config/
-│   └── typescript-config/
+│   ├── typescript-config/
+│   └── vitest-config/
 └── docs/
 ```
 
@@ -207,8 +208,12 @@ db.select().from(posts).where(eq(posts.authorId, context.user.id))
 Every table enables RLS **with zero policies**:
 
 ```ts
-export const posts = pgTable("posts", { ... }).enableRLS()
+export const posts = pgTable.withRLS("posts", { ... })
 ```
+
+Drizzle v1 deprecated the older `pgTable(...).enableRLS()` in favour of the
+`withRLS` table builder. Both still compile; only the new form should appear in
+new code.
 
 - Drizzle connects as `postgres`, which owns the tables, and Postgres bypasses RLS for table owners → the app is unaffected.
 - `anon` and `authenticated` are not owners → RLS applies → no policies → zero rows.
@@ -337,10 +342,12 @@ The pattern that follows, and which every test file must use:
 
 ```ts
 beforeAll(async () => { db = await createTestDb() })   // ~1.4s, once per file
-afterEach(async () => { await resetDb(db) })           // ~6ms, between tests
+afterEach(async () => { await resetDb(db) })           // ~40ms, between tests
 ```
 
 Creating an instance per test instead of per file made the three-test guard suite take 4.8s rather than 1.7s. Vitest runs files in parallel, so the boot cost is paid once per file, concurrently.
+
+`resetDb` drops every table **and re-applies the migrations**, leaving the state a freshly migrated database is in rather than an empty one. Dropping alone would let schema assertions pass against nothing. It also drops the `drizzle` schema: the ledger of applied migrations lives in `drizzle.__drizzle_migrations`, outside `public`, and leaving it behind makes the re-run a no-op.
 
 **Limitations:** PGlite is WASM — some extensions are unavailable and role/permission support is incomplete.
 `src/testing.ts` accepts `TEST_DATABASE_URL` from the start, so adding a real Postgres run in CI later requires no test changes.
@@ -349,13 +356,16 @@ Creating an instance per test instead of per file made the three-test guard suit
 
 ## 10. Environment variables
 
-Each package owns its own env: `.env`, `.env.example`, and `env.ts` sit together in the same folder.
+Each package validates the variables it reads in its own `env.ts`. A `.env` file, though, belongs to a **process**, not to a package: it is read by whatever program is started in that folder, and nothing else goes looking for it.
 
 ```
-apps/web/       .env  .env.example  env.ts      NEXT_PUBLIC_*, DATABASE_URL, BETTER_AUTH_*
-packages/db/    .env  .env.example  src/env.ts  DATABASE_URL
-packages/auth/  .env  .env.example  src/env.ts  BETTER_AUTH_SECRET, BETTER_AUTH_URL
+                 validates      real .env?   used by
+apps/web/        env.ts         yes          `next dev` / `next build`
+packages/db/     src/env.ts     yes          `drizzle-kit generate|migrate|push|studio`
+packages/auth/   src/env.ts     no           nothing runs here — imported into apps/web
 ```
+
+So `packages/auth/.env.example` documents what the package requires, while the values themselves go in `apps/web/.env`. Putting a real `.env` beside `packages/auth/src/env.ts` would produce a file that looks authoritative and is never opened.
 
 ```ts
 // packages/db/src/env.ts
