@@ -14,3 +14,8 @@ pnpm-lock.yaml
 # Written by drizzle-kit and read by drizzle-kit. Formatting them would put the
 # working tree at odds with what the next `db:generate` writes back.
 packages/db/drizzle/
+
+# Vendored from the shadcn/ui skill repo. skills-lock.json records a hash of
+# each file's original content; reformatting them would make every future
+# `skills update` show a spurious diff against the upstream source.
+.claude/skills/
