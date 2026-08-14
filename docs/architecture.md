@@ -81,6 +81,47 @@ base-template/
 
 **There is no `apps/mobile`.** Readiness for Expo comes from splitting out `contract` and `auth/client`, not from creating an empty folder.
 
+### Inside `apps/web`
+
+```
+apps/web/
+├── app/                    Routing only — each page.tsx re-exports a feature
+├── features/
+│   ├── post/
+│   │   ├── index.ts        Public surface — the only thing another folder imports
+│   │   ├── posts-page.tsx  What app/posts/page.tsx re-exports
+│   │   └── components/     Used only inside this feature
+│   └── auth/
+├── components/             Feature-agnostic UI, shared by 2+ features
+├── hooks/                  Feature-agnostic hooks, shared by 2+ features
+└── lib/                    Infrastructure (the oRPC client switch), not a feature
+```
+
+`app/` holds no logic, only the route:
+
+```tsx
+// app/posts/page.tsx
+import { PostsPage } from "@/features/post"
+
+export default function Page() {
+  return <PostsPage />
+}
+```
+
+An explicit function body rather than `export default PostsPage`, so a route
+that later needs its own concern — `generateMetadata`, a prefetch before
+rendering the feature, a `<Suspense>` boundary — has somewhere to put it
+without another restructure.
+
+A component earns a place in `apps/web/components/` (or `hooks/`) only when a
+*second, unrelated* feature needs the same generic piece — a confirm dialog, a
+page header. Being rendered on two different routes is not the test.
+`SignOutButton` lives in `features/auth/`, not `features/post/`, even though
+today only the posts page renders it: signing out is an auth action regardless
+of who triggers it. `features/post/` reaches it across the feature boundary
+through `features/auth`'s `index.ts`, the same door any `app/` route uses —
+nothing imports past another feature's `index.ts` at an internal file.
+
 ### Why five packages
 
 The split follows hard technical constraints, not aesthetics:
@@ -539,10 +580,14 @@ packages/api/src/router/post.test.ts
 packages/api/src/router/seed.ts
 apps/web/app/posts/
 apps/web/app/login/
+apps/web/features/post/
+apps/web/features/auth/
 ```
 
-`login/` goes with them: it is a bare email-and-password form built to exercise
-the example, not a sign-in page any real project would ship.
+`login/` and `features/auth/` go with them: it is a bare email-and-password
+form built to exercise the example, not a sign-in page any real project would
+ship. Keep the `features/` convention itself — `app/` as thin route wrappers
+over `features/<name>/` — for whatever domain replaces `post` (see §3).
 
 ---
 
