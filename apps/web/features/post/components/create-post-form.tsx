@@ -19,6 +19,7 @@ import { Button } from "@packages/ui/components/button"
 import { Input } from "@packages/ui/components/input"
 import { Label } from "@packages/ui/components/label"
 import { Textarea } from "@packages/ui/components/textarea"
+import { toast } from "@packages/ui/components/toast"
 
 import { orpc } from "@/lib/orpc-query"
 
@@ -37,6 +38,7 @@ export function CreatePostForm() {
     orpc.post.create.mutationOptions({
       onSuccess: () => {
         form.reset()
+        toast.add({ title: "Post created.", type: "success" })
 
         // The list on this page was rendered on the server, so it lives in the
         // router cache rather than in TanStack Query. Both are refreshed: the
@@ -51,6 +53,10 @@ export function CreatePostForm() {
         // is what makes `error.data.limit` below type-check. Anything it does
         // not match is a bug: the user gets a generic message, and the detail
         // stays in the server log where the interceptor put it.
+        //
+        // QUOTA_EXCEEDED stays an inline field error, tied to the title the
+        // limit is about. Everything else is a toast: there is no field for
+        // "something went wrong" to point at.
         if (isDefinedError(error) && error.code === "QUOTA_EXCEEDED") {
           form.setError("title", {
             message: `You have reached the limit of ${error.data.limit} posts.`,
@@ -58,7 +64,7 @@ export function CreatePostForm() {
           return
         }
 
-        form.setError("root", { message: "Something went wrong." })
+        toast.add({ title: "Something went wrong.", type: "error" })
       },
     })
   )
@@ -87,12 +93,6 @@ export function CreatePostForm() {
           </p>
         )}
       </div>
-
-      {form.formState.errors.root && (
-        <p className="text-sm text-destructive">
-          {form.formState.errors.root.message}
-        </p>
-      )}
 
       <Button type="submit" disabled={create.isPending} className="self-start">
         {create.isPending ? "Posting…" : "Post"}

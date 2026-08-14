@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
 import { ThemeProvider } from "next-themes"
 
+import { Toaster } from "@packages/ui/components/toast"
+
 export function Providers({ children }: { children: React.ReactNode }) {
   // Created in state, not at module scope. A module-level client is shared by
   // every request the server handles, which on a server means one user's
@@ -31,6 +33,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
         disableTransitionOnChange
       >
         {children}
+
+        {/* `toast` is a manager created once at module scope, not read from
+            context — calling toast.add() anywhere in the app works whether
+            or not this sits above it in the tree. Toaster only needs to be
+            mounted once, to render the queue that manager holds. */}
+        <Toaster />
       </ThemeProvider>
 
       {/* Ships nothing in production: the package compiles to an empty
