@@ -1,6 +1,7 @@
-// Helpers shared by the tests in this folder. Kept in `src/` rather than a
-// `test/` folder so the package's own path aliases and exports map reach it,
-// the same reasoning as `@packages/db/testing`.
+// Test helpers shared by every domain's router tests — not specific to
+// `post`. Kept in `src/` rather than a `test/` folder so the package's own
+// path aliases and exports map reach it, the same reasoning as
+// `@packages/db/testing`.
 
 import { createAuth } from "@packages/auth/server"
 import type { Database } from "@packages/db"

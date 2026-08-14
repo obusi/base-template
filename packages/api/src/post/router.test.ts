@@ -9,7 +9,7 @@ import {
   contextFor,
   signUpTestUser,
   type TestUser,
-} from "@packages/api/router/seed"
+} from "@packages/api/testing"
 
 let db: TestDb
 let alice: TestUser

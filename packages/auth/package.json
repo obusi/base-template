@@ -6,7 +6,7 @@
   "scripts": {
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "auth:generate": "auth generate --config ./src/config.ts --output ../db/src/schema/auth.ts --yes"
+    "auth:generate": "auth generate --config ./src/config.ts --output ../db/src/auth/schema.ts --yes"
   },
   "exports": {
     "./server": "./src/server.ts",

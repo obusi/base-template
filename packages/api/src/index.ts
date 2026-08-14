@@ -4,7 +4,7 @@
 // quietly reopen the door the package split exists to close.
 
 import { os } from "@packages/api/orpc"
-import { postRouter } from "@packages/api/router/post"
+import { postRouter } from "@packages/api/post/router"
 
 export const router = os.router({
   post: postRouter,

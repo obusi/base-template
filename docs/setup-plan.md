@@ -105,12 +105,12 @@ apps/web/node_modules/next/dist/docs/
 
 ### C3 — Better Auth CLI writes the schema to the wrong place by default 🟡
 
-`npx auth@latest generate` emits `schema.ts` at the **project root**. Our design requires the auth tables to live in `packages/db/src/schema/auth.ts` so foreign keys such as `posts.authorId → user.id` resolve within a single Drizzle schema and a single migration set.
+`npx auth@latest generate` emits `schema.ts` at the **project root**. Our design requires the auth tables to live in `packages/db/src/auth/schema.ts` so foreign keys such as `posts.authorId → user.id` resolve within a single Drizzle schema and a single migration set.
 
 **Fix:** always run generate with an explicit output path, recorded as a script in `packages/auth/package.json` so nobody has to remember the flags:
 
 ```json
-"auth:generate": "auth generate --config ./src/config.ts --output ../db/src/schema/auth.ts --yes"
+"auth:generate": "auth generate --config ./src/config.ts --output ../db/src/auth/schema.ts --yes"
 ```
 
 Generated tables must then be edited to add RLS (see C5).
@@ -130,7 +130,7 @@ Both are real: `better-auth@1.6.27` still exports the `./adapters/drizzle` subpa
 
 The Better Auth CLI does not know about our RLS deny-all rule, so regenerating the schema silently turns `pgTable.withRLS(` back into `pgTable(` for `user`, `session`, `account`, and `verification`.
 
-**Mitigation:** the RLS guard test in `packages/db/src/schema/rls-guard.test.ts` catches this. It must exist **before** the auth schema is generated, not after — see the phase order below.
+**Mitigation:** the RLS guard test in `packages/db/src/rls-guard.test.ts` catches this. It must exist **before** the auth schema is generated, not after — see the phase order below.
 
 ### C6 — `vitest.workspace.ts` is deprecated 🟡
 
@@ -249,7 +249,9 @@ Re-exporting a sibling as `export * from "@packages/db/schema/auth"` type-checks
 Error  Cannot find module '.../packages/db/src/schema/index.ts/auth'
 ```
 
-**Fix:** files inside `src/schema/` import their siblings relatively (`./auth`). Cross-package imports keep using the alias.
+**Fix (original, Phases 0–7):** files inside `src/schema/` import their siblings relatively (`./auth`). Cross-package imports keep using the alias.
+
+**Superseded:** the later move to domain folders (`src/post/schema.ts`, `src/auth/schema.ts`, aggregated by a flat `src/schema.ts`) removed the exact-match `@packages/db/schema` entry from `tsconfig.json` entirely — the generic `"@packages/db/*": ["./src/*"]` wildcard resolves it correctly on its own. Cross-domain schema imports (`post/schema.ts` importing `user` from `../auth/schema`) are plain relative paths, never the package alias, so this class of bug can no longer occur. Left here as a record of why relative imports matter to drizzle-kit's loader, not as current instructions.
 
 ### C16 — `server-only` throws when Vitest imports it 🟡
 
@@ -415,7 +417,7 @@ packages/auth/
 └── package.json              exports: "./server", "./client", "./env" — config.ts is unreachable
 ```
 
-Then `pnpm --filter @packages/auth auth:generate` writes the schema into `packages/db/src/schema/auth.ts` (C3). Three post-generation edits follow, each of them caught by the verify gate rather than by memory: `pgTable(` → `pgTable.withRLS(` (C5), delete the `relations(...)` block (C14), and `pnpm format`.
+Then `pnpm --filter @packages/auth auth:generate` writes the schema into `packages/db/src/auth/schema.ts` (C3). Three post-generation edits follow, each of them caught by the verify gate rather than by memory: `pgTable(` → `pgTable.withRLS(` (C5), delete the `relations(...)` block (C14), and `pnpm format`.
 
 Finally `pnpm --filter @packages/db db:generate` turns the schema into the first migration.
 
@@ -454,11 +456,15 @@ packages/api/src/
 ├── orpc.ts                   implement(contract).$context<ApiContext>()
 ├── context.ts                { db, auth, headers } — all injected
 ├── middleware/auth.ts        requireAuth
-├── router/post.ts
-├── router/seed.ts            test helpers: real signup, real cookie
-├── router/post.test.ts       integration tests via createRouterClient
+├── testing.ts                test helpers: real signup, real cookie — shared by every domain
+├── post/
+│   ├── router.ts
+│   └── router.test.ts        integration tests via createRouterClient
 └── index.ts
 ```
+
+(Later restructured from a type-first `router/` folder to the domain-first
+layout above — see architecture.md §3 "Domain folders inside `packages/*`".)
 
 Tests sit beside the code rather than in a `test/` folder, matching the convention the rest of the repo settled on in `refactor: co-locate tests with the code they cover`.
 
@@ -591,7 +597,7 @@ agent opening a fresh project will not find them:
 - `apps/web` never depends on `@packages/db`
 - Ownership belongs in the `where` clause, never a read-then-check
 - Assert on an error's `code`, never its message (**C17**)
-- Regenerating `schema/auth.ts` undoes three edits; the verify gate names them
+- Regenerating `auth/schema.ts` undoes three edits; the verify gate names them
 - Read Next.js docs at `apps/web/node_modules/next/dist/docs/`
 - A page that needs SEO fetches in a Server Component
 

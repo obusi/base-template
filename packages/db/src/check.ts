@@ -137,7 +137,7 @@ for (const table of tables) {
 // depend on a setting it cannot see.
 //
 // That trigger is also why this script cannot stand in for
-// `schema/rls-guard.test.ts`: on Supabase a table that forgot `withRLS()` gets
+// `rls-guard.test.ts`: on Supabase a table that forgot `withRLS()` gets
 // protected anyway, so only the PGlite test can catch the omission in the
 // schema. This one checks the deployment; that one checks the code.
 console.log("")

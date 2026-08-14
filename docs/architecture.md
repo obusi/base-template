@@ -122,6 +122,27 @@ of who triggers it. `features/post/` reaches it across the feature boundary
 through `features/auth`'s `index.ts`, the same door any `app/` route uses —
 nothing imports past another feature's `index.ts` at an internal file.
 
+### Domain folders inside `packages/*`
+
+`contract`, `db`, and `api` group files by domain, one folder per domain:
+
+```
+packages/contract/src/post/    schema.ts, contract.ts
+packages/db/src/post/          schema.ts
+packages/api/src/post/         router.ts, router.test.ts
+```
+
+Adding a domain means adding the same folder name in each package — nothing
+to rename, nothing to guess. Files that don't belong to one domain stay flat:
+`packages/api/src/middleware/` (cross-cutting), `packages/db/src/schema.ts`
+(the aggregate Drizzle Kit reads), `packages/api/src/testing.ts` (test helpers
+every domain's router tests share, not just `post`'s).
+
+`ui` and `auth` don't follow this — neither has a business domain to group
+by. `packages/ui/src/components/button.tsx` isn't part of any feature, and
+`packages/auth` is one concern end to end. They stay organized by type
+(`components/`, `hooks/`, `lib/`).
+
 ### Why five packages
 
 The split follows hard technical constraints, not aesthetics:
@@ -300,7 +321,7 @@ Putting business fields in `additionalFields` costs four things: their
 validation rules move out of `packages/contract` into the auth config, so there
 are two places to look; forms lose the single schema source described in section
 7; `.output()` no longer constrains what goes back to the client; and every new
-field means regenerating `schema/auth.ts`, a file with three edits that have to
+field means regenerating `auth/schema.ts`, a file with three edits that have to
 be reapplied by hand each time.
 
 ### SEO rule
@@ -378,7 +399,7 @@ nothing about which role the deployment connects as.
 
 Never enable `FORCE ROW LEVEL SECURITY`; that would apply RLS to the owner as well.
 
-A guard test prevents forgetting, in `packages/db/src/schema/rls-guard.test.ts`:
+A guard test prevents forgetting, in `packages/db/src/rls-guard.test.ts`:
 
 ```ts
 it("every table has RLS enabled", async () => {
@@ -420,7 +441,7 @@ export const postContract = {
 ```
 
 ```ts
-// packages/api/src/router/post.ts
+// packages/api/src/post/router.ts
 const os = implement(contract)
 
 export const postRouter = os.router({
@@ -574,15 +595,17 @@ Delete when starting a real project:
 
 ```
 packages/contract/src/post/
-packages/db/src/schema/post.ts
-packages/api/src/router/post.ts
-packages/api/src/router/post.test.ts
-packages/api/src/router/seed.ts
+packages/db/src/post/
+packages/api/src/post/
 apps/web/app/posts/
 apps/web/app/login/
 apps/web/features/post/
 apps/web/features/auth/
 ```
+
+`packages/api/src/testing.ts` stays: the helpers in it (`signUpTestUser`,
+`contextFor`, `anonymousContext`) are not post-specific — every real domain's
+router tests will need them too.
 
 `login/` and `features/auth/` go with them: it is a bare email-and-password
 form built to exercise the example, not a sign-in page any real project would
