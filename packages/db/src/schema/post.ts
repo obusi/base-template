@@ -6,7 +6,7 @@
 
 import { index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
 
-import { user } from "../auth/schema"
+import { user } from "./auth"
 
 export const post = pgTable.withRLS(
   "post",

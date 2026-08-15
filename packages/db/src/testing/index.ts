@@ -1,7 +1,8 @@
 // Test helpers for this package and for any package that needs a real
 // database in its tests — packages/api imports these too, which is why they
-// live in src/ behind the `@packages/db/testing` entry point rather than in a
-// test/ folder the exports map cannot reach.
+// sit behind the `@packages/db/testing` entry point in `package.json`'s
+// `exports` rather than in a plain `test/` folder nothing outside the package
+// could reach.
 
 import { fileURLToPath } from "node:url"
 
@@ -14,8 +15,11 @@ import { migrate as migratePostgres } from "drizzle-orm/postgres-js/migrator"
 import postgres from "postgres"
 
 // Resolved from this file so tests pass regardless of the working directory,
-// including when another package imports these helpers.
-const MIGRATIONS_FOLDER = fileURLToPath(new URL("../drizzle", import.meta.url))
+// including when another package imports these helpers. Two levels up:
+// src/testing/ -> src/ -> the package root that holds drizzle/.
+const MIGRATIONS_FOLDER = fileURLToPath(
+  new URL("../../drizzle", import.meta.url)
+)
 
 // Spelled out from the two factories rather than from `createTestDb`, whose
 // body calls `resetDb(db: TestDb)` — inferring the type from it would be

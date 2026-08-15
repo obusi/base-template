@@ -8,7 +8,7 @@
 > getting-started path for a project forked from this one — `README.md` is
 > still the shadcn starter's.
 >
-> Last updated: 2026-08-14
+> Last updated: 2026-08-15
 
 ---
 
@@ -124,24 +124,57 @@ nothing imports past another feature's `index.ts` at an internal file.
 
 ### Domain folders inside `packages/*`
 
-`contract`, `db`, and `api` group files by domain, one folder per domain:
+`contract` and `api` group files by domain, one folder per domain:
 
 ```
 packages/contract/src/post/    schema.ts, contract.ts
-packages/db/src/post/          schema.ts
 packages/api/src/post/         router.ts, router.test.ts
 ```
 
 Adding a domain means adding the same folder name in each package — nothing
 to rename, nothing to guess. Files that don't belong to one domain stay flat:
-`packages/api/src/middleware/` (cross-cutting), `packages/db/src/schema.ts`
-(the aggregate Drizzle Kit reads), `packages/api/src/testing.ts` (test helpers
-every domain's router tests share, not just `post`'s).
+`packages/api/src/middleware/` (cross-cutting), `packages/api/src/testing.ts`
+(test helpers every domain's router tests share, not just `post`'s).
+
+`db` groups by domain too, but each domain is one *file*, not a folder —
+`packages/db/src/schema/post.ts`, `packages/db/src/schema/auth.ts` — because a
+db domain has never needed more than a single `schema.ts`. A folder per
+domain would hold exactly one file each, which buys nothing.
 
 `ui` and `auth` don't follow this — neither has a business domain to group
 by. `packages/ui/src/components/button.tsx` isn't part of any feature, and
 `packages/auth` is one concern end to end. They stay organized by type
-(`components/`, `hooks/`, `lib/`).
+(`components/`, `hooks/`, `lib/`) — and so does the rest of `packages/db`:
+
+```
+packages/db/
+├── scripts/check.ts        Deployment check — never imported, only run by hand
+└── src/
+    ├── index.ts             Public entry: db instance + schema namespace
+    ├── schema/               Table definitions, one file per domain
+    │   ├── index.ts            The aggregate Drizzle Kit reads
+    │   ├── auth.ts
+    │   ├── post.ts
+    │   └── rls-guard.test.ts   Tests the schema/ files next to it
+    ├── connection/           Talking to the real database
+    │   ├── client.ts
+    │   └── env.ts
+    └── testing/              A throwaway database for tests
+        └── index.ts             `@packages/db/testing` in the exports map
+```
+
+`scripts/` sits outside `src/` because nothing ever imports `check.ts` — it
+only runs as `node scripts/check.ts` — while everything under `src/` is
+either exported or tested. Files inside `schema/` import each other with
+relative paths (`./auth`), never the `@packages/db/schema` alias: drizzle-kit's
+loader misreads that alias as a string prefix and fails to resolve the
+sibling. See `docs/setup-plan.md` C15.
+
+`package.json`'s `exports` field lists only what other packages actually
+import — `"."` and `"./testing"` — rather than a blanket `"./*"` wildcard.
+Nothing outside `packages/db` has ever reached for `@packages/db/client` or
+`@packages/db/schema/post` directly, so the map doesn't offer paths that
+aren't part of the package's real public surface.
 
 ### Why five packages
 
@@ -399,7 +432,7 @@ nothing about which role the deployment connects as.
 
 Never enable `FORCE ROW LEVEL SECURITY`; that would apply RLS to the owner as well.
 
-A guard test prevents forgetting, in `packages/db/src/rls-guard.test.ts`:
+A guard test prevents forgetting, in `packages/db/src/schema/rls-guard.test.ts`:
 
 ```ts
 it("every table has RLS enabled", async () => {
@@ -549,7 +582,7 @@ Creating an instance per test instead of per file made the three-test guard suit
 `resetDb` drops every table **and re-applies the migrations**, leaving the state a freshly migrated database is in rather than an empty one. Dropping alone would let schema assertions pass against nothing. It also drops the `drizzle` schema: the ledger of applied migrations lives in `drizzle.__drizzle_migrations`, outside `public`, and leaving it behind makes the re-run a no-op.
 
 **Limitations:** PGlite is WASM — some extensions are unavailable and role/permission support is incomplete.
-`src/testing.ts` accepts `TEST_DATABASE_URL` from the start, so adding a real Postgres run in CI later requires no test changes.
+`src/testing/index.ts` accepts `TEST_DATABASE_URL` from the start, so adding a real Postgres run in CI later requires no test changes.
 
 ---
 
@@ -560,14 +593,14 @@ Each package validates the variables it reads in its own `env.ts`. A `.env` file
 ```
                  validates      real .env?   used by
 apps/web/        env.ts         yes          `next dev` / `next build`
-packages/db/     src/env.ts     yes          `drizzle-kit generate|migrate|push|studio`
+packages/db/     src/connection/env.ts  yes  `drizzle-kit generate|migrate|push|studio`
 packages/auth/   src/env.ts     no           nothing runs here — imported into apps/web
 ```
 
 So `packages/auth/.env.example` documents what the package requires, while the values themselves go in `apps/web/.env`. Putting a real `.env` beside `packages/auth/src/env.ts` would produce a file that looks authoritative and is never opened.
 
 ```ts
-// packages/db/src/env.ts
+// packages/db/src/connection/env.ts
 export const env = createEnv({
   server: { DATABASE_URL: z.url() },
   runtimeEnv: process.env,
@@ -595,7 +628,7 @@ Delete when starting a real project:
 
 ```
 packages/contract/src/post/
-packages/db/src/post/
+packages/db/src/schema/post.ts
 packages/api/src/post/
 apps/web/app/posts/
 apps/web/app/login/

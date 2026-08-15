@@ -7,7 +7,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "db:check": "node --env-file-if-exists=.env src/check.ts",
+    "db:check": "node --env-file-if-exists=.env scripts/check.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
@@ -15,7 +15,7 @@
   },
   "exports": {
     ".": "./src/index.ts",
-    "./*": "./src/*.ts"
+    "./testing": "./src/testing/index.ts"
   },
   "dependencies": {
     "@t3-oss/env-core": "^0.13.11",
