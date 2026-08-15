@@ -124,17 +124,33 @@ nothing imports past another feature's `index.ts` at an internal file.
 
 ### Domain folders inside `packages/*`
 
-`contract` and `api` group files by domain, one folder per domain:
+`contract` and `api` group files by domain, one folder per domain. Adding a
+domain means adding the same folder name in each package — nothing to
+rename, nothing to guess.
+
+`contract` nests every domain folder under a `domains/` parent, and
+everything that isn't domain-specific under a sibling `shared/`, so a glance
+at `src/` answers "is this about one domain or all of them" without reading
+a comment:
 
 ```
-packages/contract/src/post/    schema.ts, contract.ts
-packages/api/src/post/         router.ts, router.test.ts
+packages/contract/src/
+├── index.ts                    Public entry
+├── domains/
+│   └── post/
+│       ├── schema.ts
+│       └── contract.ts
+└── shared/
+    ├── errors.ts                Error codes every domain's contract uses
+    └── dependencies.test.ts     Structural test — see §4
 ```
 
-Adding a domain means adding the same folder name in each package — nothing
-to rename, nothing to guess. Files that don't belong to one domain stay flat:
-`packages/api/src/middleware/` (cross-cutting), `packages/api/src/testing.ts`
-(test helpers every domain's router tests share, not just `post`'s).
+`api` groups by domain the same way but without the `domains/` wrapper —
+today it only has `packages/api/src/post/`, next to
+`packages/api/src/middleware/` (cross-cutting) and `packages/api/src/testing.ts`
+(test helpers every domain's router tests share, not just `post`'s). Nothing
+stops adding the same wrapper there once more domains land; it just hasn't
+been needed with one domain.
 
 `db` groups by domain too, but each domain is one *file*, not a folder —
 `packages/db/src/schema/post.ts`, `packages/db/src/schema/auth.ts` — because a
@@ -257,7 +273,7 @@ export default async function Page() {
    instance a test just seeded. `Database` is deliberately the shared
    `PgAsyncDatabase` base rather than `typeof db`, because the two drivers are
    otherwise incompatible types.
-5. **`packages/contract` may depend on `@orpc/contract` and `zod`, and nothing else** — checked by `packages/contract/src/dependencies.test.ts`, which reads the package's own `package.json`. This is the boundary a future Expo app depends on, and the one nobody would notice breaking until a React Native build tried to bundle Drizzle.
+5. **`packages/contract` may depend on `@orpc/contract` and `zod`, and nothing else** — checked by `packages/contract/src/shared/dependencies.test.ts`, which reads the package's own `package.json`. This is the boundary a future Expo app depends on, and the one nobody would notice breaking until a React Native build tried to bundle Drizzle.
 
 ---
 
@@ -461,7 +477,7 @@ Every procedure declares `.output()`. If a handler returns an object carrying `p
 Separate the *spec* (what goes in and out) from the *implementation* (how).
 
 ```ts
-// packages/contract/src/post/contract.ts
+// packages/contract/src/domains/post/contract.ts
 export const postContract = {
   create: oc
     .input(CreatePostInput)
@@ -627,7 +643,7 @@ The template ships a `post` domain wired through every layer (contract → db �
 Delete when starting a real project:
 
 ```
-packages/contract/src/post/
+packages/contract/src/domains/post/
 packages/db/src/schema/post.ts
 packages/api/src/post/
 apps/web/app/posts/

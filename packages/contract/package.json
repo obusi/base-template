@@ -9,8 +9,7 @@
     "test": "vitest run"
   },
   "exports": {
-    ".": "./src/index.ts",
-    "./*": "./src/*.ts"
+    ".": "./src/index.ts"
   },
   "dependencies": {
     "@orpc/contract": "^1.15.0",

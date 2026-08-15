@@ -24,13 +24,13 @@ function runtimeDependencies(relativePath: string): string[] {
 
 describe("dependencies", () => {
   it("are limited to what a React Native bundler can follow", () => {
-    expect(runtimeDependencies("../package.json")).toEqual(ALLOWED)
+    expect(runtimeDependencies("../../package.json")).toEqual(ALLOWED)
   })
 
   // Without this, a `runtimeDependencies` that silently returned [] would make
   // the check above pass on any package at all.
   it("are actually read from the file", () => {
-    expect(runtimeDependencies("../../db/package.json")).toContain(
+    expect(runtimeDependencies("../../../db/package.json")).toContain(
       "drizzle-orm"
     )
   })

@@ -9,7 +9,7 @@
 import { oc } from "@orpc/contract"
 import { z } from "zod"
 
-import { commonErrors } from "../errors"
+import { commonErrors } from "../../shared/errors"
 import {
   CreatePostInput,
   ListPostsInput,
