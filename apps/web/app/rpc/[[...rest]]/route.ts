@@ -7,7 +7,7 @@ import { RPCHandler } from "@orpc/server/fetch"
 import { headers } from "next/headers"
 
 import { router } from "@packages/api"
-import { liveContext } from "@packages/api/live"
+import { liveContext } from "@packages/api/connection/live"
 
 const handler = new RPCHandler(router, {
   interceptors: [

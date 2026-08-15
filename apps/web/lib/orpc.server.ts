@@ -9,7 +9,7 @@ import { createRouterClient } from "@orpc/server"
 import { headers } from "next/headers"
 
 import { router } from "@packages/api"
-import { liveContext } from "@packages/api/live"
+import { liveContext } from "@packages/api/connection/live"
 
 // A function, not an object: `headers()` is per-request, so the context has to
 // be built when a procedure is called rather than when this module loads.

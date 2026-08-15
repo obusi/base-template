@@ -145,12 +145,37 @@ packages/contract/src/
     └── dependencies.test.ts     Structural test — see §4
 ```
 
-`api` groups by domain the same way but without the `domains/` wrapper —
-today it only has `packages/api/src/post/`, next to
-`packages/api/src/middleware/` (cross-cutting) and `packages/api/src/testing.ts`
-(test helpers every domain's router tests share, not just `post`'s). Nothing
-stops adding the same wrapper there once more domains land; it just hasn't
-been needed with one domain.
+`api` follows the same two patterns `contract` does — `domains/` for
+anything specific to one domain, named folders (not a single generic
+`shared/`) for anything cross-cutting enough to have its own well-defined
+job:
+
+```
+packages/api/src/
+├── index.ts                  Public entry: composes the router
+├── domains/
+│   └── post/
+│       ├── router.ts
+│       └── router.test.ts
+├── shared/                    What every domain's router builds on
+│   ├── context.ts                ApiContext — the shape a handler receives
+│   └── builder.ts                `os` = implement(contract).$context<ApiContext>()
+├── middleware/                 Cross-cutting oRPC middleware
+│   └── auth.ts                    requireAuth
+├── connection/                 The real ApiContext, for production requests
+│   └── live.ts                    `@packages/api/connection/live` in the exports map
+└── testing/                     The throwaway ApiContext, for tests
+    └── index.ts                    Only used inside this package — not exported
+```
+
+`connection/` and `testing/` deliberately reuse the two names `db` uses for
+the same two jobs — the real thing, and the throwaway thing tests get
+instead — so the pattern reads the same in both packages. Every file inside
+`api` imports its siblings with a relative path (`./shared/builder`,
+`../../middleware/auth`), never the `@packages/api/*` alias: `package.json`'s
+`exports` lists only `"."` and `"./connection/live"` — the two paths
+`apps/web` actually imports — and a self-reference through any other path
+would not resolve.
 
 `db` groups by domain too, but each domain is one *file*, not a folder —
 `packages/db/src/schema/post.ts`, `packages/db/src/schema/auth.ts` — because a
@@ -302,7 +327,7 @@ The switch lives in `apps/web/lib/orpc.ts`: on the server it resolves to the dir
 
 Without the switch, a Server Component fetching data would make an HTTP request to its own process: a wasted round trip, and a way to exhaust the request pool under load.
 
-The context both paths hand over is built in `packages/api/src/live.ts`, not in `apps/web`. Assembling it in the app would require `apps/web` to depend on `@packages/db`, and the absence of that dependency is the boundary.
+The context both paths hand over is built in `packages/api/src/connection/live.ts`, not in `apps/web`. Assembling it in the app would require `apps/web` to depend on `@packages/db`, and the absence of that dependency is the boundary.
 
 ### A third door: REST at `/api/v1`
 
@@ -387,7 +412,7 @@ Correct approach: keep `page.tsx` a Server Component and extract only the intera
 ### Authorization lives in oRPC middleware, and only there
 
 ```ts
-// packages/api/src/middleware/auth.ts
+// packages/api/src/middleware/auth.ts (imports `os` from ../shared/builder)
 export const requireAuth = os.middleware(async ({ context, next }) => {
   const session = await context.auth.api.getSession({ headers: context.headers })
   if (!session) throw new ORPCError("UNAUTHORIZED")
@@ -490,7 +515,7 @@ export const postContract = {
 ```
 
 ```ts
-// packages/api/src/post/router.ts
+// packages/api/src/domains/post/router.ts
 const os = implement(contract)
 
 export const postRouter = os.router({
@@ -645,14 +670,14 @@ Delete when starting a real project:
 ```
 packages/contract/src/domains/post/
 packages/db/src/schema/post.ts
-packages/api/src/post/
+packages/api/src/domains/post/
 apps/web/app/posts/
 apps/web/app/login/
 apps/web/features/post/
 apps/web/features/auth/
 ```
 
-`packages/api/src/testing.ts` stays: the helpers in it (`signUpTestUser`,
+`packages/api/src/testing/index.ts` stays: the helpers in it (`signUpTestUser`,
 `contextFor`, `anonymousContext`) are not post-specific — every real domain's
 router tests will need them too.
 

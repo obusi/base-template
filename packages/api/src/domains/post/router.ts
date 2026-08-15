@@ -5,8 +5,8 @@ import { and, desc, eq, lt, or, sql } from "drizzle-orm"
 
 import { schema } from "@packages/db"
 
-import { requireAuth } from "@packages/api/middleware/auth"
-import { os } from "@packages/api/orpc"
+import { requireAuth } from "../../middleware/auth"
+import { os } from "../../shared/builder"
 
 const { post } = schema
 

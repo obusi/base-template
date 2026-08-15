@@ -15,7 +15,7 @@ import { experimental_ZodSmartCoercionPlugin } from "@orpc/zod/zod4"
 import { headers } from "next/headers"
 
 import { router } from "@packages/api"
-import { liveContext } from "@packages/api/live"
+import { liveContext } from "@packages/api/connection/live"
 
 const handler = new OpenAPIHandler(router, {
   plugins: [

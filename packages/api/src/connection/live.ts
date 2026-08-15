@@ -15,7 +15,7 @@ import "server-only"
 import { auth } from "@packages/auth/server"
 import { db } from "@packages/db"
 
-import type { ApiContext } from "@packages/api/context"
+import type { ApiContext } from "../shared/context"
 
 export function liveContext(headers: Headers): ApiContext {
   return { db, auth, headers }

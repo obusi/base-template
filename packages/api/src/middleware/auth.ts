@@ -1,6 +1,6 @@
 import { ORPCError } from "@orpc/server"
 
-import { os } from "@packages/api/orpc"
+import { os } from "../shared/builder"
 
 /**
  * The only place in this repo that decides whether a request is authenticated.

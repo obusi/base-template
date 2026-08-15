@@ -1,12 +1,13 @@
 // Test helpers shared by every domain's router tests — not specific to
-// `post`. Kept in `src/` rather than a `test/` folder so the package's own
-// path aliases and exports map reach it, the same reasoning as
-// `@packages/db/testing`.
+// `post`. Only used inside this package, unlike `@packages/db/testing`
+// (which `packages/api` itself imports), so this stays out of
+// `package.json`'s `exports` and domain tests reach it with a relative
+// import instead.
 
 import { createAuth } from "@packages/auth/server"
 import type { Database } from "@packages/db"
 
-import type { ApiContext } from "@packages/api/context"
+import type { ApiContext } from "../shared/context"
 
 export type TestUser = {
   id: string

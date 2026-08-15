@@ -2,7 +2,7 @@ import { implement } from "@orpc/server"
 
 import { contract } from "@packages/contract"
 
-import type { ApiContext } from "@packages/api/context"
+import type { ApiContext } from "./context"
 
 /**
  * The builder every procedure starts from. `implement` binds it to the

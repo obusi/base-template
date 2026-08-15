@@ -10,7 +10,7 @@
   },
   "exports": {
     ".": "./src/index.ts",
-    "./*": "./src/*.ts"
+    "./connection/live": "./src/connection/live.ts"
   },
   "dependencies": {
     "@orpc/client": "^1.15.0",

@@ -3,13 +3,13 @@ import { beforeAll, beforeEach, describe, expect, it } from "vitest"
 
 import { createTestDb, resetDb, type TestDb } from "@packages/db/testing"
 
-import { router } from "@packages/api"
+import { router } from "../../index"
 import {
   anonymousContext,
   contextFor,
   signUpTestUser,
   type TestUser,
-} from "@packages/api/testing"
+} from "../../testing"
 
 let db: TestDb
 let alice: TestUser

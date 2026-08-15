@@ -7,7 +7,7 @@ import {
   tableNames,
   tablesWithoutRLS,
   type TestDb,
-} from "@packages/db/testing"
+} from "../testing"
 
 let db: TestDb
 
