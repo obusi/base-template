@@ -8,7 +8,8 @@ allowBuilds:
   unrs-resolver: true
 
 # Better Auth still declares `drizzle-orm: ^0.45.2` as a peer, but this repo
-# pins drizzle-orm 1.0.0-rc.4. Verified compatible — see docs/setup-plan.md §2.5.
+# pins drizzle-orm 1.0.0-rc.4. Verified compatible — see docs/architecture.md
+# section 11 (C1, C10).
 peerDependencyRules:
   allowedVersions:
     drizzle-orm: "1.0.0-rc.4"

@@ -1,5 +1,5 @@
 // Example domain — delete this folder when starting a real project. See
-// docs/architecture.md section 11 for the full list.
+// docs/architecture.md section 12 for the full list.
 //
 // A Server Component, which is what makes this page indexable: the HTML that
 // leaves the server already contains the posts. A `useQuery` version would ship

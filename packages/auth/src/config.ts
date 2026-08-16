@@ -30,7 +30,7 @@ export function createAuth(database: Database) {
       // 🚫 Never add `experimental: { joins: true }` here. It is the one
       // adapter option that reaches for `db.query`, an API this repo's Drizzle
       // version removed. Everything else the adapter uses exists in v1 — see
-      // docs/setup-plan.md C10.
+      // docs/architecture.md section 11 (C10).
     }),
 
     emailAndPassword: {

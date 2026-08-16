@@ -77,12 +77,12 @@ from `features/auth/components/sign-out-button.tsx` directly. Anything inside
 what keeps a feature's internals free to change without hunting down every
 importer.
 
-**Ownership is about meaning, not about which route renders it.**
-`SignOutButton` lives in `features/auth/`, not `features/post/`, even though
-today only the posts page renders it — signing out is an auth action no
-matter who triggers it. If you're placing a new file and the only reason it
-feels post-shaped is "the posts page happens to use it," that's a sign to
-check what the file is actually *about* before choosing its folder.
+**Ownership is about meaning, not about which route renders it.** A
+`SignOutButton` belongs in `features/auth/` even if the only page that renders
+it today is some other feature's — signing out is an auth action no matter who
+triggers it. If you're placing a new file and the only reason it feels like it
+belongs to a feature is "that feature's page happens to use it," that's a sign
+to check what the file is actually *about* before choosing its folder.
 
 ## `components/` and `hooks/` — feature-agnostic only
 
@@ -93,9 +93,9 @@ the meaning of one domain, it stays in that domain's `features/<name>/`, and
 the other code imports it across the feature boundary instead of promoting
 it up.
 
-Both folders are currently empty (`.gitkeep` only). That's expected, not a
-gap to fill preemptively — the template ships one example domain, so nothing
-has needed cross-feature sharing yet.
+Empty is the normal state for both, especially early on. That's not a gap to
+fill preemptively — until a second feature exists, nothing can have earned a
+place here yet.
 
 ## `lib/` and root config files — infrastructure, not a domain
 
@@ -134,8 +134,8 @@ Client Component concern.
 ### Client Component — data driven by user interaction
 
 1. **`useMutation(orpc.xxx.mutationOptions())`** — create/update/delete, or
-   any one-off action rather than displaying data. What
-   `create-post-form.tsx` and `post-item.tsx` use.
+   any one-off action rather than displaying data. What a form or a row's
+   action buttons use.
 2. **`useQuery(orpc.xxx.queryOptions())`** — data that changes from user
    interaction (search, filter, manual refresh) when nothing wraps the
    component in `<Suspense>`. The component checks `isLoading`/`isError`
@@ -145,15 +145,16 @@ Client Component concern.
    should own the loading state instead of the component checking it.
 4. **`useInfiniteQuery` / `useSuspenseInfiniteQuery`
    `(orpc.xxx.infiniteOptions())`** — "load more" or infinite scroll driven
-   from the client. `post.list` already returns `nextCursor`, so it's ready
-   for this without a contract change.
+   from the client. Any list procedure that returns a `nextCursor` is ready
+   for this without a contract change; see `packages-contract.md` for the
+   keyset-paging shape that makes it work.
 
 ## Deciding where a new file goes
 
 1. Is it a route file at a path Next.js dictates (`page.tsx`, `layout.tsx`,
    `route.ts`)? → `app/`, and it stays thin.
-2. Does it belong to one specific business domain (has a subject: `post`,
-   `auth`, or whatever comes next)? → `features/<domain>/`, private by
+2. Does it belong to one specific business domain — does it have a subject,
+   the way `auth` or `billing` does? → `features/<domain>/`, private by
    default. Export it from that feature's `index.ts` only once something
    outside the feature needs it.
 3. Is it generic UI or a generic hook, with no business meaning, and does a
@@ -162,5 +163,5 @@ Client Component concern.
    parsing, instrumentation — rather than something a domain cares about? →
    `lib/`, or a root config file if the tool requires that exact path.
 5. None of the above cleanly fits? Ask rather than guess. An unclear case
-   usually means the domain boundary itself isn't settled yet, and that's a
-   decision for the human reviewing the template, not one to make silently.
+   usually means the domain boundary itself isn't settled yet, and that is a
+   decision for the human reviewing the work, not one to make silently.
