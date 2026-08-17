@@ -122,15 +122,46 @@ green.
 in the same commit that adds the table, so the diff records the schema change
 instead of hiding it.
 
+## What `apps/web` tests, and what it does not
+
+The app has a suite, and it is deliberately small. Everything with business
+meaning is already covered where it lives: handlers in `packages/api` against a
+real database, and the codes those handlers and Better Auth answer with in
+`packages/auth/src/config.test.ts`. What is left in `apps/web` is markup and
+wiring.
+
+So the rule here is the same one as everywhere else, pointed at React: **a test
+that mocks `authClient`, `orpc` and `next/navigation` in order to render a form
+verifies almost nothing.** What survives the mocking is react-hook-form and
+zod, which are not this repo's code. Do not add React Testing Library or switch
+the environment to jsdom for it.
+
+What does belong: pure logic with no React in it. `features/auth/redirect.ts`
+is the example — an open-redirect guard, testable by calling it, and worth
+testing because getting it wrong hands a signed-in browser to another site.
+
+The flows themselves — sign up, land on the right page, create a post — are the
+honest job of an end-to-end runner. There is none here on purpose: Playwright's
+browser binaries would be inherited by every project forked from this template,
+and adding it later to one project is easy where removing it from all of them
+is not.
+
 ## Config
 
 Each package's `vitest.config.ts` re-exports `@tooling/vitest-config/base`.
-`packages/api` is the one that extends it, and the reasons are written in the
-file: the `react-server` condition (so `@packages/auth/server`'s `server-only`
-marker resolves), inlining `server-only` so Node honours that condition, and
-placeholder env values that are deliberately unreachable — a test that
-accidentally reached the production auth instance should fail loudly on the
-host, not quietly connect to something.
+Two extend it, and each file says why:
 
-Copy that pattern only if a new package hits the same problem. The default is
-the bare re-export.
+- **`packages/api`** — the `react-server` condition (so `@packages/auth/server`'s
+  `server-only` marker resolves), inlining `server-only` so Node honours that
+  condition, and placeholder env values.
+- **`packages/auth`** — the same placeholder env, and nothing else. Its tests
+  import `./config` directly, and that file is deliberately free of the
+  `server-only` marker, so none of the condition work applies.
+
+The env values are deliberately unreachable: a test that accidentally reached
+the production auth instance should fail loudly on the host, not quietly
+connect to something.
+
+Copy either pattern only if a new package hits the same problem. The default is
+the bare re-export, which is what `apps/web`, `packages/db` and `packages/ui`
+use.

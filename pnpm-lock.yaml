@@ -70,7 +70,7 @@ importers:
         version: 5.101.4(react@19.2.4)
       better-auth:
         specifier: ^1.6.27
-        version: 1.6.27(next@16.2.6(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vitest@4.1.10(@types/node@20.19.41)(vite@8.2.1(@types/node@20.19.41)(jiti@2.7.0)))
+        version: 1.6.27(next@16.2.6(@babel/core@7.29.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vitest@4.1.10(@types/node@20.19.41)(vite@8.2.1(@types/node@20.19.41)(jiti@2.7.0)))
       lucide-react:
         specifier: ^1.28.0
         version: 1.28.0(react@19.2.4)
@@ -105,6 +105,9 @@ importers:
       '@tooling/typescript-config':
         specifier: workspace:*
         version: link:../../tooling/typescript-config
+      '@tooling/vitest-config':
+        specifier: workspace:*
+        version: link:../../tooling/vitest-config
       '@types/node':
         specifier: ^20
         version: 20.19.41
@@ -120,6 +123,9 @@ importers:
       typescript:
         specifier: ^5
         version: 5.9.3
+      vitest:
+        specifier: ^4.1.10
+        version: 4.1.10(@types/node@20.19.41)(vite@8.2.1(@types/node@20.19.41)(jiti@2.7.0))
 
   packages/api:
     dependencies:
@@ -183,7 +189,7 @@ importers:
         version: 0.13.11(typescript@5.9.3)(zod@4.4.3)
       better-auth:
         specifier: ^1.6.27
-        version: 1.6.27(next@16.2.6(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vitest@4.1.10(@types/node@20.19.41)(vite@8.2.1(@types/node@20.19.41)(jiti@2.7.0)))
+        version: 1.6.27(next@16.2.6(@babel/core@7.29.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vitest@4.1.10(@types/node@20.19.41)(vite@8.2.1(@types/node@20.19.41)(jiti@2.7.0)))
       react:
         specifier: 19.2.4
         version: 19.2.4
@@ -200,6 +206,9 @@ importers:
       '@tooling/typescript-config':
         specifier: workspace:*
         version: link:../../tooling/typescript-config
+      '@tooling/vitest-config':
+        specifier: workspace:*
+        version: link:../../tooling/vitest-config
       '@types/node':
         specifier: ^20
         version: 20.19.41
@@ -215,6 +224,9 @@ importers:
       typescript:
         specifier: ^5
         version: 5.9.3
+      vitest:
+        specifier: ^4.1.10
+        version: 4.1.10(@types/node@20.19.41)(vite@8.2.1(@types/node@20.19.41)(jiti@2.7.0))
 
   packages/contract:
     dependencies:
@@ -4246,10 +4258,6 @@ packages:
     resolution: {integrity: sha512-QKAl9m8gWWGHV8jZcPeym6j+XULi6tOf1mT83WYJ4Lk2ytW/uwAWkrP0uFsdoYMdueVJ0qs26wZ+23xeB4ibNQ==}
     engines: {node: '>=18'}
 
-  tinyglobby@0.2.16:
-    resolution: {integrity: sha512-pn99VhoACYR8nFHhxqix+uvsbXineAasWm5ojXoN8xEwK5Kd3/TrhNn1wByuD52UxWRLy8pu+kRMniEi6Eq9Zg==}
-    engines: {node: '>=12.0.0'}
-
   tinyglobby@0.2.17:
     resolution: {integrity: sha512-wXR/dYpcqKmfWpEdZjiKJOwCNFndD0DMnrW/cYjVGttEkBfVgcLFHoNrlj47mjOVic9yyNu65alsgF4NQyTa2g==}
     engines: {node: '>=12.0.0'}
@@ -5871,7 +5879,7 @@ snapshots:
       debug: 4.4.3
       minimatch: 10.2.5
       semver: 7.8.1
-      tinyglobby: 0.2.16
+      tinyglobby: 0.2.17
       ts-api-utils: 2.5.0(typescript@5.9.3)
       typescript: 5.9.3
     transitivePeerDependencies:
@@ -6056,7 +6064,7 @@ snapshots:
       '@better-auth/utils': 0.4.2
       '@clack/prompts': 1.7.0
       '@mrleebo/prisma-ast': 0.13.1
-      better-auth: 1.6.27(next@16.2.6(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vitest@4.1.10(@types/node@20.19.41)(vite@8.2.1(@types/node@20.19.41)(jiti@2.7.0)))
+      better-auth: 1.6.27(next@16.2.6(@babel/core@7.29.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vitest@4.1.10(@types/node@20.19.41)(vite@8.2.1(@types/node@20.19.41)(jiti@2.7.0)))
       c12: 3.3.4
       chalk: 5.6.2
       commander: 12.1.0
@@ -6108,7 +6116,7 @@ snapshots:
 
   baseline-browser-mapping@2.10.32: {}
 
-  better-auth@1.6.27(next@16.2.6(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vitest@4.1.10(@types/node@20.19.41)(vite@8.2.1(@types/node@20.19.41)(jiti@2.7.0))):
+  better-auth@1.6.27(next@16.2.6(@babel/core@7.29.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vitest@4.1.10(@types/node@20.19.41)(vite@8.2.1(@types/node@20.19.41)(jiti@2.7.0))):
     dependencies:
       '@better-auth/core': 1.6.27(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.4.0(zod@4.4.3))(jose@6.2.7)(kysely@0.29.5)(nanostores@1.4.2)
       '@better-auth/drizzle-adapter': 1.6.27(@better-auth/core@1.6.27(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.4.0(zod@4.4.3))(jose@6.2.7)(kysely@0.29.5)(nanostores@1.4.2))(@better-auth/utils@0.4.2)
@@ -8196,11 +8204,6 @@ snapshots:
   tinybench@2.9.0: {}
 
   tinyexec@1.3.0: {}
-
-  tinyglobby@0.2.16:
-    dependencies:
-      fdir: 6.5.0(picomatch@4.0.5)
-      picomatch: 4.0.5
 
   tinyglobby@0.2.17:
     dependencies:

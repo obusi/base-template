@@ -6,6 +6,7 @@
   "scripts": {
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "auth:generate": "auth generate --config ./src/config.ts --output ../db/src/schema/auth.ts --yes"
   },
   "exports": {
@@ -26,9 +27,11 @@
     "auth": "^1.6.27",
     "@tooling/eslint-config": "workspace:*",
     "@tooling/typescript-config": "workspace:*",
+    "@tooling/vitest-config": "workspace:*",
     "@types/node": "^20",
     "@types/react": "^19",
     "eslint": "^9",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   }
 }
