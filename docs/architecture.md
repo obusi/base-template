@@ -957,19 +957,31 @@ fork.
 
 ### Turning this repo into a real project
 
-Beyond S11 above, which every deployment needs, a fork
-has to strip the template out of itself. Leaving it in means every future
-session is told to keep a real product "lean" and free of business logic.
+Beyond S11 above, which every deployment needs, a fork has to strip the
+template out of itself. Leaving it in means every future session is told to
+keep a real product "lean" and free of business logic.
 
-1. **Rename.** `base-template` appears in `package.json`, `README.md`, the tree
-   under S2, and — visible to users — `apps/web/app/api/spec/route.ts`
-   and `apps/web/app/api/docs/route.ts`.
-2. **Delete every appendix in this file**, including this one.
-3. **Delete the "While this repo is still the template" section of
+1. **Rename.** `base-template` is the project's own name in six places, three
+   of which a user can see:
+
+   | File | What it is |
+   |---|---|
+   | `package.json` | the workspace root's `name` |
+   | `README.md` | the heading |
+   | this file, S2 | the tree diagram |
+   | `apps/web/app/layout.tsx` | **the browser tab title**, and the `%s · …` template every route inherits |
+   | `apps/web/app/api/spec/route.ts` | **the title in the published OpenAPI document** |
+   | `apps/web/app/api/docs/route.ts` | **the tab title at `/api/docs`** |
+
+   The version in `api/spec/route.ts` is hard-coded separately from
+   `package.json`; set it or wire the two together.
+2. **Rewrite `apps/web/app/page.tsx`.** It is a placeholder that describes the
+   template and links to the example domain.
+3. **Delete every appendix in this file**, including this one.
+4. **Delete the "While this repo is still the template" section of
    `CLAUDE.md`.**
-4. **Rewrite `README.md`** for the project.
-5. **Delete the example domain** when a real one replaces it — see "Appendix —
-   The example domain".
+5. **Rewrite `README.md`** for the project.
+6. **Delete the example domain** when a real one replaces it — see S14.
 
 Everything else in `CLAUDE.md` and all of `.claude/rules/` applies unchanged;
 they describe the stack, not the template.
