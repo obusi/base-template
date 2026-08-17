@@ -45,16 +45,16 @@ function remove(path) {
 
 // ------------------------------------------------------------ the domain
 
-// `login/` and `features/auth/` go too: a bare email-and-password form built
-// to exercise the example, not a sign-in page any real project would ship.
+// `apps/web/features/auth` and its two routes are deliberately absent: they
+// are real sign-in and sign-up pages wired to Better Auth, and every project
+// needs them. Only their redirect target belongs to the example — handled
+// below.
 for (const path of [
   "packages/contract/src/domains/post",
   "packages/db/src/schema/post.ts",
   "packages/api/src/domains/post",
   "apps/web/app/posts",
-  "apps/web/app/login",
   "apps/web/features/post",
-  "apps/web/features/auth",
 ]) {
   remove(path)
 }
@@ -112,6 +112,17 @@ edit("packages/api/src/testing/index.ts", (t) =>
   )
 )
 
+// The auth pages survive, but both send people to `/posts` once they are
+// signed in. Nothing catches this: the pages compile, sign-in succeeds, and
+// the 404 arrives a second later. `/` is a safe landing spot rather than the
+// right one — SKILL.md says to ask where it should actually go.
+for (const path of [
+  "apps/web/features/auth/signin-page.tsx",
+  "apps/web/features/auth/signup-page.tsx",
+]) {
+  edit(path, (t) => t.replace('router.push("/posts")', 'router.push("/")'))
+}
+
 // ------------------------------------------------------- architecture.md
 
 const BLURB_EXAMPLE_ONLY =
@@ -156,6 +167,7 @@ console.log(
   "\nNot done here — see SKILL.md:\n" +
     '  packages/db/drizzle/     still contains CREATE TABLE "post"\n' +
     "  apps/web/app/page.tsx    may still link to /posts\n" +
+    "  features/auth/*-page.tsx redirect now points at / — confirm that is right\n" +
     "\nRun `pnpm verify`. Green means the removal is complete: tsc covers four\n" +
     "of the edits above and rls-guard.test.ts covers the pinned table list.\n" +
     "\nThen delete this skill — there is nothing left for it to remove."

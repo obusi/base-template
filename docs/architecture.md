@@ -1008,21 +1008,21 @@ packages/contract/src/domains/post/
 packages/db/src/schema/post.ts
 packages/api/src/domains/post/
 apps/web/app/posts/
-apps/web/app/login/
 apps/web/features/post/
-apps/web/features/auth/
 ```
 
-`login/` and `features/auth/` go with the rest: it is a bare
-email-and-password form built to exercise the example, not a sign-in page any
-real project would ship. Keep the `features/` convention itself.
+`apps/web/app/signin/`, `apps/web/app/signup/` and `apps/web/features/auth/`
+**stay.** They are real sign-in and sign-up pages wired to Better Auth, not
+scaffolding for the example — every project needs them. The one thing to
+change is where they send someone afterwards: both push to `/posts`, which is
+about to stop existing.
 
 `packages/api/src/testing/index.ts` **stays** — `signUpTestUser`, `contextFor`,
 and `anonymousContext` belong to no domain, and every real domain's router
 tests need them.
 
 Then edit what still refers to the deleted domain. `tsc` catches the first
-four; the rest are comments and a pinned list, which it does not:
+four; the rest are comments, links and a pinned list, which it does not:
 
 | File | Change |
 |---|---|
@@ -1031,9 +1031,15 @@ four; the rest are comments and a pinned list, which it does not:
 | `packages/db/src/schema/index.ts` | drop `export * from "./post"` |
 | `packages/db/src/schema/rls-guard.test.ts` | remove `"post"` from the pinned table list |
 | `apps/web/app/page.tsx` | replace the placeholder landing page |
+| `apps/web/features/auth/signin-page.tsx` | `router.push("/posts")` — send them somewhere that exists |
+| `apps/web/features/auth/signup-page.tsx` | the same push |
 | `apps/web/lib/orpc-query.ts` | comments use `orpc.post.*` as examples |
 | `apps/web/lib/orpc.server.ts` | comment uses `client.post.list()` |
 | `packages/api/src/testing/index.ts` | comment refers to `post` |
+
+The two `router.push` lines are the ones to watch: nothing fails when they are
+missed. The pages still compile, sign-in still succeeds, and the person lands
+on a 404 a second later.
 
 Finally, the **migrations**: `packages/db/drizzle/` already contains a
 `CREATE TABLE "post"`. Deleting the schema file does not undo it. For a project
