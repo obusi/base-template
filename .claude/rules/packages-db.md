@@ -61,7 +61,7 @@ import { user } from "@packages/db/schema/auth"   // ❌ drizzle-kit cannot reso
 
 drizzle-kit's loader reads that alias as a string prefix and fails to find the
 sibling. It typechecks, so the failure only appears when you run a `db:*`
-command. See `docs/architecture.md` §11 (C15).
+command. See `docs/architecture.md` S10 (C15).
 
 ## `schema/auth.ts` is generated, and regenerating undoes three edits
 

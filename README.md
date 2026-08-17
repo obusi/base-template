@@ -64,8 +64,8 @@ pnpm --filter @packages/db db:check
 `db:check` is worth not skipping. Every table ships with row-level security
 enabled and zero policies, so a leaked anon key reads nothing — but that only
 holds if the role in `DATABASE_URL` both owns the tables and bypasses RLS. Both
-ways of getting it wrong are silent. See
-[`docs/architecture.md` §13](docs/architecture.md) for the two Supabase project
+ways of getting it wrong are silent. S11 in
+[`docs/architecture.md`](docs/architecture.md) has the two Supabase project
 settings that matter, and what to check on any other host.
 
 ```bash
@@ -104,20 +104,20 @@ Use GitHub's **"Use this template"** button. Note the tradeoff: the histories
 are unrelated, so a fork receives no later template updates — which is the main
 reason this repo stays small.
 
-Then work through [`docs/architecture.md` §13](docs/architecture.md). The short
-version:
+Then work through S11 in
+[`docs/architecture.md`](docs/architecture.md). The short version:
 
 1. Point it at your own database and run the two commands above.
 2. Delete the `post` example domain once you have a real domain to replace it —
-   §12 lists every file.
+   S14 lists every file and every follow-up edit.
 3. Strip the passages that are only true while this repo is a template,
-   including the marked section in `CLAUDE.md`. §13 step 6 lists them.
+   including the marked section in `CLAUDE.md`. S13 lists them.
 
 ## Documentation
 
 - [`docs/architecture.md`](docs/architecture.md) — the single design document.
   Why the repo is shaped this way, the boundaries and how each is enforced, the
-  security model, and §11 the library traps (`C1`…`C18`) that shaped it. Read
+  security model, and S10, the library traps (`C1`…`C18`) that shaped it. Read
   the relevant section before changing a structural rule.
 - [`CLAUDE.md`](CLAUDE.md) and `.claude/rules/` — instructions for AI coding
   agents: what is true everywhere, and what is true only in one package.

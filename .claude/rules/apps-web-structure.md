@@ -102,7 +102,7 @@ place here yet.
 `lib/` holds framework/platform wiring that every feature indirectly depends
 on to run, never something with business meaning. Right now that's the oRPC
 client switch (`orpc.ts`, `orpc.server.ts`, `orpc-query.ts` — see
-`docs/architecture.md` §5). A new file belongs here only if it's the same
+`docs/architecture.md` S4). A new file belongs here only if it's the same
 kind of thing — client setup, config plumbing — not if it does something a
 specific domain cares about.
 

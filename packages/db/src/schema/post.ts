@@ -1,5 +1,5 @@
 // Example domain. Delete this file when starting a real project — see
-// docs/architecture.md section 12 for the full list.
+// docs/architecture.md S14 for the full list.
 //
 // Hand-written, unlike auth.ts: nothing generates it, so `withRLS` here is
 // permanent rather than something a regeneration undoes.

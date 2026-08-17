@@ -1,11 +1,11 @@
 // Example domain — the pattern every real router should copy. Delete when
-// starting a real project; see docs/architecture.md section 12.
+// starting a real project; see docs/architecture.md S14.
 //
 // This file only translates between oRPC (context, errors, middleware) and
 // ./service, which holds the actual logic. Keeping them apart means service
 // functions take a database and plain arguments — nothing oRPC- or
 // contract-shaped — so another domain's service could call them directly
-// without dragging oRPC along. See docs/architecture.md section 3.
+// without dragging oRPC along. See docs/architecture.md S2.
 
 import { requireAuth } from "../../middleware/auth"
 import { os } from "../../shared/builder"

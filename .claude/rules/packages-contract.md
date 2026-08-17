@@ -81,7 +81,7 @@ export const CreatePostInput = z.object({
 not to save typing.
 
 **Zod 4 only**, and `@orpc/zod/zod4` for the converter. Mixing in a v3 schema
-produces type errors that read as unrelated. See `docs/architecture.md` §11
+produces type errors that read as unrelated. See `docs/architecture.md` S10
 (C7, C18).
 
 ## Every procedure declares `.output()`

@@ -9,39 +9,36 @@
 > relevant section here before changing a structural rule — the rules files
 > state the rule, this states what it costs to break it.
 >
-> Sections 1–3 are the big picture. 4–10 are the rules that hold it together.
-> 11 is the library traps that shaped it. 12–16 are how to work with it.
+> **Every section has a stable id — S1, S2, … — and that is how it is cited.**
+> `CLAUDE.md`, `.claude/rules/`, and source comments all point here with
+> `see docs/architecture.md S10`, so a reader lands on the exact section with
+> nothing to search for.
 >
-> Last updated: 2026-08-16
+> **The ids are names, not positions.** They are assigned once and never
+> reused or reordered: deleting S4 leaves S5 as S5, and a section added later
+> takes the next free number even if it belongs in the middle. So the ids may
+> eventually run out of order, and that is the point — a citation written today
+> cannot rot. `C1`…`C18` inside S10 already work this way, and `C2` is missing
+> for exactly that reason.
+>
+> S13 onward are the appendices: the part a real project deletes. They are
+> numbered on the same scheme, so removing them leaves S1–S12 untouched.
+>
+> Last updated: 2026-08-17
 
----
-
-## 1. Purpose
-
-A base template that lets multiple projects start quickly on the same stack and
-conventions. Development is AI-driven; a human reviews code and UI as the final
-gate.
-
-Every decision below follows from these five principles:
+Three principles every decision below follows from:
 
 | Principle | What it means in practice |
 |---|---|
 | **Type-safe end to end** | Types flow DB → contract → client with no guessing. When AI breaks something, `tsc` flags the whole chain. |
 | **Boundaries enforced by tooling** | Never rely on discipline. Importing across a forbidden boundary must fail at build time. |
 | **Single source of truth** | Each rule is written in exactly one place. |
-| **No business logic** † | The template ships structure and conventions only. |
-| **Lean** † | Nothing is included until it is needed. Everything omitted can be added later without a rewrite. |
 
-† **These two apply only while this repo is the template.** They are the ones
-under constant pressure here, because every dependency added is inherited by
-every project forked from this one and — see §14 — forks get no update path, so
-a bad addition is permanent. A real project built on this stack should add the
-business logic and the dependencies it needs; the first three principles are
-what it keeps.
+Development is AI-driven; a human reviews code and UI as the final gate.
 
 ---
 
-## 2. The stack
+## S1. The stack
 
 | Layer | Choice | Why |
 |---|---|---|
@@ -52,7 +49,7 @@ what it keeps.
 | API | **oRPC** (contract-first) | Type-safe, and the contract is shareable with mobile |
 | API docs | **`@orpc/openapi`** + **Scalar** | The spec is generated from the contract at `/api/spec`, so it cannot describe an API that no longer exists. Browsable at `/api/docs` |
 | ORM | **Drizzle** | Schema is TypeScript rather than a separate DSL, no codegen step, query errors surface in `tsc` |
-| Database | **Supabase**, used as hosted Postgres | No `@supabase/*` package is installed — see §13 |
+| Database | **Supabase**, used as hosted Postgres | No `@supabase/*` package is installed — see S11 |
 | Auth | **Better Auth** | |
 | Client data fetching | **TanStack Query** via `@orpc/tanstack-query` | Devtools are a devDependency; the package compiles away outside development |
 | Forms | **react-hook-form** + `zodResolver` | Reuses the same zod schema the contract validates with |
@@ -69,7 +66,7 @@ purpose, and adding one should be a deliberate decision rather than a reflex:
 | Not used | Reason |
 |---|---|
 | **Server Actions** | Duplicates what `/rpc` already does, and Expo cannot call them — two paths means AI has to guess which one to use |
-| **Supabase Auth / RLS policies** | Authorization lives in oRPC only (§6) |
+| **Supabase Auth / RLS policies** | Authorization lives in oRPC only (see S5) |
 | **CI (GitHub Actions)** | Not yet. Test helpers accept `TEST_DATABASE_URL` from day one, so CI is a config-only change |
 | **Playwright / Storybook / Testing Library** | Not yet. All three can be added later without restructuring |
 | **Sentry / pino** | `console.error` for now, behind a single interceptor that can be swapped |
@@ -81,17 +78,17 @@ purpose, and adding one should be a deliberate decision rather than a reflex:
 list. Two rules about it:
 
 - **`drizzle-orm` and `drizzle-kit` are pinned with no `^`, and must match each
-  other.** Both sit at `1.0.0-rc.4`. §11 C1 explains why a release candidate is
-  the correct choice here and why "upgrade to stable" is a downgrade.
+  other.** Both sit at `1.0.0-rc.4`. C1 explains why a release candidate is the
+  correct choice here and why "upgrade to stable" is a downgrade.
 - **`zod` is 4.x everywhere it is declared.** A v3 copy arrives transitively;
   see C7 for why that is harmless until it isn't.
 
 ---
 
-## 3. Structure
+## S2. Structure
 
 ```
-base-template/
+<project>/
 ├── apps/web/                Next.js app
 ├── packages/
 │   ├── contract/            The spec — zod schemas + oRPC contract
@@ -138,7 +135,7 @@ cross-cutting concerns in named sibling folders (`shared/`, `middleware/`,
 means adding the same folder name in each package, so there is nothing to
 rename and nothing to guess.
 
-`db` groups by domain too, but a domain is one *file* (`src/schema/post.ts`),
+`db` groups by domain too, but a domain is one *file* (`src/schema/<name>.ts`),
 because a db domain has never needed more than a single schema and a folder
 holding one file buys nothing. `connection/` and `testing/` mean the same thing
 in `db` as in `api` — the real thing, and the throwaway thing tests get — so
@@ -159,7 +156,7 @@ the file trees, the import rules, and the checklist for adding a domain.
 
 ---
 
-## 4. Boundaries
+## S3. Boundaries
 
 `apps/web` splits into two halves, because client-component code is shipped to
 the user's machine in full while Server Component code never leaves the server.
@@ -183,11 +180,11 @@ entirely**:
 
 ```tsx
 // ❌ forbidden
-import { db, post } from "@packages/db"
+import { db, invoice } from "@packages/db"
 
 export default async function Page() {
-  const all = await db.select().from(post)   // never passes through requireAuth
-  return <List posts={all} />
+  const all = await db.select().from(invoice)   // never passes through requireAuth
+  return <List invoices={all} />
 }
 ```
 
@@ -196,8 +193,8 @@ export default async function Page() {
 import { client } from "@/lib/orpc"
 
 export default async function Page() {
-  const posts = await client.post.list()     // always passes through requireAuth
-  return <List posts={posts} />
+  const invoices = await client.invoice.list()  // always passes through requireAuth
+  return <List invoices={invoices} />
 }
 ```
 
@@ -230,7 +227,7 @@ That distance is exactly why it is a test rather than a convention.
 
 ---
 
-## 5. Data flow
+## S4. Data flow
 
 Exactly two paths, with clearly separate jobs:
 
@@ -247,9 +244,9 @@ Exactly two paths, with clearly separate jobs:
 
 | Use case | Path | Code |
 |---|---|---|
-| Data needed on first render | 1 | `await client.post.list()` |
-| Data that changes with interaction | 2 | `useQuery(orpc.post.list.queryOptions())` |
-| Create / update / delete | 2 | `useMutation(orpc.post.create.mutationOptions())` |
+| Data needed on first render | 1 | `await client.<domain>.list()` |
+| Data that changes with interaction | 2 | `useQuery(orpc.<domain>.list.queryOptions())` |
+| Create / update / delete | 2 | `useMutation(orpc.<domain>.create.mutationOptions())` |
 
 The switch lives in `apps/web/lib/orpc.ts`: on the server it resolves to the
 direct caller, in the browser to the HTTP client — automatically.
@@ -281,8 +278,8 @@ each procedure declares with `.route()` in the contract:
 ```
 
 Both doors run the same procedures, the same `requireAuth`, and the same
-`where` clauses, so there is no second implementation to keep in step.
-`GET /api/v1/posts` returns rows; `POST /api/v1/posts` without a cookie returns
+`where` clauses, so there is no second implementation to keep in step. A `GET`
+against a collection returns rows; a `POST` without a cookie returns
 `401 UNAUTHORIZED` exactly as `/rpc` does.
 
 `/api/spec` generates the OpenAPI document from the contract — nothing is
@@ -333,10 +330,10 @@ Better Auth; taking it over gains nothing and risks two copies disagreeing.
 
 Putting business fields in `additionalFields` costs four things: their
 validation rules move out of `packages/contract` into the auth config, so there
-are two places to look; forms lose the single schema source described in §7;
-`.output()` no longer constrains what goes back to the client; and every new
-field means regenerating `schema/auth.ts`, a file with three edits that have to
-be reapplied by hand each time (C3, C5, C14).
+are two places to look; forms lose the single schema source described in
+S6; `.output()` no longer constrains what goes back to the
+client; and every new field means regenerating `schema/auth.ts`, a file with
+three edits that have to be reapplied by hand each time (C3, C5, C14).
 
 ### SEO rule
 
@@ -351,7 +348,7 @@ parts into child components.
 
 ---
 
-## 6. Security
+## S5. Security
 
 ### Authorization lives in oRPC middleware, and only there
 
@@ -373,16 +370,16 @@ touch that row — is every query's `where` clause, never a separate
 read-then-check:
 
 ```ts
-db.update(post)
+db.update(invoice)
   .set(changes)
-  .where(and(eq(post.id, id), eq(post.authorId, authorId)))
+  .where(and(eq(invoice.id, id), eq(invoice.ownerId, ownerId)))
 ```
 
 Two statements would leave a window in which the row changes owner between
 them, and would scatter the rule so a reader has to find both to know what the
-endpoint allows. Verified to fail: deleting
-`eq(post.authorId, context.user.id)` from `update` turns the cross-user test
-red with `promise resolved instead of rejecting`.
+endpoint allows. Verified to fail: deleting the ownership term from an `update`
+handler turns its cross-user test red with
+`promise resolved instead of rejecting`.
 
 **Why not RLS policies:** when a policy is wrong, the symptom is rows silently
 disappearing or a generic message — neither of which AI can diagnose. It also
@@ -393,7 +390,7 @@ splits the rules across two languages and two locations.
 Every table enables RLS **with zero policies**:
 
 ```ts
-export const post = pgTable.withRLS("post", { ... })
+export const invoice = pgTable.withRLS("invoice", { ... })
 ```
 
 - Drizzle connects as `postgres`, which both owns the tables and carries the
@@ -411,7 +408,6 @@ assumed:
 connected as : {"role":"postgres","is_superuser":false,"bypasses_rls":true}
 
 account        owner=postgres  rls=true  policies=0
-post           owner=postgres  rls=true  policies=0
 session        owner=postgres  rls=true  policies=0
 user           owner=postgres  rls=true  policies=0
 verification   owner=postgres  rls=true  policies=0
@@ -462,16 +458,16 @@ Every procedure declares `.output()`. If a handler returns an object carrying
 
 ---
 
-## 7. Contract-first
+## S6. Contract-first
 
 Separate the *spec* (what goes in and out) from the *implementation* (how).
 
 ```ts
-// packages/contract/src/domains/post/contract.ts
-export const postContract = {
+// packages/contract/src/domains/<name>/contract.ts
+export const invoiceContract = {
   create: oc
-    .input(CreatePostInput)
-    .output(PostSchema)
+    .input(CreateInvoiceInput)
+    .output(InvoiceSchema)
     .errors({
       ...commonErrors,
       QUOTA_EXCEEDED: { data: z.object({ limit: z.number().int() }) },
@@ -480,13 +476,13 @@ export const postContract = {
 ```
 
 ```ts
-// packages/api/src/domains/post/router.ts
-export const create = os.post.create
+// packages/api/src/domains/<name>/router.ts
+export const create = os.invoice.create
   .use(requireAuth)
   .handler(async ({ context, input, errors }) => {
-    const result = await service.createPost(context.db, context.user.id, input)
+    const result = await service.createInvoice(context.db, context.user.id, input)
     if (!result.ok) throw errors.QUOTA_EXCEEDED({ data: { limit: result.limit } })
-    return result.post
+    return result.invoice
   })
 ```
 
@@ -506,20 +502,20 @@ free of every oRPC import so another domain can call them directly. See
 ### Form schemas derive from the contract
 
 ```ts
-const formSchema = CreatePostInput
-  .extend({ confirmPassword: z.string() })
-  .refine(d => d.password === d.confirmPassword, { path: ["confirmPassword"] })
+const formSchema = CreateInvoiceInput
+  .extend({ confirmTotal: z.number() })
+  .refine(d => d.total === d.confirmTotal, { path: ["confirmTotal"] })
 ```
 
 Never redeclare a schema that already exists in the contract.
 
 ### Why the contract's schemas are not derived from Drizzle
 
-`PostSchema` (zod) and `packages/db/src/schema/post.ts` (a Drizzle table)
-describe the same shape in two places, and the obvious improvement is to derive
-one from the other. It is not available: `drizzle-zod`, or importing the table
-into `packages/contract`, pulls `drizzle-orm` into that package's dependency
-graph and breaks boundary 5.
+A domain's zod schemas in `packages/contract` and its Drizzle table in
+`packages/db/src/schema/` describe the same shape in two places, and the
+obvious improvement is to derive one from the other. It is not available:
+`drizzle-zod`, or importing the table into `packages/contract`, pulls
+`drizzle-orm` into that package's dependency graph and breaks boundary 5.
 
 A single source of truth for field shapes is worth less than the portability
 the five-package split exists to protect. If the duplication needs a guard, it
@@ -529,7 +525,7 @@ codegen step emitting plain zod, mirroring how `auth:generate` writes into
 
 ---
 
-## 8. Errors
+## S7. Errors
 
 Structurally separate **expected outcomes** from **bugs**.
 
@@ -544,10 +540,10 @@ it is whether the caller can do anything about it. A missing row is expected and
 actionable; a dropped database connection is neither.
 
 ```tsx
-const [error, data, isDefined] = await safe(client.post.create({ ... }))
+const [error, data, isDefined] = await safe(client.invoice.create({ ... }))
 
 if (isDefined) {
-  if (error.code === "QUOTA_EXCEEDED") toast.error(`Limit is ${error.data.limit} posts`)
+  if (error.code === "QUOTA_EXCEEDED") toast.error(`Limit is ${error.data.limit}`)
 } else if (error) {
   toast.error("Something went wrong")   // ← real bugs land here
 }
@@ -565,7 +561,7 @@ undeclared errors only. Swapping in Sentry later is a one-file change.
 
 ---
 
-## 9. Testing
+## S8. Testing
 
 | Level | Covers | Tools | Volume |
 |---|---|---|---|
@@ -582,15 +578,15 @@ get a real database, which costs about 1.4 seconds.
 is indistinguishable from one that is not running, and both have happened here:
 an RLS guard that sat green for weeks because the schema it checked was empty,
 and a `db:check` probe that would have reported success against a table with no
-rows in it. Each is now paired with a case that fails on purpose — §6 records
-what those look like when they fire.
+rows in it. Each is now paired with a case that fails on purpose — S5
+records what those look like when they fire.
 
 ```ts
-it("cannot touch another user's post", async () => {
-  const bobs = await as(bob).post.create({ title: "Bob's", content: "..." })
+it("cannot touch another user's row", async () => {
+  const bobs = await as(bob).invoice.create({ total: 100 })
 
   await expect(
-    as(alice).post.update({ id: bobs.id, title: "Stolen" }),
+    as(alice).invoice.update({ id: bobs.id, total: 1 }),
   ).rejects.toMatchObject({ code: "NOT_FOUND" })
 })
 ```
@@ -635,7 +631,7 @@ test file must contain — are in `.claude/rules/testing.md`.
 
 ---
 
-## 10. Environment variables
+## S9. Environment variables
 
 Each package validates the variables it reads in its own `env.ts`, with t3-env
 and zod. A `.env` file, though, belongs to a **process**, not to a package: it
@@ -672,11 +668,12 @@ buried inside Drizzle, you get
 
 ---
 
-## 11. Library traps
+## S10. Library traps
 
 Every entry below is a conflict between what a library's documentation says and
-what it does, found while building this repo and verified against the installed
-version. They keep their original `C` numbers because source comments cite them.
+what it does, found while building this stack and verified against the
+installed version. **The `C` numbers are names, not positions** — source
+comments cite them, and they never change or get reused.
 
 These are the reason several files look strange. Do not "clean up" something in
 this list without reading why it is that way.
@@ -684,27 +681,25 @@ this list without reading why it is that way.
 ### C1 — Drizzle's docs document v1, but `npm install` gives you v0 🔴
 
 `orm.drizzle.team` documents the **v1 API**. The `latest` tag on npm is
-**0.45.2**, the v0 line. They differ on the exact feature this template depends
-on:
+**0.45.2**, the v0 line. They differ on the exact feature this repo depends on:
 
 | | v0.45.2 (`latest`) | v1.0.0-rc.4 (`rc`) |
 |---|---|---|
-| Enable RLS without policies | `pgTable("post", {...}).enableRLS()` | `pgTable.withRLS("post", {...})` |
+| Enable RLS without policies | `pgTable("x", {...}).enableRLS()` | `pgTable.withRLS("x", {...})` |
 | Relational queries | RQBv1 | `defineRelations()` — RQBv1 removed |
 | `.array()` | chainable | `column.array('[][]')` |
 | Migration files | `journal.json` | DDL snapshots |
 | `drizzle-kit push/pull` scope | public schema | all schemas |
 
-The whole point of this template is that AI reads official docs and writes
-correct code. With v0.45.2 installed, AI reading the docs writes
-`pgTable.withRLS()` and it fails — and the failure looks like a typo rather
-than a version mismatch.
+The whole point of this setup is that AI reads official docs and writes correct
+code. With v0.45.2 installed, AI reading the docs writes `pgTable.withRLS()`
+and it fails — and the failure looks like a typo rather than a version
+mismatch.
 
 **Decided: `1.0.0-rc.4`, pinned exactly.** As of 2026-08-13 the v0 line had had
 no release in 4.5 months while the package was still published to daily: v0 is
 frozen, all work is on v1. "Stable" here means *unmaintained*, and choosing it
-would guarantee a future breaking migration across every forked project — with
-no upstream update path, since distribution is "Use this template" (§14).
+would guarantee a future breaking migration.
 
 A compatibility spike (throwaway project, 2026-08-13) confirmed the combination
 before it was adopted: `tsc --strict` clean, `pgTable.withRLS()` present,
@@ -715,10 +710,10 @@ reporting `relrowsecurity` correctly on PGlite.
 ### C3 — the Better Auth CLI writes the schema to the wrong place 🟡
 
 `auth generate` emits `schema.ts` at the **project root** by default. The auth
-tables must live inside `packages/db`'s schema folder so foreign keys such as
-`post.authorId → user.id` resolve within one Drizzle schema and one migration
-set. The output path is therefore pinned in the `auth:generate` script rather
-than left to whoever runs it.
+tables must live inside `packages/db`'s schema folder so foreign keys pointing
+at `user.id` resolve within one Drizzle schema and one migration set. The
+output path is therefore pinned in the `auth:generate` script rather than left
+to whoever runs it.
 
 ### C4 — two valid import paths for the Drizzle adapter 🟡
 
@@ -872,8 +867,8 @@ presentation.
 ### C18 — `@orpc/zod` reads Zod 3 unless you import `/zod4` 🟡
 
 The package root exports a `ZodToJsonSchemaConverter` that understands Zod 3.
-Point it at this repo's Zod 4 schemas and it does not error — it produces
-**empty** schemas, so the generated spec documents endpoints with no fields.
+Point it at Zod 4 schemas and it does not error — it produces **empty**
+schemas, so the generated spec documents endpoints with no fields.
 
 Import from `@orpc/zod/zod4`. On that path the query-string coercion plugin is
 still named `experimental_ZodSmartCoercionPlugin`; the unprefixed name exists
@@ -882,7 +877,104 @@ the contract's `z.number()`.
 
 ---
 
-## 12. The `post` example domain
+## S11. Setting up a new project
+
+These cannot be carried in the repo — they depend on a database that does not
+exist until someone creates one.
+
+1. **Create the Supabase project**, and set two options at creation. *(Not on
+   Supabase? See "On another Postgres host" below — the rest is unchanged.)*
+   - **Enable Data API — off.** It publishes a REST endpoint that reaches the
+     database with the anon key. Nothing here uses it (no `@supabase/*` package
+     is installed anywhere). RLS deny-all is the wall; not opening the door at
+     all is better.
+   - **Enable automatic RLS — on.** An event trigger enables RLS on every new
+     table, as a backstop for tables created by hand in the SQL editor. It is
+     also the reason `db:check` cannot replace `rls-guard.test.ts` (see
+     S5).
+2. **Write `apps/web/.env` and `packages/db/.env`** from the `.env.example`
+   beside each. Two files because they belong to two processes (see
+   S9); the `DATABASE_URL` in both must match.
+3. **`pnpm --filter @packages/db db:migrate`**
+4. **`pnpm --filter @packages/db db:check`** — proves the deployment's roles are
+   what RLS deny-all assumes. Both ways of getting this wrong are silent, and
+   the check is only meaningful once at least one row exists.
+
+### On another Postgres host
+
+The RLS deny-all scheme under S5 is not Supabase-specific in principle,
+but its two conditions are stated in Supabase's vocabulary. On any other host,
+the question to answer before trusting it is the same: **does the role in
+`DATABASE_URL` bypass RLS, and does it own the tables?**
+
+`db:check` reads that from the catalogue rather than assuming it, so run it and
+read the output rather than porting the Supabase steps literally. What changes
+is only step 1: there is no Data API to switch off, and no automatic-RLS
+trigger — which makes `rls-guard.test.ts` the sole guard against a table that
+forgot `withRLS()`, rather than one of two.
+
+---
+
+## S12. Sources
+
+Official documentation consulted while building this, on 2026-08-13:
+
+- oRPC — [Next.js adapter](https://orpc.dev/docs/adapters/next), [contract-first](https://orpc.dev/docs/contract-first/define-contract), [implement contract](https://orpc.dev/docs/contract-first/implement-contract), [TanStack Query](https://orpc.dev/docs/integrations/tanstack-query), [SSR optimisation](https://orpc.dev/docs/best-practices/optimize-ssr), [errors](https://orpc.dev/docs/error-handling), [client errors](https://orpc.dev/docs/client/error-handling)
+- Drizzle — [RLS](https://orm.drizzle.team/docs/rls), [Supabase](https://orm.drizzle.team/docs/connect-supabase), [PGlite](https://orm.drizzle.team/docs/connect-pglite), [v0 → v1 changes](https://orm.drizzle.team/docs/v0-v1-changes)
+- Better Auth — [installation](https://www.better-auth.com/docs/installation), [Drizzle adapter](https://www.better-auth.com/docs/adapters/drizzle), [Next.js](https://www.better-auth.com/docs/integrations/next), [CLI](https://www.better-auth.com/docs/concepts/cli)
+- Vitest — [projects](https://vitest.dev/guide/projects)
+- t3-env — [core](https://env.t3.gg/docs/core)
+- Next.js 16 — `apps/web/node_modules/next/dist/docs/01-app/02-guides/upgrading/version-16.md` (local, version-matched)
+
+---
+---
+
+# Appendices — delete these in a real project
+
+Everything past this line is about *this repo being a template*, not about the
+stack. Nothing above cites any of it except by name, and no numbering shifts
+when it goes, so each appendix can be removed on its own.
+
+## S13. Why this repo is a template
+
+A base template that lets multiple projects start quickly on the same stack and
+conventions.
+
+Two more principles apply while that is true, on top of the three at the top of
+this file:
+
+| Principle | What it means in practice |
+|---|---|
+| **No business logic** | The template ships structure and conventions only. |
+| **Lean** | Nothing is included until it is needed. Everything omitted can be added later without a rewrite. |
+
+These two are under constant pressure here, because every dependency added is
+inherited by every project started from this one and those get no update path
+(see S15), so a bad addition is permanent. **A
+real project built on this stack should add the business logic and the
+dependencies it needs** — only the three principles at the top survive the
+fork.
+
+### Turning this repo into a real project
+
+Beyond S11 above, which every deployment needs, a fork
+has to strip the template out of itself. Leaving it in means every future
+session is told to keep a real product "lean" and free of business logic.
+
+1. **Rename.** `base-template` appears in `package.json`, `README.md`, the tree
+   under S2, and — visible to users — `apps/web/app/api/spec/route.ts`
+   and `apps/web/app/api/docs/route.ts`.
+2. **Delete every appendix in this file**, including this one.
+3. **Delete the "While this repo is still the template" section of
+   `CLAUDE.md`.**
+4. **Rewrite `README.md`** for the project.
+5. **Delete the example domain** when a real one replaces it — see "Appendix —
+   The example domain".
+
+Everything else in `CLAUDE.md` and all of `.claude/rules/` applies unchanged;
+they describe the stack, not the template.
+
+## S14. The example domain
 
 The template ships a `post` domain wired through every layer (contract → db →
 api → web) as a pattern to copy.
@@ -892,7 +984,12 @@ is checked by `tsc` and Vitest on every run, so when oRPC or Drizzle changes an
 API it goes red. Prose documentation and generator templates keep describing the
 old way with nothing to catch them.
 
-Delete when starting a real project:
+`.claude/rules/packages-conventions.md` has the six-step checklist for adding
+the domain that replaces it.
+
+### Deleting it
+
+Delete these paths:
 
 ```
 packages/contract/src/domains/post/
@@ -904,73 +1001,38 @@ apps/web/features/post/
 apps/web/features/auth/
 ```
 
-`packages/api/src/testing/index.ts` stays: the helpers in it (`signUpTestUser`,
-`contextFor`, `anonymousContext`) are not post-specific — every real domain's
-router tests need them too.
+`login/` and `features/auth/` go with the rest: it is a bare
+email-and-password form built to exercise the example, not a sign-in page any
+real project would ship. Keep the `features/` convention itself.
 
-`login/` and `features/auth/` go with the rest: it is a bare email-and-password
-form built to exercise the example, not a sign-in page any real project would
-ship. Keep the `features/` convention itself for whatever domain replaces
-`post`.
+`packages/api/src/testing/index.ts` **stays** — `signUpTestUser`, `contextFor`,
+and `anonymousContext` belong to no domain, and every real domain's router
+tests need them.
 
-`.claude/rules/packages-conventions.md` has the six-step checklist for adding
-that replacement domain.
+Then edit what still refers to the deleted domain. `tsc` catches the first
+four; the rest are comments and a pinned list, which it does not:
 
----
+| File | Change |
+|---|---|
+| `packages/contract/src/index.ts` | drop the `post` schema re-exports and the `post:` entry |
+| `packages/api/src/index.ts` | drop `post: postRouter` |
+| `packages/db/src/schema/index.ts` | drop `export * from "./post"` |
+| `packages/db/src/schema/rls-guard.test.ts` | remove `"post"` from the pinned table list |
+| `apps/web/app/page.tsx` | replace the placeholder landing page |
+| `apps/web/lib/orpc-query.ts` | comments use `orpc.post.*` as examples |
+| `apps/web/lib/orpc.server.ts` | comment uses `client.post.list()` |
+| `packages/api/src/testing/index.ts` | comment refers to `post` |
 
-## 13. Setting up a new project
+Finally, the **migrations**: `packages/db/drizzle/` already contains a
+`CREATE TABLE "post"`. Deleting the schema file does not undo it. For a project
+with no data yet, delete both migration folders and run
+`pnpm --filter @packages/db db:generate` once to produce a single initial
+migration from the schema that is left. For one that has already deployed,
+generate a normal drop migration instead.
 
-The template cannot carry these — they depend on a database that does not exist
-until someone creates one.
+`pnpm verify` green means the deletion is complete.
 
-1. **Create the Supabase project**, and set two options at creation. *(Not on
-   Supabase? See "On another Postgres host" below — steps 2–6 are unchanged.)*
-   - **Enable Data API — off.** It publishes a REST endpoint that reaches the
-     database with the anon key. Nothing here uses it (no `@supabase/*` package
-     is installed anywhere). RLS deny-all is the wall; not opening the door at
-     all is better.
-   - **Enable automatic RLS — on.** An event trigger enables RLS on every new
-     table, as a backstop for tables created by hand in the SQL editor. It is
-     also the reason `db:check` cannot replace `rls-guard.test.ts` (§6).
-2. **Write `apps/web/.env` and `packages/db/.env`** from the `.env.example`
-   beside each. Two files because they belong to two processes (§10); the
-   `DATABASE_URL` in both must match.
-3. **`pnpm --filter @packages/db db:migrate`**
-4. **`pnpm --filter @packages/db db:check`** — proves the deployment's roles are
-   what RLS deny-all assumes. Both ways of getting this wrong are silent, and
-   the check is only meaningful once at least one row exists.
-5. **Delete the `post` example** (§12) once there is a real domain to replace
-   it.
-6. **Make the docs describe your project, not the template.** The repo carries
-   a handful of passages that are true only while it *is* the template, and
-   leaving them in means every future session is told to keep a real product
-   "lean" and free of business logic:
-   - `CLAUDE.md` — delete the "While this repo is still the template" section.
-   - This file — delete §12 (the `post` example), §14 (consuming the
-     template), §15 (open decisions), and the `†` note under §1. Renumber what
-     is left, and update the section references in `CLAUDE.md`,
-     `.claude/rules/`, and the source comments that cite them.
-   - `README.md` — rewrite it for your project.
-
-   Everything else in `CLAUDE.md` and all of `.claude/rules/` applies unchanged;
-   they describe the stack, not the template.
-
-### On another Postgres host
-
-The `RLS deny-all` scheme in §6 is not Supabase-specific in principle, but its
-two conditions are stated in Supabase's vocabulary. On any other host, the
-question to answer before trusting it is the same: **does the role in
-`DATABASE_URL` bypass RLS, and does it own the tables?**
-
-`db:check` reads that from the catalogue rather than assuming it, so run it and
-read the output rather than porting the Supabase steps literally. What changes
-is only step 1: there is no Data API to switch off, and no automatic-RLS
-trigger — which makes `rls-guard.test.ts` the sole guard against a table that
-forgot `withRLS()`, rather than one of two.
-
----
-
-## 14. Consuming the template
+## S15. Consuming the template
 
 Use GitHub's **"Use this template"** button.
 
@@ -982,29 +1044,34 @@ That is a further reason to keep the template **small and stable**, and the
 reason C1 weighs "unmaintained but stable" so heavily against "release
 candidate".
 
----
+## S16. Decisions already settled
 
-## 15. Open decisions
-
-Nothing outstanding. The list below is what was settled, recorded so it is not
-reopened by accident:
+Recorded so they are not reopened by accident:
 
 - **The quality gate** is `pnpm verify` plus a `Stop` hook
   (`.claude/settings.json`), so a session cannot end on a broken tree.
-- **Tests receive a database rather than importing one** (§4, boundary 4).
-  Settled at the start of `packages/api`. The alternative — fabricating
-  sessions — would have covered every ownership check but not `requireAuth`
-  itself, nor any auth rule a forked project adds later (blocked email domains,
-  lockout, a profile row created on signup). A template should not hand its
-  users a corner they have to refactor out of.
+- **Tests receive a database rather than importing one** (boundary 4). The
+  alternative — fabricating sessions — would have covered every ownership check
+  but not `requireAuth` itself, nor any auth rule a project adds later (blocked
+  email domains, lockout, a profile row created on signup). A template should
+  not hand its users a corner they have to refactor out of.
 - **`user` fields belong either to Better Auth or to the project, never both**
-  (§5).
+  (see S4).
 - **Drizzle stays on its pinned release candidate** until v1 GA (C1). When GA
   lands, C1 and the `peerDependencyRules` entry in `pnpm-workspace.yaml` are
   the two places to revisit.
 - **`README.md` is written for a human arriving from GitHub** — what the stack
   is, and the path from clone to running app. `CLAUDE.md` is the agent-facing
   equivalent and they are allowed to overlap; the README is not a redirect.
+- **Sections carry stable `S` ids, assigned once and never reordered.** Two
+  earlier attempts failed. Plain ordinals (`§1`, `§2`) read well but renumbered
+  every time a section moved, and the references that broke were in source
+  comments, where no tooling notices — one renumbering silently invalidated six
+  of them. Citing by quoted title survived that, but a citation then had to
+  carry a whole phrase, and long titles read badly in a one-line comment. An
+  `S` id is short enough to cite and stable enough to trust, which is what
+  `C1`…`C18` had been doing correctly all along. The cost is that ids drift out
+  of reading order as sections are added; that is the price of never rotting.
 - **Where agent-facing rules live.** Three surfaces that do not overlap:
 
   | | Holds | Loaded |
@@ -1017,16 +1084,3 @@ reopened by accident:
   moving it into a rule file would strip the reasoning from the place it
   applies. There is no `AGENTS.md` — Claude Code reads `CLAUDE.md`, and this
   repo is Claude-Code-first in practice already.
-
----
-
-## 16. Sources
-
-Official documentation consulted while building this, on 2026-08-13:
-
-- oRPC — [Next.js adapter](https://orpc.dev/docs/adapters/next), [contract-first](https://orpc.dev/docs/contract-first/define-contract), [implement contract](https://orpc.dev/docs/contract-first/implement-contract), [TanStack Query](https://orpc.dev/docs/integrations/tanstack-query), [SSR optimisation](https://orpc.dev/docs/best-practices/optimize-ssr), [errors](https://orpc.dev/docs/error-handling), [client errors](https://orpc.dev/docs/client/error-handling)
-- Drizzle — [RLS](https://orm.drizzle.team/docs/rls), [Supabase](https://orm.drizzle.team/docs/connect-supabase), [PGlite](https://orm.drizzle.team/docs/connect-pglite), [v0 → v1 changes](https://orm.drizzle.team/docs/v0-v1-changes)
-- Better Auth — [installation](https://www.better-auth.com/docs/installation), [Drizzle adapter](https://www.better-auth.com/docs/adapters/drizzle), [Next.js](https://www.better-auth.com/docs/integrations/next), [CLI](https://www.better-auth.com/docs/concepts/cli)
-- Vitest — [projects](https://vitest.dev/guide/projects)
-- t3-env — [core](https://env.t3.gg/docs/core)
-- Next.js 16 — `apps/web/node_modules/next/dist/docs/01-app/02-guides/upgrading/version-16.md` (local, version-matched)

@@ -1,7 +1,7 @@
 // Business logic for the post domain. Deliberately knows nothing about
 // oRPC — no context, no errors, no middleware — so another domain's service
 // could call these functions directly without dragging oRPC along. See
-// docs/architecture.md section 3.
+// docs/architecture.md S2.
 //
 // "Not found" is a plain `undefined`; a router turns that into NOT_FOUND.
 // `createPost` can't use the same trick for the quota check because it needs

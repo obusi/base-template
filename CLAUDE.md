@@ -14,9 +14,9 @@ The section below is the exception.
 ### While this repo is still the template
 
 > **Delete this whole section once this repo is a real project.** It is one
-> item on a short list — `docs/architecture.md` §13 step 6 has the rest, and
-> §12 lists every file of the `post` example. Everything else in this file and
-> all of `.claude/rules/` applies unchanged.
+> item on a short list — `docs/architecture.md` S13 has the rest, and S14
+> beside it lists every file of the `post` example. Everything else in this
+> file and all of `.claude/rules/` applies unchanged.
 
 This repo is a **base template**, not a product. Several projects start from
 it, and forks get no update path, so what goes in is permanent:
@@ -56,7 +56,8 @@ pnpm --filter @packages/api exec vitest run src/domains/<domain>/router.test.ts
 pnpm --filter @packages/api exec vitest run -t "refuses a caller with no session"
 ```
 
-**Database** (needs `packages/db/.env` — see §10 and §13 of the architecture doc):
+**Database** (needs `packages/db/.env` — see S9 and S11 of the architecture
+doc):
 
 ```bash
 pnpm --filter @packages/db db:generate   # write a migration from schema changes
@@ -116,7 +117,7 @@ OpenAPI spec generated from the contract at `/api/spec` and rendered at
 
 **Auth does not use either path.** Sign in / sign up / sign out go straight to
 Better Auth at `/api/auth`. There is no contract for auth and writing one
-would be a mistake — see `docs/architecture.md` §5.
+would be a mistake — see `docs/architecture.md` S4.
 
 ## Boundaries that must not break
 
@@ -161,15 +162,15 @@ apps/web/node_modules/next/dist/docs/
 Other version-sensitive choices, all deliberate: **Drizzle v1** pinned to a
 release candidate (use `pgTable.withRLS()`, not the deprecated `.enableRLS()`),
 **Zod 4** only, and `@better-auth/drizzle-adapter` rather than
-`better-auth/adapters/drizzle`. `docs/architecture.md` §11 says why each, and
+`better-auth/adapters/drizzle`. `docs/architecture.md` S10 says why each, and
 what to re-check when any of them moves.
 
 ## Where the rest lives
 
 - `docs/architecture.md` — the one design document: the reasoning behind every
-  decision above, and §11 the library traps (`C1`…`C18`) that shaped the repo,
-  cited by number from several source comments. Read the relevant section
-  before changing a structural rule.
+  decision above, plus S10, the library traps (`C1`…`C18`) that shaped the
+  repo and are cited by number from several source comments. Read the relevant
+  section before changing a structural rule.
 - `.claude/rules/` — path-scoped conventions that load when you work in the
   matching directory: `apps/web` structure, shared package conventions, and
   one file each for `api`, `db`, `contract`, and tests.

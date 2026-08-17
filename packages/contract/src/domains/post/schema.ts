@@ -1,5 +1,5 @@
 // Example domain. Delete this folder when starting a real project — see
-// docs/architecture.md section 12 for the full list of files to remove.
+// docs/architecture.md S14 for the full list of files to remove.
 //
 // These schemas are the single source of truth for the shape of a post. The
 // database table, the oRPC handler, and the form in the browser all derive

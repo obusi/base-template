@@ -11,7 +11,7 @@ import { os } from "../shared/builder"
  *
  * Authorization — whether *this* user may touch *that* row — is deliberately
  * not here. It belongs in each handler's `where` clause, where it is visible
- * next to the query it constrains. See docs/architecture.md section 6.
+ * next to the query it constrains. See docs/architecture.md S5.
  */
 export const requireAuth = os.middleware(async ({ context, next }) => {
   const session = await context.auth.api.getSession({

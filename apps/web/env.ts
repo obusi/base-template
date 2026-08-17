@@ -6,7 +6,7 @@ import { z } from "zod"
  * — including the variables `@packages/db` and `@packages/auth` validate on
  * their own side. Those packages are imported into this process; they are not
  * processes themselves, and a `.env` beside them would never be opened.
- * See docs/architecture.md section 10.
+ * See docs/architecture.md S9.
  */
 export const env = createEnv({
   server: {

@@ -4,10 +4,10 @@
 //
 // Auth does not go through oRPC. `authClient` talks to /api/auth directly, and
 // the same calls work from Expo later with only the storage swapped. See
-// docs/architecture.md section 5.
+// docs/architecture.md S4.
 //
 // No schema for this in packages/contract: there is no contract for auth (see
-// docs/architecture.md section 5), so this schema is local to the one form
+// docs/architecture.md S4), so this schema is local to the one form
 // that needs it. `min(8)` matches Better Auth's default minPasswordLength in
 // packages/auth/src/config.ts — update both together if that ever changes.
 

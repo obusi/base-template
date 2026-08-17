@@ -4,7 +4,7 @@
 
 // Re-exported so forms can build on the same schemas the server validates
 // with — `CreatePostInput.extend({ ... })` rather than a second declaration
-// that drifts. See docs/architecture.md section 7. Named, not `export *`:
+// that drifts. See docs/architecture.md S6. Named, not `export *`:
 // only what a caller outside this package actually imports today.
 export {
   CreatePostInput,

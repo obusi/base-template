@@ -119,7 +119,7 @@ export async function tableNames(db: TestDb): Promise<string[]> {
 
 /**
  * Names of tables in the public schema that do not have row level security
- * enabled. Should always be empty — see docs/architecture.md section 6.
+ * enabled. Should always be empty — see docs/architecture.md S5.
  */
 export async function tablesWithoutRLS(db: TestDb): Promise<string[]> {
   return queryTableNames(db, sql`c.relrowsecurity = false`)

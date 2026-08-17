@@ -81,7 +81,7 @@ package has its own reason:
 - **`api`** — the `exports` map lists only `"."` and `"./connection/live"`, so
   a self-reference through any other path does not resolve.
 - **`db`** — drizzle-kit's loader reads `@packages/db/schema` as a string
-  prefix and fails to find the sibling file. See `docs/architecture.md` §11
+  prefix and fails to find the sibling file. See `docs/architecture.md` S10
   (C15).
 - **`contract`** — this is the package a future Expo app compiles through
   Metro, whose handling of `exports` maps and self-references has produced
