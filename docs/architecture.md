@@ -313,6 +313,24 @@ every time a plugin (2FA, social login, magic links) adds endpoints of its own.
 oRPC's relationship to auth is different: it does not perform authentication, it
 *reads* the result. That is what `requireAuth` in `packages/api` does.
 
+### Sending email is a seam, and it is not filled
+
+Password reset is the one auth flow that cannot work without an outbox, so
+`createAuth(database, { sendResetPassword })` takes the sender as an argument
+rather than importing one. Two things fall out of that:
+
+**Nothing configured writes the link to the server log**, with a warning. That
+is right for development — reading the link out of the terminal is how you
+finish a reset without an inbox — and **wrong everywhere else**: in production
+the person waiting on the email never gets one, and the link that would have
+let them in sits in a log instead. A real project passes a sender the first
+time it deploys.
+
+**Tests pass a sender that collects tokens.** That is what lets
+`packages/auth/src/config.test.ts` walk a whole reset — request, link, new
+password, old password refused, token spent — through a real database with
+nothing leaving the machine.
+
 ### Every user field has exactly one owner
 
 Better Auth can add columns to the `user` table through `additionalFields`. Use

@@ -4,6 +4,8 @@
 
 export { SignInPage } from "./signin-page"
 export { SignUpPage } from "./signup-page"
+export { ForgotPasswordPage } from "./forgot-password-page"
+export { ResetPasswordPage } from "./reset-password-page"
 export { SignOutButton } from "./components/sign-out-button"
 
 // How the rest of the app links to sign-in and gets the person back

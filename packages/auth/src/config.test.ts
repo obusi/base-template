@@ -131,3 +131,139 @@ describe("sign-in", () => {
     expect(wrongPassword).toBe("INVALID_EMAIL_OR_PASSWORD")
   })
 })
+
+describe("password reset", () => {
+  /** An auth instance whose reset emails land in the returned array. */
+  function authWithMailbox() {
+    const sent: { email: string; token: string; url: string }[] = []
+
+    const auth = createAuth(db, {
+      sendResetPassword: ({ user, url, token }) => {
+        sent.push({ email: user.email, url, token })
+      },
+    })
+
+    return { auth, sent }
+  }
+
+  async function signUp(auth: ReturnType<typeof createAuth>) {
+    await auth.api.signUpEmail({
+      body: { email: EMAIL, password: PASSWORD, name: "Pinned" },
+    })
+  }
+
+  /** Ask for a reset and hand back the token the mailer was given. */
+  async function requestReset(email = EMAIL) {
+    const { auth, sent } = authWithMailbox()
+    await signUp(auth)
+    await auth.api.requestPasswordReset({ body: { email } })
+
+    return { auth, sent }
+  }
+
+  it("hands the mailer a token for an address that has an account", async () => {
+    const { sent } = await requestReset()
+
+    expect(sent).toHaveLength(1)
+    expect(sent[0]!.email).toBe(EMAIL)
+    expect(sent[0]!.token).toBeTruthy()
+    expect(sent[0]!.url).toContain(sent[0]!.token)
+  })
+
+  it("sends nothing for an unknown address, and says so either way", async () => {
+    const { auth, sent } = authWithMailbox()
+    await signUp(auth)
+
+    const result = await auth.api.requestPasswordReset({
+      body: { email: "nobody@example.com" },
+    })
+
+    // The same shape as the hit above. Reporting "no such account" here would
+    // turn the forgot-password form into an account-enumeration oracle, which
+    // is the one thing it must not become — it takes an email address from
+    // anyone at all, with no password.
+    expect(result.status).toBe(true)
+    expect(sent).toHaveLength(0)
+  })
+
+  it("lets the token set a new password", async () => {
+    const { auth, sent } = await requestReset()
+
+    await auth.api.resetPassword({
+      body: { newPassword: "a-brand-new-password", token: sent[0]!.token },
+    })
+
+    const signedIn = await auth.api.signInEmail({
+      body: { email: EMAIL, password: "a-brand-new-password" },
+    })
+
+    expect(signedIn.user.email).toBe(EMAIL)
+  })
+
+  it("retires the old password", async () => {
+    const { auth, sent } = await requestReset()
+
+    await auth.api.resetPassword({
+      body: { newPassword: "a-brand-new-password", token: sent[0]!.token },
+    })
+
+    expect(
+      await codeFrom(
+        auth.api.signInEmail({ body: { email: EMAIL, password: PASSWORD } })
+      )
+    ).toBe("INVALID_EMAIL_OR_PASSWORD")
+  })
+
+  it("spends the token on first use", async () => {
+    const { auth, sent } = await requestReset()
+    const { token } = sent[0]!
+
+    await auth.api.resetPassword({
+      body: { newPassword: "first-password", token },
+    })
+
+    // A reset link sits in an inbox forever. If the token still worked, anyone
+    // who later read that mailbox could take the account back.
+    expect(
+      await codeFrom(
+        auth.api.resetPassword({
+          body: { newPassword: "second-password", token },
+        })
+      )
+    ).toBe("INVALID_TOKEN")
+  })
+
+  it("refuses a new password under eight characters", async () => {
+    const { auth, sent } = await requestReset()
+
+    // The same floor sign-up enforces. Without this the reset form would be a
+    // way around the password policy rather than a way back into the account.
+    expect(
+      await codeFrom(
+        auth.api.resetPassword({
+          body: { newPassword: "1234567", token: sent[0]!.token },
+        })
+      )
+    ).toBe("PASSWORD_TOO_SHORT")
+  })
+
+  it("signs out everyone who was already signed in", async () => {
+    const { auth, sent } = await requestReset()
+
+    const { headers } = await auth.api.signInEmail({
+      returnHeaders: true,
+      body: { email: EMAIL, password: PASSWORD },
+    })
+    const cookie = new Headers({ cookie: headers.getSetCookie().join("; ") })
+
+    expect(await auth.api.getSession({ headers: cookie })).not.toBeNull()
+
+    await auth.api.resetPassword({
+      body: { newPassword: "a-brand-new-password", token: sent[0]!.token },
+    })
+
+    // Someone resetting a password may be doing it because another person has
+    // their old one. Leaving that person's session alive defeats the reset.
+    expect(await auth.api.getSession({ headers: cookie })).toBeNull()
+  })
+})

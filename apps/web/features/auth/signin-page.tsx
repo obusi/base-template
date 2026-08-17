@@ -9,6 +9,7 @@
 // it.
 
 import { zodResolver } from "@hookform/resolvers/zod"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -103,7 +104,15 @@ export function SignInPage({ searchParams }: { searchParams: SearchParams }) {
             </Field>
 
             <Field data-invalid={!!form.formState.errors.password}>
-              <FieldLabel htmlFor="password">Password</FieldLabel>
+              <div className="flex items-center">
+                <FieldLabel htmlFor="password">Password</FieldLabel>
+                <Link
+                  href="/forgot-password"
+                  className="ml-auto text-sm underline-offset-4 hover:underline"
+                >
+                  Forgot your password?
+                </Link>
+              </div>
               <Input
                 id="password"
                 type="password"
