@@ -1,6 +1,7 @@
 ---
 name: remove-example-domain
 description: Delete the `post` example domain and every reference left behind — the seven folders, the four files the compiler catches, the four it does not (comments and a pinned table list), the appendix that documented it, and the migration that already created its table. Use this once a real domain exists and the example has served its purpose, on any phrasing like "delete the post example", "remove the example domain", "get rid of post", "we don't need the sample domain any more", "clean out the demo code", or when someone asks what is left of the template now that they have their own domains. Thai triggers - "ลบ post", "ลบ domain ตัวอย่าง", "เอา post ออก", "ไม่ใช้ example domain แล้ว", "ลบโค้ดตัวอย่างทิ้ง". Trigger even if they only name one part of it, since deleting the folders alone leaves eight references behind and half of them still compile.
+argument-hint: "[deployed | not-deployed — whether the database is live yet]"
 ---
 
 # Removing the example domain
@@ -14,6 +15,15 @@ Deleting the folders is the easy part. The reason this is a skill is what the
 folders leave behind: **eight files still refer to the domain, and only four of
 them stop compiling.** The other four are comments and a pinned list of table
 names — perfectly valid code pointing at something that no longer exists.
+
+## What this needs from the person
+
+One answer, which may already have arrived as an argument —
+`/remove-example-domain not-deployed`. **Has this project's database been
+deployed anywhere yet?** It decides how the migrations are handled, and the two
+paths are not interchangeable — see below. Ask if it did not come in; do not
+assume, because the wrong branch destroys the record of what a live database
+already ran.
 
 ## Before touching anything
 

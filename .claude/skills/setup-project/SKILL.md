@@ -1,6 +1,7 @@
 ---
 name: setup-project
 description: Claim this base-template repo as a specific, named project — rename it everywhere the old name is baked in (including the browser tab title and the published OpenAPI document), rewrite the placeholder README and landing page, and strip the passages that are only true while the repo is a template. Use this whenever someone has just cloned or "Use this template"-d the repo, or says anything like "make this my project", "rename this to X", "set this up as <name>", "get rid of the template stuff", "I'm starting a new project from this", or asks how to begin using the template for real work. Thai triggers - "ตั้งชื่อโปรเจกต์", "เปลี่ยนชื่อ repo", "ทำให้เป็นโปรเจกต์ของผม/ของเรา", "เอา template ออก", "เริ่มโปรเจกต์ใหม่จาก template", "setup โปรเจกต์". Trigger even when they only mention renaming, since the leftover template text actively instructs every future session to keep a real product free of business logic. This does NOT remove the post example domain — that is the separate remove-example-domain skill.
+argument-hint: <project-name> [one sentence on what it is]
 ---
 
 # Claiming the template as a project
@@ -20,25 +21,29 @@ The `post` example domain is not this skill's concern. It is a working vertical
 slice that stays useful right up until the first real domain exists, and
 `remove-example-domain` handles it when that day comes.
 
+## What this needs from the person
+
+Two things, and both may already have arrived as arguments —
+`/setup-project acme-invoices billing for small studios`. Take what is there and
+ask only for the rest. Re-asking for something they just typed is the fastest
+way to make a tool feel like it is not listening.
+
+1. **The project name** *(required)*. It becomes the npm package name, so it
+   needs to be lowercase with no spaces (`acme-invoices`, not `Acme Invoices`).
+   If they give a display name, propose the slug and confirm it before using it.
+
+2. **What the project actually is** *(optional, one sentence)*. It fills the
+   metadata description, the README's opening, and possibly the landing page.
+   Guessing produces the kind of filler text everyone deletes later, so if they
+   do not have an answer yet, leave those places honestly bare and say which
+   ones you left — that is more useful than invented product copy.
+
 ## Before touching anything
 
 **Check `git status` is clean.** Everything below rewrites files in place, and
 a clean tree is what makes the whole thing one reviewable `git diff` and one
 `git checkout .` away from undone. If the tree is dirty, say so and let the
 person commit or stash first.
-
-Then find out two things, asking only for what the conversation has not already
-answered:
-
-1. **The project name.** It becomes the npm package name, so it needs to be
-   lowercase with no spaces (`acme-invoices`, not `Acme Invoices`). If they give
-   you a display name, propose the slug and confirm it.
-
-2. **What the project actually is** — one sentence. You need it for the metadata
-   description, the README's opening, and possibly the landing page. Guessing
-   produces the kind of filler text everyone deletes later, so if they do not
-   have an answer yet, leave those places honestly bare and say so rather than
-   inventing product copy.
 
 ## Run the mechanical half
 
