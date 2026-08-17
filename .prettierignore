@@ -17,5 +17,6 @@ packages/db/drizzle/
 
 # Vendored from the shadcn/ui skill repo. skills-lock.json records a hash of
 # each file's original content; reformatting them would make every future
-# `skills update` show a spurious diff against the upstream source.
-.claude/skills/
+# `skills update` show a spurious diff against the upstream source. Scoped to
+# the vendored skill so that skills written here are still formatted.
+.claude/skills/shadcn/
