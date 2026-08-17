@@ -112,16 +112,25 @@ edit("packages/api/src/testing/index.ts", (t) =>
   )
 )
 
-// The auth pages survive, but both send people to `/posts` once they are
-// signed in. Nothing catches this: the pages compile, sign-in succeeds, and
-// the 404 arrives a second later. `/` is a safe landing spot rather than the
-// right one — SKILL.md says to ask where it should actually go.
-for (const path of [
-  "apps/web/features/auth/signin-page.tsx",
-  "apps/web/features/auth/signup-page.tsx",
-]) {
-  edit(path, (t) => t.replace('router.push("/posts")', 'router.push("/")'))
-}
+// The auth pages survive, but they land on `/posts` when nobody asked for
+// anywhere else. Nothing catches this: the pages compile, sign-in succeeds,
+// and the 404 arrives a second later. `/` is a safe landing spot rather than
+// the right one — SKILL.md says to ask where it should actually go.
+//
+// Throws rather than shrugging if the constant has moved: a silent no-op here
+// leaves a redirect pointing at a deleted route, which is precisely the
+// failure this edit exists to prevent.
+edit("apps/web/features/auth/redirect.ts", (t) => {
+  const before = 'export const DEFAULT_DESTINATION = "/posts"'
+  if (!t.includes(before)) {
+    throw new Error(
+      "DEFAULT_DESTINATION is no longer declared as expected in " +
+        "apps/web/features/auth/redirect.ts — update this script, and check " +
+        "by hand where the auth pages now send people"
+    )
+  }
+  return t.replace(before, 'export const DEFAULT_DESTINATION = "/"')
+})
 
 // ------------------------------------------------------- architecture.md
 
@@ -167,7 +176,7 @@ console.log(
   "\nNot done here — see SKILL.md:\n" +
     '  packages/db/drizzle/     still contains CREATE TABLE "post"\n' +
     "  apps/web/app/page.tsx    may still link to /posts\n" +
-    "  features/auth/*-page.tsx redirect now points at / — confirm that is right\n" +
+    "  features/auth/redirect.ts DEFAULT_DESTINATION is now / — confirm that is right\n" +
     "\nRun `pnpm verify`. Green means the removal is complete: tsc covers four\n" +
     "of the edits above and rls-guard.test.ts covers the pinned table list.\n" +
     "\nThen delete this skill — there is nothing left for it to remove."

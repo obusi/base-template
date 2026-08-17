@@ -27,6 +27,12 @@ import { toast } from "@packages/ui/components/toast"
 import { AuthHeader } from "./components/auth-header"
 import { SocialButtons } from "./components/social-buttons"
 import { TermsNotice } from "./components/terms-notice"
+import {
+  authPath,
+  DEFAULT_DESTINATION,
+  sanitizeReturnTo,
+  type SearchParams,
+} from "./redirect"
 
 // Deliberately weaker than the sign-up schema: this form checks that a
 // password was typed, not that it meets today's policy. Enforcing a length
@@ -39,8 +45,12 @@ const SignInInput = z.object({
 
 type Values = z.infer<typeof SignInInput>
 
-export function SignInPage() {
+export function SignInPage({ searchParams }: { searchParams: SearchParams }) {
   const router = useRouter()
+
+  // Undefined whenever nothing was asked for, or what was asked for would
+  // have left the site — see redirect.ts.
+  const returnTo = sanitizeReturnTo(searchParams)
 
   const form = useForm<Values>({
     resolver: zodResolver(SignInInput),
@@ -63,9 +73,9 @@ export function SignInPage() {
 
     toast.add({ title: "Signed in.", type: "success" })
 
-    // The posts page renders on the server and reads the session cookie, so it
-    // has to be re-fetched rather than served from the router cache.
-    router.push("/posts")
+    // The destination renders on the server and reads the session cookie, so
+    // it has to be re-fetched rather than served from the router cache.
+    router.push(returnTo ?? DEFAULT_DESTINATION)
     router.refresh()
   }
 
@@ -76,7 +86,7 @@ export function SignInPage() {
           <FieldGroup>
             <AuthHeader
               prompt="Don't have an account?"
-              actionHref="/signup"
+              actionHref={authPath("/signup", returnTo)}
               actionLabel="Sign up"
             />
 

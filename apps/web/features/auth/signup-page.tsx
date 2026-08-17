@@ -22,6 +22,12 @@ import { toast } from "@packages/ui/components/toast"
 import { AuthHeader } from "./components/auth-header"
 import { SocialButtons } from "./components/social-buttons"
 import { TermsNotice } from "./components/terms-notice"
+import {
+  authPath,
+  DEFAULT_DESTINATION,
+  sanitizeReturnTo,
+  type SearchParams,
+} from "./redirect"
 
 // `name` is required by Better Auth's /sign-up/email endpoint, not optional —
 // so it is a real field rather than something derived from the email address.
@@ -35,8 +41,12 @@ const SignUpInput = z.object({
 
 type Values = z.infer<typeof SignUpInput>
 
-export function SignUpPage() {
+export function SignUpPage({ searchParams }: { searchParams: SearchParams }) {
   const router = useRouter()
+
+  // Carried over from the sign-in page when someone switched, so arriving via
+  // a protected link and choosing "create an account" still lands correctly.
+  const returnTo = sanitizeReturnTo(searchParams)
 
   const form = useForm<Values>({
     resolver: zodResolver(SignUpInput),
@@ -72,7 +82,7 @@ export function SignUpPage() {
 
     // Same reason as sign-in: the destination reads the session cookie on the
     // server, so the router cache has to be dropped.
-    router.push("/posts")
+    router.push(returnTo ?? DEFAULT_DESTINATION)
     router.refresh()
   }
 
@@ -83,7 +93,7 @@ export function SignUpPage() {
           <FieldGroup>
             <AuthHeader
               prompt="Already have an account?"
-              actionHref="/signin"
+              actionHref={authPath("/signin", returnTo)}
               actionLabel="Sign in"
             />
 

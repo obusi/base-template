@@ -1,6 +1,6 @@
 ---
 name: remove-example-domain
-description: Delete the `post` example domain and every reference left behind — the five folders, the four files the compiler catches, the six it does not (comments, a pinned table list, and the post-sign-in redirect), the appendix that documented it, and the migration that already created its table. Use this once a real domain exists and the example has served its purpose, on any phrasing like "delete the post example", "remove the example domain", "get rid of post", "we don't need the sample domain any more", "clean out the demo code", or when someone asks what is left of the template now that they have their own domains. Thai triggers - "ลบ post", "ลบ domain ตัวอย่าง", "เอา post ออก", "ไม่ใช้ example domain แล้ว", "ลบโค้ดตัวอย่างทิ้ง". Trigger even if they only name one part of it, since deleting the folders alone leaves ten references behind and six of them still compile.
+description: Delete the `post` example domain and every reference left behind — the five folders, the four files the compiler catches, the five it does not (comments, a pinned table list, and the post-sign-in destination), the appendix that documented it, and the migration that already created its table. Use this once a real domain exists and the example has served its purpose, on any phrasing like "delete the post example", "remove the example domain", "get rid of post", "we don't need the sample domain any more", "clean out the demo code", or when someone asks what is left of the template now that they have their own domains. Thai triggers - "ลบ post", "ลบ domain ตัวอย่าง", "เอา post ออก", "ไม่ใช้ example domain แล้ว", "ลบโค้ดตัวอย่างทิ้ง". Trigger even if they only name one part of it, since deleting the folders alone leaves nine references behind and five of them still compile.
 argument-hint: "[deployed | not-deployed — whether the database is live yet]"
 ---
 
@@ -12,10 +12,10 @@ has done its job, and leaving it costs a table in the database, a public
 `/posts` route.
 
 Deleting the folders is the easy part. The reason this is a skill is what the
-folders leave behind: **ten files still refer to the domain, and only four of
-them stop compiling.** The other six are comments, a pinned list of table names,
-and a redirect — perfectly valid code pointing at something that no longer
-exists.
+folders leave behind: **nine files still refer to the domain, and only four of
+them stop compiling.** The other five are comments, a pinned list of table
+names, and a redirect target — perfectly valid code pointing at something that
+no longer exists.
 
 ## What this needs from the person
 
@@ -36,9 +36,9 @@ through five packages, plus the page that renders it.
 
 The auth pages are **not** part of that. `app/signin/`, `app/signup/` and
 `features/auth/` are real pages wired to Better Auth and they stay. What the
-example owns is where they go afterwards: both call `router.push("/posts")`,
-which the script rewrites to `/`. Say so when reporting, because `/` is a
-placeholder rather than an answer.
+example owns is one line of theirs: `DEFAULT_DESTINATION` in
+`features/auth/redirect.ts`, which the script rewrites from `/posts` to `/`.
+Say so when reporting, because `/` is a placeholder rather than an answer.
 
 ## Run the mechanical half
 
@@ -48,12 +48,12 @@ node .claude/skills/remove-example-domain/scripts/remove.mjs
 
 Add `--dry-run` first to see what it will touch.
 
-It deletes the five paths, then makes the ten follow-up edits: the four the
+It deletes the five paths, then makes the nine follow-up edits: the four the
 compiler would catch (`contract/src/index.ts`, `api/src/index.ts`,
 `db/src/schema/index.ts`, and the pinned table list in `rls-guard.test.ts`) and
-the six it would not — comments in `lib/orpc-query.ts`, `lib/orpc.server.ts` and
-`api/src/testing/index.ts`, the note `setup-project` leaves in `CLAUDE.md`, and
-the `/posts` redirect in both `features/auth/*-page.tsx`. It also cuts S14 from
+the five it would not — comments in `lib/orpc-query.ts`, `lib/orpc.server.ts`
+and `api/src/testing/index.ts`, the note `setup-project` leaves in `CLAUDE.md`,
+and `DEFAULT_DESTINATION` in `features/auth/redirect.ts`. It also cuts S14 from
 `docs/architecture.md`, and takes the appendix divider with it if S14 was the
 last one standing.
 
@@ -110,9 +110,10 @@ server or a build runs, so `tsc` keeps reading stale ones. A fresh clone never
 sees this; anyone who has been running `pnpm dev` will.
 
 Now run `pnpm verify`. This is the real proof, not a checklist: `tsc` covers
-four of the ten edits and `rls-guard.test.ts` covers the pinned table list.
+four of the nine edits and `rls-guard.test.ts` covers the pinned table list.
 Green means the removal is complete — but note what green does **not** prove:
-the two redirects compile either way, so where they point is on you to check.
+`DEFAULT_DESTINATION` compiles whatever it holds, so where it points is on you
+to check.
 
 Then confirm nothing still points at the deleted domain:
 

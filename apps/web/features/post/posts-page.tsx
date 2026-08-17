@@ -13,7 +13,7 @@ import Link from "next/link"
 
 import { auth } from "@packages/auth/server"
 
-import { SignOutButton } from "@/features/auth"
+import { authPath, SignOutButton } from "@/features/auth"
 import { client } from "@/lib/orpc"
 
 import { CreatePostForm } from "./components/create-post-form"
@@ -38,7 +38,10 @@ export async function PostsPage() {
             <SignOutButton />
           </div>
         ) : (
-          <Link href="/signin" className="text-sm underline">
+          <Link
+            href={authPath("/signin", "/posts")}
+            className="text-sm underline"
+          >
             Sign in to post
           </Link>
         )}

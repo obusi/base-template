@@ -6,6 +6,11 @@ export const metadata: Metadata = {
   title: "Sign up",
 }
 
-export default function Page() {
-  return <SignUpPage />
+// See app/signin/page.tsx for why the whole bag is forwarded.
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
+  return <SignUpPage searchParams={await searchParams} />
 }
