@@ -95,12 +95,12 @@ placeholders — the logo in `features/auth/components/auth-header.tsx`, and the
 Terms and Privacy links in `terms-notice.tsx`. Where those point is a product
 and legal question, not a rename. Point them out and leave them.
 
-**Also mention: password reset has no mailer.** `createAuth` takes
-`sendResetPassword` as an argument and falls back to writing the link to the
-server log. That is fine locally and wrong in production, where nobody receives
-the email. Say so plainly — it is the one thing on this list that looks fine in
-development and fails silently after deploying. Picking a provider is theirs to
-do; `docs/architecture.md` S4 has the reasoning.
+**Also mention: password-reset email is off until `RESEND_API_KEY` is set.**
+Without it the link goes to the server log, which is fine locally and wrong in
+production, where nobody receives the email. Say so plainly — it is the one
+thing on this list that looks fine in development and fails silently after
+deploying. Both `.env.example` files carry the variable; `docs/architecture.md`
+S4 explains the seam and how to swap Resend for something else.
 
 ## Finish
 

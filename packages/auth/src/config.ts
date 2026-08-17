@@ -10,6 +10,7 @@ import { betterAuth } from "better-auth"
 import { db, schema, type Database } from "@packages/db"
 
 import { env } from "./env"
+import { resendSender } from "./resend"
 
 /** What a password-reset email needs to say. */
 export type ResetPasswordRequest = {
@@ -91,8 +92,16 @@ export function createAuth(database: Database, options: AuthOptions = {}) {
 /**
  * The instance the running application uses. Also what the schema generator
  * reads: `auth generate` needs a concrete export, not a factory.
+ *
+ * The mailer is chosen here rather than inside `createAuth`, so that the
+ * factory stays free of environment variables and a test can hand it whatever
+ * sender it likes.
  */
-export const auth = createAuth(db)
+export const auth = createAuth(db, {
+  sendResetPassword: env.RESEND_API_KEY
+    ? resendSender({ apiKey: env.RESEND_API_KEY, from: env.RESEND_FROM })
+    : undefined,
+})
 
 export type Auth = ReturnType<typeof createAuth>
 export type Session = Auth["$Infer"]["Session"]

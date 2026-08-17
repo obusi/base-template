@@ -317,14 +317,21 @@ oRPC's relationship to auth is different: it does not perform authentication, it
 
 Password reset is the one auth flow that cannot work without an outbox, so
 `createAuth(database, { sendResetPassword })` takes the sender as an argument
-rather than importing one. Two things fall out of that:
+rather than importing one. Three things fall out of that, in order of how often
+they matter:
 
 **Nothing configured writes the link to the server log**, with a warning. That
 is right for development — reading the link out of the terminal is how you
 finish a reset without an inbox — and **wrong everywhere else**: in production
 the person waiting on the email never gets one, and the link that would have
-let them in sits in a log instead. A real project passes a sender the first
-time it deploys.
+let them in sits in a log instead.
+
+**`RESEND_API_KEY` switches on a real sender.** `src/resend.ts` is about twenty
+lines of `fetch` and needs no dependency, which is the only reason a provider
+ships here at all. It is a starting point, not a recommendation: a project that
+prefers another provider replaces that file, or passes its own function and
+deletes it. `RESEND_FROM` defaults to Resend's sandbox address, which delivers
+only to the account owner — enough to test with, not enough to ship.
 
 **Tests pass a sender that collects tokens.** That is what lets
 `packages/auth/src/config.test.ts` walk a whole reset — request, link, new
