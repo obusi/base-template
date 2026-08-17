@@ -72,11 +72,15 @@ function cutSection(text, id) {
 
 // ---------------------------------------------------------------- rename
 
+// The auth header is in this list rather than left to a person because the
+// name is rendered twice there — the visible heading and the screen-reader
+// label on the logo — and the second one is easy to read past.
 for (const path of [
   "package.json",
   "apps/web/app/layout.tsx",
   "apps/web/app/api/spec/route.ts",
   "apps/web/app/api/docs/route.ts",
+  "apps/web/features/auth/components/auth-header.tsx",
 ]) {
   edit(path, (t) => t.replaceAll("base-template", NAME))
 }
@@ -160,7 +164,7 @@ console.log(
       : "already gone"
   }\n`
 )
-for (const c of changes) console.log(`  ${c.path.padEnd(34)} ${c.note}`)
+for (const c of changes) console.log(`  ${c.path.padEnd(50)} ${c.note}`)
 console.log(
   "\nStill to do by hand — see SKILL.md:\n" +
     "  README.md               rewrite for this project\n" +

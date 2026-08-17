@@ -54,9 +54,11 @@ node .claude/skills/setup-project/scripts/rename.mjs --name <slug>
 Add `--dry-run` first to see what it will touch without writing.
 
 It renames the project in `package.json`, `apps/web/app/layout.tsx`,
-`apps/web/app/api/spec/route.ts`, `apps/web/app/api/docs/route.ts`, and the tree
-diagram in `docs/architecture.md` S2. Three of those are visible to users — the
-browser tab, the `/api/docs` page, and the published OpenAPI document. It then
+`apps/web/app/api/spec/route.ts`, `apps/web/app/api/docs/route.ts`,
+`apps/web/features/auth/components/auth-header.tsx`, and the tree diagram in
+`docs/architecture.md` S2. Four of those are visible to users — the browser tab,
+the `/api/docs` page, the published OpenAPI document, and the "Welcome to …"
+heading on the sign-in and sign-up pages. It then
 cuts the template-only appendices (S13, S15, S16) out of `docs/architecture.md`
 and the template section out of `CLAUDE.md`.
 
@@ -87,6 +89,11 @@ project name and a link to wherever work actually starts.
 While you are in `layout.tsx`, replace the `description` in `metadata`. The
 script renamed the title, but the description still describes the stack rather
 than the product, and it is what search results and link previews show.
+
+**Mention, do not fix:** the sign-in and sign-up pages carry three `href="#"`
+placeholders — the logo in `features/auth/components/auth-header.tsx`, and the
+Terms and Privacy links in `terms-notice.tsx`. Where those point is a product
+and legal question, not a rename. Point them out and leave them.
 
 ## Finish
 
