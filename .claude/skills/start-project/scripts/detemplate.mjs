@@ -76,18 +76,37 @@ edit("docs/architecture.md", (t) => t.replace("\n<project>/\n", `\n${NAME}/\n`))
 
 // --------------------------------------------------- architecture.md cuts
 
+// The header block says which sections are appendices, so cutting them without
+// rewriting it leaves the file asserting that S13 exists. Everything above the
+// appendices survives the fork, which makes this the one paragraph the script
+// has to keep true.
+const APPENDIX_BLURB =
+  "> S13 onward are the appendices: the part a real project deletes. They are\n" +
+  "> numbered on the same scheme, so removing them leaves S1–S12 untouched.\n>\n"
+
 // Appendices run from the divider to the end of the file. Keeping the example
 // domain means keeping S14, which is the only remaining instruction for
 // removing it later — so the divider and that one section stay.
 edit("docs/architecture.md", (t) => {
+  if (!t.includes(APPENDIX_BLURB)) {
+    throw new Error(
+      "the appendix paragraph in the header block has changed shape — " +
+        "update APPENDIX_BLURB in this script before running it"
+    )
+  }
+
   if (!KEEP_EXAMPLE) {
     const i = t.indexOf("\n---\n---\n\n# Appendices")
     if (i === -1)
       throw new Error("appendix divider not found in architecture.md")
-    return t.slice(0, i) + "\n"
+    return t.slice(0, i).replace(APPENDIX_BLURB, "") + "\n"
   }
 
-  let out = t
+  let out = t.replace(
+    APPENDIX_BLURB,
+    "> S14 is an appendix, kept only while the example domain it describes is\n" +
+      "> still in the tree. Deleting both leaves S1–S12 untouched.\n>\n"
+  )
   for (const id of ["S13", "S15", "S16"]) {
     const start = out.indexOf(`\n## ${id}. `)
     if (start === -1) continue
