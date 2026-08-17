@@ -38,7 +38,7 @@ export async function PostsPage() {
             <SignOutButton />
           </div>
         ) : (
-          <Link href="/login" className="text-sm underline">
+          <Link href="/signin" className="text-sm underline">
             Sign in to post
           </Link>
         )}

@@ -73,7 +73,7 @@ pnpm dev
 ```
 
 The app runs at `http://localhost:3000`. `/posts` is a worked example — sign up
-at `/login` first. Interactive API docs are at `/api/docs`.
+at `/signup` first. Interactive API docs are at `/api/docs`.
 
 ## Everyday commands
 
