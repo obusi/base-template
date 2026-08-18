@@ -14,16 +14,15 @@
 // .claude/rules/apps-web-structure.md on components/ vs features/.
 
 import { GalleryVerticalEndIcon } from "lucide-react"
-import { headers } from "next/headers"
 import Link from "next/link"
 
-import { auth } from "@packages/auth/server"
 import { buttonVariants } from "@packages/ui/components/button"
 
 import { authPath, UserMenu } from "@/features/auth"
+import { getSession } from "@/lib/session"
 
 export async function NavBar() {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await getSession()
 
   return (
     <header className="border-b">

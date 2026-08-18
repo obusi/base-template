@@ -8,11 +8,8 @@
 // `client.post.list()` here does not make an HTTP request. On the server the
 // same import resolves to an in-process caller — see lib/orpc.ts.
 
-import { headers } from "next/headers"
-
-import { auth } from "@packages/auth/server"
-
 import { client } from "@/lib/orpc"
+import { getSession } from "@/lib/session"
 
 import { CreatePostForm } from "./components/create-post-form"
 import { PostItem } from "./components/post-item"
@@ -20,7 +17,7 @@ import { PostItem } from "./components/post-item"
 export async function PostsPage() {
   const [{ items }, session] = await Promise.all([
     client.post.list({ limit: 20 }),
-    auth.api.getSession({ headers: await headers() }),
+    getSession(),
   ])
 
   return (
