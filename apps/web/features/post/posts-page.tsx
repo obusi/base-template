@@ -9,11 +9,9 @@
 // same import resolves to an in-process caller — see lib/orpc.ts.
 
 import { headers } from "next/headers"
-import Link from "next/link"
 
 import { auth } from "@packages/auth/server"
 
-import { authPath, SignOutButton } from "@/features/auth"
 import { client } from "@/lib/orpc"
 
 import { CreatePostForm } from "./components/create-post-form"
@@ -27,25 +25,7 @@ export async function PostsPage() {
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-8 p-6">
-      <header className="flex items-center justify-between gap-4">
-        <h1 className="text-xl font-medium">Posts</h1>
-
-        {session ? (
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">
-              {session.user.email}
-            </span>
-            <SignOutButton />
-          </div>
-        ) : (
-          <Link
-            href={authPath("/signin", "/posts")}
-            className="text-sm underline"
-          >
-            Sign in to post
-          </Link>
-        )}
-      </header>
+      <h1 className="text-xl font-medium">Posts</h1>
 
       {session && <CreatePostForm />}
 

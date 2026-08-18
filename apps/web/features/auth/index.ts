@@ -6,7 +6,7 @@ export { SignInPage } from "./signin-page"
 export { SignUpPage } from "./signup-page"
 export { ForgotPasswordPage } from "./forgot-password-page"
 export { ResetPasswordPage } from "./reset-password-page"
-export { SignOutButton } from "./components/sign-out-button"
+export { UserMenu } from "./components/user-menu"
 
 // How the rest of the app links to sign-in and gets the person back
 // afterwards. Building the query string by hand elsewhere would spread the
