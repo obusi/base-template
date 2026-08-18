@@ -10,4 +10,5 @@
 // Every table must enable row level security. `rls-guard.test.ts` next to this
 // file fails the build if one does not — see docs/architecture.md S5.
 export * from "./auth"
+export * from "./profile"
 export * from "./post"

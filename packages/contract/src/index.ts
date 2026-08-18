@@ -12,8 +12,12 @@ export {
   type Post,
 } from "./domains/post/schema"
 
+export { UpdateProfileInput, type Profile } from "./domains/profile/schema"
+
 import { postContract } from "./domains/post/contract"
+import { profileContract } from "./domains/profile/contract"
 
 export const contract = {
   post: postContract,
+  profile: profileContract,
 }

@@ -35,6 +35,7 @@ describe("migrations", () => {
     expect(await tableNames(db)).toEqual([
       "account",
       "post",
+      "profile",
       "session",
       "user",
       "verification",

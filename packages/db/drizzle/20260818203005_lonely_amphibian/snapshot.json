@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "10bd9298-c00b-412b-8611-a41aa49ec680",
+  "id": "f72deb82-9d20-4a94-9053-b2ef2712d8a7",
   "prevIds": [
     "ed3c2de6-14e1-457b-9eae-9a9b45e3f1b6"
   ],
@@ -32,7 +32,7 @@
     },
     {
       "isRlsEnabled": true,
-      "name": "post",
+      "name": "profile",
       "entityType": "tables",
       "schema": "public"
     },
@@ -479,19 +479,6 @@
       "table": "verification"
     },
     {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "gen_random_uuid()",
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "post"
-    },
-    {
       "type": "text",
       "typeSchema": null,
       "notNull": true,
@@ -499,36 +486,36 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "title",
+      "name": "user_id",
       "entityType": "columns",
       "schema": "public",
-      "table": "post"
+      "table": "profile"
     },
     {
       "type": "text",
       "typeSchema": null,
-      "notNull": true,
+      "notNull": false,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "content",
+      "name": "bio",
       "entityType": "columns",
       "schema": "public",
-      "table": "post"
+      "table": "profile"
     },
     {
       "type": "text",
       "typeSchema": null,
-      "notNull": true,
+      "notNull": false,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "author_id",
+      "name": "phone",
       "entityType": "columns",
       "schema": "public",
-      "table": "post"
+      "table": "profile"
     },
     {
       "type": "timestamp",
@@ -541,7 +528,7 @@
       "name": "created_at",
       "entityType": "columns",
       "schema": "public",
-      "table": "post"
+      "table": "profile"
     },
     {
       "type": "timestamp",
@@ -554,7 +541,7 @@
       "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
-      "table": "post"
+      "table": "profile"
     },
     {
       "nameExplicit": true,
@@ -620,55 +607,6 @@
       "table": "verification"
     },
     {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "author_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "post_author_id_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "post"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "created_at",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        },
-        {
-          "value": "id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "post_created_at_id_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "post"
-    },
-    {
       "nameExplicit": false,
       "columns": [
         "user_id"
@@ -705,7 +643,7 @@
     {
       "nameExplicit": false,
       "columns": [
-        "author_id"
+        "user_id"
       ],
       "schemaTo": "public",
       "tableTo": "user",
@@ -714,10 +652,10 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "post_author_id_user_id_fkey",
+      "name": "profile_user_id_user_id_fkey",
       "entityType": "fks",
       "schema": "public",
-      "table": "post"
+      "table": "profile"
     },
     {
       "columns": [
@@ -761,12 +699,12 @@
     },
     {
       "columns": [
-        "id"
+        "user_id"
       ],
       "nameExplicit": false,
-      "name": "post_pkey",
+      "name": "profile_pkey",
       "schema": "public",
-      "table": "post",
+      "table": "profile",
       "entityType": "pks"
     },
     {

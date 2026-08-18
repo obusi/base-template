@@ -5,7 +5,9 @@
 
 import { os } from "./shared/builder"
 import { postRouter } from "./domains/post/router"
+import { profileRouter } from "./domains/profile/router"
 
 export const router = os.router({
   post: postRouter,
+  profile: profileRouter,
 })

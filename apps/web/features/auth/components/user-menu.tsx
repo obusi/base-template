@@ -1,16 +1,18 @@
 "use client"
 
 // The signed-in half of the navbar's right side — an avatar that opens a menu
-// with the account's identity, two placeholder destinations, and sign out.
+// with the account's identity, a link to the profile page, a placeholder
+// Settings destination, and sign out.
 //
-// Profile and Settings are `href="#"` on purpose, same as the Terms and
-// Privacy links in terms-notice.tsx: where they point is a product decision,
-// not one this template makes on a project's behalf.
+// Settings stays `href="#"` on purpose, same as the Terms and Privacy links
+// in terms-notice.tsx: where it points is a product decision, not one this
+// template makes on a project's behalf.
 //
 // Every item sits inside a DropdownMenuGroup, including the standalone label
 // and the standalone sign-out item — Base UI's menu did not open reliably
 // without it.
 
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 
@@ -78,7 +80,9 @@ export function UserMenu({
         <DropdownMenuSeparator />
 
         <DropdownMenuGroup>
-          <DropdownMenuItem render={<a href="#" />}>Profile</DropdownMenuItem>
+          <DropdownMenuItem render={<Link href="/profile" />}>
+            Profile
+          </DropdownMenuItem>
           <DropdownMenuItem render={<a href="#" />}>Settings</DropdownMenuItem>
         </DropdownMenuGroup>
 

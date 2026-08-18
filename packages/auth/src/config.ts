@@ -74,6 +74,40 @@ export function createAuth(database: Database, options: AuthOptions = {}) {
       // docs/architecture.md S10 (C10).
     }),
 
+    // Gives every new user a `profile` row immediately, so `packages/api`
+    // never has to treat "no profile yet" as a normal state on the happy
+    // path. Fires once per `user` row regardless of how it was created —
+    // email/password and Google both insert into `user` before any
+    // provider-specific step runs, so one hook covers both.
+    //
+    // The insert is wrapped rather than left to throw: `create.after` is
+    // queued to run *after* the `user` insert's transaction has already
+    // committed (see better-auth's `db/with-hooks.ts` and
+    // `@better-auth/core`'s `context/transaction.ts`), so a failure here
+    // cannot roll the signup back — it would only turn a successful signup
+    // into an error response, leaving an orphaned user with no profile and
+    // no way to retry (a second signup with the same email just fails).
+    // `packages/api`'s `profile.me` creates the row on first read instead,
+    // as a fallback for exactly this case.
+    databaseHooks: {
+      user: {
+        create: {
+          after: async (createdUser) => {
+            try {
+              await database
+                .insert(schema.profile)
+                .values({ userId: createdUser.id })
+            } catch (err) {
+              console.error(
+                `[auth] failed to create profile for user ${createdUser.id}`,
+                err
+              )
+            }
+          },
+        },
+      },
+    },
+
     emailAndPassword: {
       enabled: true,
 
