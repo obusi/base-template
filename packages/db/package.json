@@ -18,20 +18,20 @@
     "./testing": "./src/testing/index.ts"
   },
   "dependencies": {
-    "@t3-oss/env-core": "^0.13.11",
-    "drizzle-orm": "1.0.0-rc.4",
+    "@t3-oss/env-core": "catalog:",
+    "drizzle-orm": "catalog:",
     "postgres": "^3.4.9",
-    "zod": "^4.4.3"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.4",
     "@tooling/eslint-config": "workspace:*",
     "@tooling/typescript-config": "workspace:*",
     "@tooling/vitest-config": "workspace:*",
-    "@types/node": "^20",
-    "drizzle-kit": "1.0.0-rc.4",
-    "eslint": "^9",
-    "typescript": "^5",
-    "vitest": "^4.1.10"
+    "@types/node": "catalog:",
+    "drizzle-kit": "catalog:",
+    "eslint": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

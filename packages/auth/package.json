@@ -15,23 +15,23 @@
     "./env": "./src/env.ts"
   },
   "dependencies": {
-    "@better-auth/drizzle-adapter": "^1.6.27",
+    "@better-auth/drizzle-adapter": "catalog:",
     "@packages/db": "workspace:*",
-    "@t3-oss/env-core": "^0.13.11",
-    "better-auth": "^1.6.27",
-    "react": "19.2.4",
-    "server-only": "^0.0.1",
-    "zod": "^4.4.3"
+    "@t3-oss/env-core": "catalog:",
+    "better-auth": "catalog:",
+    "react": "catalog:",
+    "server-only": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
-    "auth": "^1.6.27",
+    "auth": "catalog:",
     "@tooling/eslint-config": "workspace:*",
     "@tooling/typescript-config": "workspace:*",
     "@tooling/vitest-config": "workspace:*",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "eslint": "^9",
-    "typescript": "^5",
-    "vitest": "^4.1.10"
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "eslint": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

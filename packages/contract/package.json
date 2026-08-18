@@ -12,16 +12,16 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@orpc/contract": "^1.15.0",
-    "zod": "^4.4.3"
+    "@orpc/contract": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@tooling/eslint-config": "workspace:*",
     "@tooling/typescript-config": "workspace:*",
     "@tooling/vitest-config": "workspace:*",
-    "@types/node": "^20",
-    "eslint": "^9",
-    "typescript": "^5",
-    "vitest": "^4.1.10"
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

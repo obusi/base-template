@@ -13,22 +13,22 @@
     "./connection/live": "./src/connection/live.ts"
   },
   "dependencies": {
-    "@orpc/client": "^1.15.0",
-    "@orpc/server": "^1.15.0",
+    "@orpc/client": "catalog:",
+    "@orpc/server": "catalog:",
     "@packages/auth": "workspace:*",
     "@packages/contract": "workspace:*",
     "@packages/db": "workspace:*",
-    "drizzle-orm": "1.0.0-rc.4",
-    "server-only": "^0.0.1",
-    "zod": "^4.4.3"
+    "drizzle-orm": "catalog:",
+    "server-only": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@tooling/eslint-config": "workspace:*",
     "@tooling/typescript-config": "workspace:*",
     "@tooling/vitest-config": "workspace:*",
-    "@types/node": "^20",
-    "eslint": "^9",
-    "typescript": "^5",
-    "vitest": "^4.1.10"
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

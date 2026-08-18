@@ -7,7 +7,7 @@
     "./base": "./base.ts"
   },
   "devDependencies": {
-    "vitest": "^4.1.10"
+    "vitest": "catalog:"
   },
   "peerDependencies": {
     "vitest": "^4"
