@@ -338,6 +338,17 @@ only to the account owner — enough to test with, not enough to ship.
 password, old password refused, token spent — through a real database with
 nothing leaving the machine.
 
+### Social login is the same kind of seam
+
+`socialProviders` in `config.ts` is off until a project sets credentials for a
+provider — `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` for Google, the one
+this template ships wired — and `createAuth`'s `google` option takes the pair
+as an argument rather than reading `env` inside the factory, for the same
+reason `sendResetPassword` does: a test can hand it throwaway credentials and
+assert on the authorization URL Better Auth builds, without a real OAuth
+client or a browser. Adding another provider later is the same shape again —
+a new key in `socialProviders`, gated on its own pair of env vars.
+
 ### Every user field has exactly one owner
 
 Better Auth can add columns to the `user` table through `additionalFields`. Use

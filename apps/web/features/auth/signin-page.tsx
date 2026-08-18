@@ -128,7 +128,7 @@ export function SignInPage({ searchParams }: { searchParams: SearchParams }) {
               </Button>
             </Field>
 
-            <SocialButtons />
+            <SocialButtons callbackURL={returnTo ?? DEFAULT_DESTINATION} />
           </FieldGroup>
         </form>
 

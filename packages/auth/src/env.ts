@@ -29,6 +29,13 @@ export const env = createEnv({
     // it has not verified, so the default is its own sandbox address, which
     // delivers to the account owner and nobody else.
     RESEND_FROM: z.string().default("onboarding@resend.dev"),
+
+    // Optional, and only take effect together — `config.ts` turns "Continue
+    // with Google" on when both are present and leaves it off otherwise. Get
+    // a pair from https://console.cloud.google.com/apis/credentials; the
+    // redirect URI to register there is `${BETTER_AUTH_URL}/api/auth/callback/google`.
+    GOOGLE_CLIENT_ID: z.string().optional(),
+    GOOGLE_CLIENT_SECRET: z.string().optional(),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,

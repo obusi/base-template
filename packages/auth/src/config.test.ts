@@ -267,3 +267,34 @@ describe("password reset", () => {
     expect(await auth.api.getSession({ headers: cookie })).toBeNull()
   })
 })
+
+describe("google sign-in", () => {
+  // `social-buttons.tsx` renders nothing until a project configures Google —
+  // this is what stops that button from ever reaching a user with nothing
+  // behind it to catch the click.
+  it("is off until a project configures it", async () => {
+    const auth = createAuth(db)
+
+    expect(
+      await codeFrom(auth.api.signInSocial({ body: { provider: "google" } }))
+    ).toBe("PROVIDER_NOT_FOUND")
+  })
+
+  it("returns a Google authorization URL once configured", async () => {
+    const auth = createAuth(db, {
+      google: { clientId: "test-client-id", clientSecret: "test-secret" },
+    })
+
+    const result = await auth.api.signInSocial({
+      body: { provider: "google", callbackURL: "/posts" },
+    })
+
+    // This is the boundary of what a test can prove without a live Google
+    // endpoint and a browser: that Better Auth built a real authorization
+    // request for the credentials it was given, not that the handshake
+    // completes.
+    expect(result.url).toBeTruthy()
+    expect(new URL(result.url!).origin).toBe("https://accounts.google.com")
+    expect(result.url).toContain("client_id=test-client-id")
+  })
+})

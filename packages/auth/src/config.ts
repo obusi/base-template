@@ -27,6 +27,13 @@ export type AuthOptions = {
    * about which mail provider a project uses.
    */
   sendResetPassword?: (request: ResetPasswordRequest) => void | Promise<void>
+
+  /**
+   * Turns on "Continue with Google". Injected rather than read from `env`
+   * directly, so a test can pass throwaway credentials without a real OAuth
+   * client — see `config.test.ts`.
+   */
+  google?: { clientId: string; clientSecret: string }
 }
 
 /**
@@ -86,6 +93,12 @@ export function createAuth(database: Database, options: AuthOptions = {}) {
       // the reset, so every session goes.
       revokeSessionsOnPasswordReset: true,
     },
+
+    // Absent rather than an empty object when unconfigured: an empty
+    // `socialProviders` still makes `/sign-in/social` a live endpoint that
+    // answers PROVIDER_NOT_FOUND, and `undefined` is what the test in
+    // `config.test.ts` pins as "off until a project configures it".
+    socialProviders: options.google ? { google: options.google } : undefined,
   })
 }
 
@@ -101,6 +114,13 @@ export const auth = createAuth(db, {
   sendResetPassword: env.RESEND_API_KEY
     ? resendSender({ apiKey: env.RESEND_API_KEY, from: env.RESEND_FROM })
     : undefined,
+  google:
+    env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
+      ? {
+          clientId: env.GOOGLE_CLIENT_ID,
+          clientSecret: env.GOOGLE_CLIENT_SECRET,
+        }
+      : undefined,
 })
 
 export type Auth = ReturnType<typeof createAuth>
