@@ -113,6 +113,44 @@ require at that exact path. Leave them there even if the rest of this file
 suggests grouping things into folders — the tool, not this convention,
 decides where these live.
 
+## Server vs Client Components
+
+Default to a Server Component. Add `"use client"` only to the smallest piece
+that actually needs a hook, an event handler, or a browser API — never to the
+page or layout it sits inside. A `"use client"` at the top of `page.tsx` turns
+everything under it into client-rendered code too, including children that
+never touch `useState`.
+
+The shape that repeats across `features/`: a Server Component `<name>-page.tsx`
+fetches what the page needs — `await client.xxx()`, `await getSession()` — and
+passes the result down as props to a small client component that owns only the
+interactive part:
+
+```
+posts-page.tsx        (server, fetches the list)
+  └─ post-item.tsx     ("use client", owns edit/delete state)
+
+profile-page.tsx       (server, fetches the profile)
+  └─ profile-form.tsx  ("use client", owns the form)
+
+nav-bar.tsx            (server, reads the session)
+  └─ user-menu.tsx     ("use client", owns the dropdown + sign out)
+```
+
+This is also why `NavBar` is an `async function` rather than a plain one:
+reading the session belongs on the server, so the HTML that leaves it is
+already correct instead of flashing the signed-out state while a client-side
+check catches up.
+
+The one deliberate exception: a page that is *itself* one interactive form,
+front to back — `signin-page.tsx`, `signup-page.tsx` — is a Client Component
+at the top level rather than a server shell wrapped around a form leaf.
+Splitting it further would not move meaningfully more code out of the client
+bundle (the non-interactive parts, like `AuthHeader`, are a few lines of
+markup) and would add a component split for its own sake. Treat this as the
+exception, not the default: reach for it only when close to nothing is left
+to render on the server once the interactive part is factored out.
+
 ## Data fetching
 
 Same underlying question either way: is the data needed the moment the page
