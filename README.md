@@ -37,7 +37,7 @@ reasoning is in [`docs/architecture.md`](docs/architecture.md).
 
 ## Getting started
 
-Requires **Node 20.9+**, **pnpm 10**, and a Postgres database (Supabase is what
+Requires **Node 24+**, **pnpm 10**, and a Postgres database (Supabase is what
 this is built against).
 
 ```bash

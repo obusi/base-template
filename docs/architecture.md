@@ -67,7 +67,6 @@ purpose, and adding one should be a deliberate decision rather than a reflex:
 |---|---|
 | **Server Actions** | Duplicates what `/rpc` already does, and Expo cannot call them — two paths means AI has to guess which one to use |
 | **Supabase Auth / RLS policies** | Authorization lives in oRPC only (see S5) |
-| **CI (GitHub Actions)** | Not yet. Test helpers accept `TEST_DATABASE_URL` from day one, so CI is a config-only change |
 | **Playwright / Storybook / Testing Library** | Not yet. All three can be added later without restructuring |
 | **Sentry / pino** | `console.error` for now, behind a single interceptor that can be swapped |
 | **`apps/mobile`** | Readiness for Expo comes from splitting out `contract` and `auth/client`, not from an empty folder |
@@ -793,7 +792,7 @@ every package that uses it, and import only v4.
 
 | Change | Impact here |
 |---|---|
-| Node.js **20.9+** required | `engines` pins `>=20.9` |
+| Node.js **24+** required | `engines` pins `>=24`. Below Node 23.6, `@tooling/vitest-config`'s `.ts` export fails to load with `ERR_UNKNOWN_FILE_EXTENSION` — Vitest treats bare-specifier imports in a config file as external and hands them to Node's own loader, which cannot execute `.ts` without native type-stripping. Caught by CI running an older Node than any contributor's dev machine had. |
 | Turbopack is the default for `dev` and `build` | no `--turbopack` flag needed; a custom webpack config would now **fail the build** |
 | `middleware.ts` → `proxy.ts` | relevant if session checks are ever put in middleware |
 | Async request APIs enforced, not warned | `await headers()`, `await params`, `await cookies()` |
