@@ -153,6 +153,24 @@ role in `DATABASE_URL` both owns the tables and bypasses RLS. Both ways of
 getting this wrong are silent, which is why the check exists. It is only
 meaningful once at least one row exists.
 
+It then reports what `anon` and `authenticated` can see, a line per role and
+table. Three answers are safe, and they are not equally strong:
+
+| the line reads | what it means |
+|---|---|
+| `cannot reach` | the role cannot resolve the name at all — the strongest |
+| `0 of N rows` | the role reads the table and RLS filters every row out |
+| `0 rows (table is empty — inconclusive)` | nothing to prove either way yet |
+
+**`cannot reach` is the expected result here**, because step 2 turned the Data
+API off. `anon` and `authenticated` exist only to serve PostgREST; with it off
+they are never granted USAGE on the schema, and Postgres reports a table in a
+schema a role cannot use as nonexistent rather than as forbidden. A leaked key
+cannot read those tables, and cannot discover that they exist.
+
+Anything else is a real finding. The script lists what it found and exits
+non-zero.
+
 ## 5. Run it
 
 ```bash

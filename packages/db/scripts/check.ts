@@ -19,13 +19,28 @@ const PUBLIC_ROLES = ["anon", "authenticated"]
  *  unlike functions, are not hoisted past the code that catches them. */
 class RollbackAfterReading extends Error {}
 
-function isPermissionDenied(error: unknown): boolean {
+/** Both codes mean the same thing to this script: the role could not reach the
+ *  table. They are not equally good news.
+ *
+ *  42501 insufficient_privilege is the weaker one — the role resolved the name
+ *  and was refused, so it knows the table is there.
+ *
+ *  42P01 undefined_table is the stronger one. Resolving an unqualified name
+ *  walks `search_path` and silently skips every schema the role lacks USAGE
+ *  on, so a table it cannot reach reads as nonexistent rather than forbidden.
+ *  A Supabase project created with the Data API off answers this way, and that
+ *  is the normal case here: `anon` and `authenticated` exist only to serve
+ *  PostgREST, and are granted nothing once it is switched off.
+ *
+ *  Neither can be a genuine missing table. Both are only ever caught after
+ *  `set local role`, on a relation this same connection read successfully one
+ *  statement earlier. */
+function isUnreachable(error: unknown): boolean {
   return (
     typeof error === "object" &&
     error !== null &&
     "code" in error &&
-    // 42501 insufficient_privilege
-    error.code === "42501"
+    (error.code === "42501" || error.code === "42P01")
   )
 }
 
@@ -149,7 +164,7 @@ for (const role of PUBLIC_ROLES) {
 
   let ownerSees: number | null = null
   let roleSees: number | null = null
-  let denied = false
+  let unreachable = false
 
   try {
     await sql.begin(async (tx) => {
@@ -175,15 +190,15 @@ for (const role of PUBLIC_ROLES) {
   } catch (error) {
     if (error instanceof RollbackAfterReading) {
       // expected
-    } else if (isPermissionDenied(error)) {
-      denied = true
+    } else if (isUnreachable(error)) {
+      unreachable = true
     } else {
       throw error
     }
   }
 
-  if (denied) {
-    console.log(`probe: ${role} cannot read a protected table (no grant)`)
+  if (unreachable) {
+    console.log(`probe: ${role} cannot reach a protected table`)
     continue
   }
 
@@ -219,7 +234,7 @@ for (const role of PUBLIC_ROLES) {
 
   for (const table of tables) {
     let visible: number | null = null
-    let denied = false
+    let unreachable = false
 
     try {
       await sql.begin(async (tx) => {
@@ -235,17 +250,15 @@ for (const role of PUBLIC_ROLES) {
     } catch (error) {
       if (error instanceof RollbackAfterReading) {
         // expected
-      } else if (isPermissionDenied(error)) {
-        denied = true
+      } else if (isUnreachable(error)) {
+        unreachable = true
       } else {
         throw error
       }
     }
 
-    if (denied) {
-      console.log(
-        `${role.padEnd(16)} ${table.name.padEnd(16)} permission denied`
-      )
+    if (unreachable) {
+      console.log(`${role.padEnd(16)} ${table.name.padEnd(16)} cannot reach`)
       continue
     }
 
