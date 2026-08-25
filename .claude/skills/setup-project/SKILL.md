@@ -74,9 +74,9 @@ can be answered wrongly.
 **`README.md`** — the first thing anyone opens on GitHub. It currently sells the
 template. Rewrite it for the project: what this codebase is *for*, then the path
 from clone to running app. Keep the parts that are about the stack rather than
-the template — the package table, the dependency graph, the `db:check` warning,
-the everyday commands — and drop the "Starting a real project from this"
-section, which has just been carried out. Read the existing file rather than
+the template — the package table, the dependency graph, the everyday commands,
+and the pointer to `docs/setup.md` — and drop the "Starting a real project from
+this" section, which has just been carried out. Read the existing file rather than
 starting from a blank page; most of it survives.
 
 **`apps/web/app/page.tsx`** — a placeholder that describes the template and
@@ -136,6 +136,12 @@ for removing the example domain when the time comes. Do not commit unless asked.
 `.claude/rules/`, and everything in `CLAUDE.md` outside the template section,
 describe the *stack* rather than the template. They apply unchanged to a real
 project, and editing them would be a regression rather than a cleanup.
+
+`docs/setup.md` is the same case, and the one most likely to be mistaken for
+template text because it opens by talking about starting a project. It is the
+procedure a real deployment runs — database, env files, schema, branch rules —
+and it is where the `db:check` warning lives now that `README.md` only links to
+it. Leave the file alone.
 
 The version string in `apps/web/app/api/spec/route.ts` is hard-coded separately
 from `package.json`. Mention it, since it is published in the OpenAPI document,

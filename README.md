@@ -44,29 +44,9 @@ this is built against).
 pnpm install
 ```
 
-Then create the two env files from the examples beside them — `apps/web/.env`
-and `packages/db/.env`. They are separate files because they belong to two
-different processes, and the `DATABASE_URL` in each must match:
-
-```bash
-cp apps/web/.env.example apps/web/.env
-cp packages/db/.env.example packages/db/.env
-```
-
-Apply the schema, then confirm the database is configured the way the security
-model assumes:
-
-```bash
-pnpm --filter @packages/db db:migrate
-pnpm --filter @packages/db db:check
-```
-
-`db:check` is worth not skipping. Every table ships with row-level security
-enabled and zero policies, so a leaked anon key reads nothing — but that only
-holds if the role in `DATABASE_URL` both owns the tables and bypasses RLS. Both
-ways of getting it wrong are silent. S11 in
-[`docs/architecture.md`](docs/architecture.md) has the two Supabase project
-settings that matter, and what to check on any other host.
+Then work through [`docs/setup.md`](docs/setup.md) — the database, the two
+`.env` files, the schema, and the branch rules, in that order. It is short, and
+none of it is optional.
 
 ```bash
 pnpm dev
@@ -100,21 +80,19 @@ pnpm dlx shadcn@latest add button -c apps/web
 
 ## Starting a real project from this
 
-Use GitHub's **"Use this template"** button. Note the tradeoff: the histories
-are unrelated, so a fork receives no later template updates — which is the main
-reason this repo stays small.
+Use GitHub's **"Use this template"** button. The histories are unrelated, so a
+fork receives no later template updates — which is the main reason this repo
+stays small.
 
-Then work through S11 in
-[`docs/architecture.md`](docs/architecture.md). The short version:
-
-1. Point it at your own database and run the two commands above.
-2. Delete the `post` example domain once you have a real domain to replace it —
-   S14 lists every file and every follow-up edit.
-3. Strip the passages that are only true while this repo is a template,
-   including the marked section in `CLAUDE.md`. S13 lists them.
+Then run through [`docs/setup.md`](docs/setup.md), and S13 of
+[`docs/architecture.md`](docs/architecture.md) for stripping the template out of
+itself: the rename, deleting the `post` example domain (S14), and the passages
+in `CLAUDE.md` that are only true while this is a template.
 
 ## Documentation
 
+- [`docs/setup.md`](docs/setup.md) — what to do, once per project, to get this
+  running against a database of your own.
 - [`docs/architecture.md`](docs/architecture.md) — the single design document.
   Why the repo is shaped this way, the boundaries and how each is enforced, the
   security model, and S10, the library traps (`C1`…`C18`) that shaped it. Read

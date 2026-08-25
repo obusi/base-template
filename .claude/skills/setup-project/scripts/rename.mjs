@@ -97,11 +97,12 @@ edit("docs/architecture.md", (t) => t.replace("\n<project>/\n", `\n${NAME}/\n`))
 // keep true.
 const BLURB =
   "> S13 onward are the appendices: the part a real project deletes. They are\n" +
-  "> numbered on the same scheme, so removing them leaves S1–S12 untouched.\n>\n"
+  "> numbered on the same scheme, so removing them leaves every section before\n" +
+  "> S13 untouched.\n>\n"
 
 const BLURB_EXAMPLE_ONLY =
   "> S14 is an appendix, kept only while the example domain it describes is\n" +
-  "> still in the tree. Deleting both leaves S1–S12 untouched.\n>\n"
+  "> still in the tree. Deleting both leaves every other section untouched.\n>\n"
 
 edit("docs/architecture.md", (t) => {
   if (!t.includes(BLURB)) {

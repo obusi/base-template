@@ -22,7 +22,8 @@
 > for exactly that reason.
 >
 > S13 onward are the appendices: the part a real project deletes. They are
-> numbered on the same scheme, so removing them leaves S1–S12 untouched.
+> numbered on the same scheme, so removing them leaves every section before
+> S13 untouched.
 >
 > Last updated: 2026-08-17
 
@@ -49,7 +50,7 @@ Development is AI-driven; a human reviews code and UI as the final gate.
 | API | **oRPC** (contract-first) | Type-safe, and the contract is shareable with mobile |
 | API docs | **`@orpc/openapi`** + **Scalar** | The spec is generated from the contract at `/api/spec`, so it cannot describe an API that no longer exists. Browsable at `/api/docs` |
 | ORM | **Drizzle** | Schema is TypeScript rather than a separate DSL, no codegen step, query errors surface in `tsc` |
-| Database | **Supabase**, used as hosted Postgres | No `@supabase/*` package is installed — see S11 |
+| Database | **Supabase**, used as hosted Postgres | Used as plain Postgres: no `@supabase/*` package is installed, the Data API stays off, and the database is reached only through Drizzle. RLS deny-all is the wall (S5) |
 | Auth | **Better Auth** | |
 | Client data fetching | **TanStack Query** via `@orpc/tanstack-query` | Devtools are a devDependency; the package compiles away outside development |
 | Forms | **react-hook-form** + `zodResolver` | Reuses the same zod schema the contract validates with |
@@ -912,44 +913,6 @@ the contract's `z.number()`.
 
 ---
 
-## S11. Setting up a new project
-
-These cannot be carried in the repo — they depend on a database that does not
-exist until someone creates one.
-
-1. **Create the Supabase project**, and set two options at creation. *(Not on
-   Supabase? See "On another Postgres host" below — the rest is unchanged.)*
-   - **Enable Data API — off.** It publishes a REST endpoint that reaches the
-     database with the anon key. Nothing here uses it (no `@supabase/*` package
-     is installed anywhere). RLS deny-all is the wall; not opening the door at
-     all is better.
-   - **Enable automatic RLS — on.** An event trigger enables RLS on every new
-     table, as a backstop for tables created by hand in the SQL editor. It is
-     also the reason `db:check` cannot replace `rls-guard.test.ts` (see
-     S5).
-2. **Write `apps/web/.env` and `packages/db/.env`** from the `.env.example`
-   beside each. Two files because they belong to two processes (see
-   S9); the `DATABASE_URL` in both must match.
-3. **`pnpm --filter @packages/db db:migrate`**
-4. **`pnpm --filter @packages/db db:check`** — proves the deployment's roles are
-   what RLS deny-all assumes. Both ways of getting this wrong are silent, and
-   the check is only meaningful once at least one row exists.
-
-### On another Postgres host
-
-The RLS deny-all scheme under S5 is not Supabase-specific in principle,
-but its two conditions are stated in Supabase's vocabulary. On any other host,
-the question to answer before trusting it is the same: **does the role in
-`DATABASE_URL` bypass RLS, and does it own the tables?**
-
-`db:check` reads that from the catalogue rather than assuming it, so run it and
-read the output rather than porting the Supabase steps literally. What changes
-is only step 1: there is no Data API to switch off, and no automatic-RLS
-trigger — which makes `rls-guard.test.ts` the sole guard against a table that
-forgot `withRLS()`, rather than one of two.
-
----
-
 ## S12. Sources
 
 Official documentation consulted while building this, on 2026-08-13:
@@ -992,7 +955,7 @@ fork.
 
 ### Turning this repo into a real project
 
-Beyond S11 above, which every deployment needs, a fork has to strip the
+Beyond the setup every deployment needs, a fork has to strip the
 template out of itself. Leaving it in means every future session is told to
 keep a real product "lean" and free of business logic.
 
