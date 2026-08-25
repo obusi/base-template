@@ -56,8 +56,8 @@ pnpm --filter @packages/api exec vitest run src/domains/<domain>/router.test.ts
 pnpm --filter @packages/api exec vitest run -t "refuses a caller with no session"
 ```
 
-**Database** (needs `packages/db/.env` — see S9 and S11 of the architecture
-doc):
+**Database** (needs `packages/db/.env` — see `docs/architecture.md` S9 for why
+there are two env files, and `docs/setup.md` for writing them):
 
 ```bash
 pnpm --filter @packages/db db:generate   # write a migration from schema changes
@@ -171,6 +171,9 @@ what to re-check when any of them moves.
   decision above, plus S10, the library traps (`C1`…`C18`) that shaped the
   repo and are cited by number from several source comments. Read the relevant
   section before changing a structural rule.
+- `docs/setup.md` — the once-per-project procedure: database, env files,
+  schema, branch rules. Steps only; the reasoning behind them is in the
+  architecture doc.
 - `.claude/rules/` — path-scoped conventions that load when you work in the
   matching directory: `apps/web` structure, shared package conventions, and
   one file each for `api`, `db`, `contract`, and tests.
