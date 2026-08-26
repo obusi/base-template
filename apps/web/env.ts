@@ -19,7 +19,18 @@ export const env = createEnv({
   // devtools, so a value belongs here only if it is safe to publish.
   client: {},
 
-  // Next.js inlines `process.env.NEXT_PUBLIC_*` at build time rather than
-  // exposing the object, so client variables have to be listed one by one.
-  experimental__runtimeEnv: {},
+  // Listed one by one rather than handed `process.env`, because Next.js inlines
+  // `process.env.NEXT_PUBLIC_*` at build time instead of exposing the object.
+  //
+  // `POSTGRES_URL` is the name Supabase's Vercel integration uses for the
+  // database it gives a preview deployment, one per git branch. That value is
+  // minted per branch and exists nowhere a person could copy it from, so
+  // reading it here is what makes a preview deployment have a database at all.
+  // `DATABASE_URL` wins wherever it is set, which is everywhere else.
+  // `packages/db` reads the same pair on its own side — see architecture S9.
+  runtimeEnv: {
+    DATABASE_URL: process.env.DATABASE_URL || process.env.POSTGRES_URL,
+    BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
+    BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
+  },
 })

@@ -14,7 +14,7 @@ import { createTestDb, resetDb, type TestDb } from "@packages/db/testing"
 import { APIError } from "better-auth/api"
 import { beforeAll, beforeEach, describe, expect, it } from "vitest"
 
-import { createAuth } from "./config"
+import { createAuth, toHostList } from "./config"
 
 const EMAIL = "pinned@example.com"
 const PASSWORD = "correct-horse-battery-staple"
@@ -294,6 +294,25 @@ describe("allowed hosts", () => {
     // The companion to the test below: without this, an implementation that
     // trusted every host would satisfy the "adds" assertion just as well.
     expect(await trusted()).toEqual(["http://localhost:3000"])
+  })
+
+  it("collects hosts from several variables, comma-separated", () => {
+    // Three sources feed one list: the escape-hatch variable, and the two
+    // hostnames Vercel mints for a preview deployment. Order is preserved so
+    // the list reads the way it was configured.
+    expect(
+      toHostList("a.example.com, b.example.com", "c.example.com", undefined)
+    ).toEqual(["a.example.com", "b.example.com", "c.example.com"])
+  })
+
+  it("drops blanks rather than keeping a host that matches nothing", () => {
+    // The companion. A deployment that sets the variable to an empty string
+    // instead of deleting it, or leaves a trailing comma, would otherwise get
+    // an entry that looks configured and matches no request at all.
+    expect(toHostList("", undefined, "a.example.com,")).toEqual([
+      "a.example.com",
+    ])
+    expect(toHostList(undefined, undefined)).toEqual([])
   })
 
   it("adds each configured host, wildcard intact", async () => {

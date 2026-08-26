@@ -176,15 +176,41 @@ export function createAuth(database: Database, options: AuthOptions = {}) {
  * factory stays free of environment variables and a test can hand it whatever
  * sender it likes.
  */
-export const auth = createAuth(db, {
-  // Comma-separated in the environment because a variable holds one string.
-  // Blank entries are dropped so a trailing comma, or the empty value the
-  // production deployment leaves set, does not become a host that matches
-  // nothing and confuses the next person reading the list.
-  allowedHosts: (env.BETTER_AUTH_ALLOWED_HOSTS ?? "")
-    .split(",")
+/**
+ * Flattens environment values into a host list: each may hold several hosts
+ * separated by commas, because a variable holds one string.
+ *
+ * Blanks are dropped so that a trailing comma, or the empty value a deployment
+ * leaves set rather than deletes, does not become a host matching nothing —
+ * which would read like a configured entry while doing exactly as much as no
+ * entry at all.
+ */
+export function toHostList(...values: (string | undefined)[]): string[] {
+  return values
+    .flatMap((value) => (value ?? "").split(","))
     .map((host) => host.trim())
-    .filter(Boolean),
+    .filter(Boolean)
+}
+
+export const auth = createAuth(db, {
+  // Every hostname this deployment answers to beyond `BETTER_AUTH_URL`'s own.
+  //
+  // The two Vercel variables are the point of this list. A preview deployment
+  // is reachable at two hostnames — one minted per build, one per branch — and
+  // both change on their own, so neither can be written into a settings page
+  // or matched by a pattern that stays true. Reading what the platform already
+  // knows means a custom domain, a renamed project or a different Vercel team
+  // costs no edit here, and a fork inherits nothing about the account it came
+  // from.
+  //
+  // `BETTER_AUTH_ALLOWED_HOSTS` covers what Vercel cannot report: a second
+  // custom domain, or a host somewhere else entirely. Most projects never set
+  // it.
+  allowedHosts: toHostList(
+    env.BETTER_AUTH_ALLOWED_HOSTS,
+    env.VERCEL_URL,
+    env.VERCEL_BRANCH_URL
+  ),
 
   sendResetPassword: env.RESEND_API_KEY
     ? resendSender({ apiKey: env.RESEND_API_KEY, from: env.RESEND_FROM })
