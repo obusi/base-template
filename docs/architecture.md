@@ -973,6 +973,14 @@ already holds what the workflow would go and fetch: `POSTGRES_URL`, pooled and
 scoped to that branch. So `apps/web/vercel.json` puts `db:deploy` in front of
 the build command, and no token, workflow or third-party action is involved.
 
+It does have to wait, though. Supabase writes the connection string and asks
+for a build in the same breath, and the database refuses those credentials —
+`28P01` — for some minutes afterwards, on roughly half the builds. Nothing in
+the build can hurry that along, so `db:deploy` retries for five minutes rather
+than failing on the first refusal. A build that was going to succeed pays
+nothing for this, and one that exhausts every attempt has said something worth
+knowing: the credentials are wrong rather than early.
+
 `db:deploy` refuses to touch anything but a preview. A preview database is
 discarded with its pull request; production holds data a bad migration cannot
 un-break, and migrating it automatically is a decision about ordering and

@@ -168,6 +168,15 @@ db:deploy: applying migrations to this preview's database
 db:deploy: done
 ```
 
+Sometimes with a wait in the middle, which is also normal — see the next
+section:
+
+```
+db:deploy: attempt 1 of 6 failed with 28P01 — the branch database is
+           likely still being provisioned. Retrying in 60s.
+db:deploy: done
+```
+
 ## Three things that will waste an afternoon
 
 **Reopening a pull request is not opening one.** Supabase creates a database on
@@ -176,11 +185,26 @@ the `opened` event only. Reopen a closed pull request and its check reports
 `POSTGRES_URL` with nothing explaining why. Open a new pull request instead —
 the same branch is fine.
 
-**Never press Redeploy on a preview.** A redeploy reuses the original
-deployment's environment, including the database password. Every new pull
-request gets a new branch database with a new password, so an older
-deployment's credentials are stale, and the build fails with
-`password authentication failed for user "postgres"`. To rebuild, push a commit.
+**A build can get the credentials before the database will accept them.**
+Supabase writes the branch's connection string into Vercel and asks for a build
+in the same breath, and the database is not always ready: the build dies on
+
+```
+PostgresError: password authentication failed for user "postgres"
+code: '28P01'
+```
+
+a minute after those credentials were minted. Same commit, same settings,
+roughly half the builds — a race, not a misconfiguration.
+`packages/db/scripts/deploy.ts` absorbs it by retrying for five minutes, so
+this should now show up as a wait rather than a failure. If it still fails
+after all six attempts, waiting is not the answer and the Supabase integration
+is worth looking at.
+
+To rebuild after any preview failure, Redeploy is fine — Vercel reads the
+current environment rather than the failed deployment's, which is exactly how
+Supabase triggers the second build in the first place. Pushing a commit works
+too, and has the advantage of being the thing you were going to do anyway.
 
 **Preview variables that name a branch belong to that branch.** Vercel lists
 them as `Preview ⑂ some-branch`. They are what that pull request's database is

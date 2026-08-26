@@ -18,7 +18,21 @@
 // One thing to know if that changes: drizzle-kit takes no advisory lock, so two
 // builds against one database can interleave. Harmless here, where each pull
 // request has a database to itself, and not harmless on a shared one.
+//
+// **Why it retries.** Supabase writes the branch's connection string into
+// Vercel and asks for a build in the same breath, and the database is not
+// always ready to accept it yet: the build then dies on `28P01 password
+// authentication failed`, a minute after the credentials were minted. Same
+// commit, same settings, roughly half the builds — which is the shape of a
+// race, not of a misconfiguration. Waiting is the whole fix. A build that
+// would have succeeded anyway pays nothing, because the first attempt returns.
+//
+// If it ever exhausts every attempt, that is worth reading as a result rather
+// than as noise: five minutes is long enough that the credentials are simply
+// wrong, and the answer is somewhere in the Supabase integration rather than
+// in here.
 
+import { setTimeout as sleep } from "node:timers/promises"
 import { fileURLToPath } from "node:url"
 
 import { drizzle } from "drizzle-orm/postgres-js"
@@ -60,16 +74,85 @@ if (!url) {
   process.exit(1)
 }
 
-// `prepare: false` for the same reason `connection/client.ts` sets it: on
-// Vercel this URL is Supabase's transaction-mode pooler, which rejects
-// prepared statements.
-const client = postgres(url, { prepare: false, max: 1 })
+// One attempt, then five retries a minute apart. A minute because the wait is
+// for another service to finish provisioning, which no shorter backoff would
+// shorten.
+const ATTEMPTS = 6
+const RETRY_DELAY_MS = 60_000
+
+// Both halves of the race look different from Postgres. `28P01` is the one
+// actually seen: the database answered and rejected the password. The
+// connection codes are postgres-js's own, for the case where the host is not
+// listening yet. Anything else — a bad migration, a table that already exists —
+// is a real failure that retrying only makes slower.
+const RETRYABLE = new Set([
+  "28P01", // password authentication failed
+  "28000", // invalid authorization specification
+  "CONNECT_TIMEOUT",
+  "CONNECTION_CLOSED",
+  "CONNECTION_REFUSED",
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "ENOTFOUND",
+  "ETIMEDOUT",
+])
+
+// Drizzle wraps the driver's error, so the code is one or more `cause` links
+// down rather than on the error handed to the catch block.
+function retryableCode(error: unknown): string | undefined {
+  let current: unknown = error
+  while (current instanceof Error) {
+    const { code } = current as { code?: unknown }
+    if (typeof code === "string" && RETRYABLE.has(code)) return code
+    current = current.cause
+  }
+  return undefined
+}
 
 console.log("db:deploy: applying migrations to this preview's database")
 
-try {
-  await migrate(drizzle({ client }), { migrationsFolder: MIGRATIONS_FOLDER })
-  console.log("db:deploy: done")
-} finally {
-  await client.end()
+for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
+  // A fresh client per attempt: one that failed to authenticate has nothing
+  // worth reusing, and `prepare: false` matters for the same reason
+  // `connection/client.ts` sets it — on Vercel this URL is Supabase's
+  // transaction-mode pooler, which rejects prepared statements.
+  const client = postgres(url, { prepare: false, max: 1 })
+
+  let failure: unknown
+
+  try {
+    await migrate(drizzle({ client }), { migrationsFolder: MIGRATIONS_FOLDER })
+  } catch (error) {
+    failure = error
+  } finally {
+    // Closed before the wait, not after it, so nothing is held open for a
+    // minute over a connection that has already been refused.
+    await client.end()
+  }
+
+  if (!failure) {
+    console.log("db:deploy: done")
+    break
+  }
+
+  const code = retryableCode(failure)
+
+  if (!code || attempt === ATTEMPTS) {
+    console.error(
+      code
+        ? `db:deploy: still failing with ${code} after ${ATTEMPTS} attempts ` +
+            `over ${((ATTEMPTS - 1) * RETRY_DELAY_MS) / 60_000} minutes. ` +
+            `This is no longer a matter of waiting — check that the Supabase ` +
+            `integration is writing this branch's own credentials.`
+        : "db:deploy: migration failed."
+    )
+    throw failure
+  }
+
+  console.log(
+    `db:deploy: attempt ${attempt} of ${ATTEMPTS} failed with ${code} — the ` +
+      `branch database is likely still being provisioned. Retrying in ` +
+      `${RETRY_DELAY_MS / 1000}s.`
+  )
+  await sleep(RETRY_DELAY_MS)
 }
