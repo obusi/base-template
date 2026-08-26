@@ -973,6 +973,17 @@ already holds what the workflow would go and fetch: `POSTGRES_URL`, pooled and
 scoped to that branch. So `apps/web/vercel.json` puts `db:deploy` in front of
 the build command, and no token, workflow or third-party action is involved.
 
+It also has to not run too early. Vercel starts a build the moment a pull
+request opens, which is before Supabase has written anything, and
+`next.config.ts` validates its environment at build time — so that build failed
+every time, over a variable that was about to appear. `ignoreCommand` skips it
+instead, on the one condition that can only describe that moment: a preview
+with neither `POSTGRES_URL` nor `DATABASE_URL` set. Production is excluded by
+the same condition rather than by a separate rule, which matters, because a
+production deployment missing its database must still fail loudly — that is
+what validating at build time is for. Making the validation lazy would have
+"fixed" the red build by moving the failure to a request.
+
 It retries three times, fifteen seconds apart, and no longer. Supabase writes
 the connection string and asks for a build in the same breath, so a first
 connection can arrive before the far end is listening, and half a minute

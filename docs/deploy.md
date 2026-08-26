@@ -36,7 +36,9 @@ organisation's spend cap. The branch limit in step 3 is what actually bounds it.
 Leave the build command alone even though this is a monorepo.
 `apps/web/vercel.json` already sets it, and it does more than build: it runs
 `db:deploy` first, which is what puts a schema in a preview branch's database.
-Overriding the field in the dashboard silently replaces that.
+That file also sets `ignoreCommand`, which decides whether to build at all —
+see `What a normal deployment looks like`. Overriding either field in the
+dashboard silently replaces it.
 
 ## 2. Production environment variables
 
@@ -147,23 +149,33 @@ cannot report — a second custom domain, or another platform.
 
 ## What a normal deployment looks like
 
-Opening a pull request usually produces **two** deployments, and the first one
-is red:
+Opening a pull request sets two services off in an order neither controls:
 
 ```
-1.  Vercel builds immediately          ❌  ~8s
+1.  Vercel starts immediately         ⏭  skipped
        Supabase has not created the database yet, so POSTGRES_URL
-       is missing and env validation fails the build.
+       is missing and there is nothing to deploy against.
 
 2.  Supabase creates the branch, writes the variables,
     and asks Vercel to deploy again    ✅  ~1m
        db:deploy applies the migrations, then next build runs.
 ```
 
-That first failure is the order the two services work in, not a sign of
-anything wrong — and when Supabase happens to get there first, there is only
-one deployment and it is green. Either way the build log is where to confirm
-the schema arrived:
+Step 1 used to be a red build — `next.config.ts` validates its environment at
+build time, so a missing `POSTGRES_URL` failed it every time, for a reason that
+was about to resolve itself. `ignoreCommand` in `apps/web/vercel.json` turns
+that into a skip:
+
+```
+[ "$VERCEL_ENV" = preview ] && [ -z "$POSTGRES_URL$DATABASE_URL" ]
+```
+
+Vercel skips the build when that exits 0. It can only be true of a preview with
+no database yet; **production always builds**, so a missing variable there still
+fails loudly, which is the whole point of validating at build time.
+
+If Supabase gets there first, step 1 never happens and there is one deployment.
+Either way the build log is where to confirm the schema arrived:
 
 ```
 db:deploy: applying migrations to this preview's database
@@ -194,8 +206,8 @@ side.
 
 **Close the pull request and open a new one.** A new pull request gets a new
 branch with new credentials, and those work. Reopening does not, for the reason
-above. It is worth checking the deployments list first, though: a build red for
-eight seconds is the ordinary first one and means nothing.
+above. Check that the failure really is this one first — the log names the code,
+and `28P01` after three attempts is the only one this applies to.
 
 To rebuild after any preview failure, Redeploy is fine — Vercel reads the
 current environment rather than the failed deployment's, which is exactly how
