@@ -56,11 +56,17 @@ values come from.
 | `RESEND_FROM` | web | no | a domain Resend has verified |
 | `GOOGLE_CLIENT_ID` | web | no | Google Cloud console |
 | `GOOGLE_CLIENT_SECRET` | web | no | Google Cloud console |
+| `BETTER_AUTH_ALLOWED_HOSTS` | web | no | nothing, until there are preview deployments |
 
-The three optional ones are each a feature switch rather than a setting: with
+Three of the optional ones are feature switches rather than settings: with
 `RESEND_API_KEY` absent, password-reset links go to the server log; with the
 Google pair absent, the "Continue with Google" button still renders and fails on
 click. The app runs without any of them.
+
+`BETTER_AUTH_ALLOWED_HOSTS` is the odd one out — not a feature but a deployment
+detail. It names the extra hostnames an origin check should accept, which only
+matters where the hostname is not fixed, as on a preview deployment that gets a
+new one every build. Leave it empty locally and in production.
 
 ### `DATABASE_URL`
 

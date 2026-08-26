@@ -34,6 +34,17 @@ export type AuthOptions = {
    * client — see `config.test.ts`.
    */
   google?: { clientId: string; clientSecret: string }
+
+  /**
+   * Hostnames this instance answers to besides `BETTER_AUTH_URL`'s own, which
+   * is always allowed. Wildcards match the way `trustedOrigins` matches them:
+   * `myapp-*.vercel.app`.
+   *
+   * Injected rather than read from `env` directly, for the same reason
+   * `google` is — a test can exercise the allowlist without setting a
+   * process-wide variable that every other test in the file would then share.
+   */
+  allowedHosts?: string[]
 }
 
 /**
@@ -60,9 +71,30 @@ function logResetPassword({ user, url }: ResetPasswordRequest) {
  * profile row created on signup — impossible to test without a live Postgres.
  */
 export function createAuth(database: Database, options: AuthOptions = {}) {
+  const canonical = new URL(env.BETTER_AUTH_URL)
+
   return betterAuth({
     secret: env.BETTER_AUTH_SECRET,
-    baseURL: env.BETTER_AUTH_URL,
+
+    // An object rather than the plain string it reads like, because a preview
+    // deployment's hostname is different on every build and no fixed string
+    // can name it. Better Auth then takes the host from the request — but only
+    // when it matches `allowedHosts`, which is what keeps a forged Host header
+    // from choosing where email links point.
+    //
+    // With nothing injected this is exactly the old behaviour: the list holds
+    // one host, the canonical one, and every other host falls back to the same
+    // URL that used to be hard-wired here.
+    //
+    // `protocol` is pinned from the canonical URL rather than left on its
+    // "auto" default, which infers https when no proxy header says otherwise —
+    // correct everywhere except localhost, where it would hand out https links
+    // to an http server.
+    baseURL: {
+      allowedHosts: [canonical.host, ...(options.allowedHosts ?? [])],
+      fallback: env.BETTER_AUTH_URL,
+      protocol: canonical.protocol === "http:" ? "http" : "https",
+    },
 
     database: drizzleAdapter(database, {
       provider: "pg",
@@ -145,6 +177,15 @@ export function createAuth(database: Database, options: AuthOptions = {}) {
  * sender it likes.
  */
 export const auth = createAuth(db, {
+  // Comma-separated in the environment because a variable holds one string.
+  // Blank entries are dropped so a trailing comma, or the empty value the
+  // production deployment leaves set, does not become a host that matches
+  // nothing and confuses the next person reading the list.
+  allowedHosts: (env.BETTER_AUTH_ALLOWED_HOSTS ?? "")
+    .split(",")
+    .map((host) => host.trim())
+    .filter(Boolean),
+
   sendResetPassword: env.RESEND_API_KEY
     ? resendSender({ apiKey: env.RESEND_API_KEY, from: env.RESEND_FROM })
     : undefined,
