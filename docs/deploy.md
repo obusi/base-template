@@ -174,6 +174,21 @@ Vercel skips the build when that exits 0. It can only be true of a preview with
 no database yet; **production always builds**, so a missing variable there still
 fails loudly, which is the whole point of validating at build time.
 
+A skipped deployment is listed as **`Canceled`**, not "skipped", and takes about
+three seconds. It is the expected first row of every pull request, and its log
+says so in as many words:
+
+```
+Running "sh -c '[ "$VERCEL_ENV" = preview ] && [ -z "$POSTGRES_URL$DATABASE_URL" ]'"
+The Deployment has been canceled as a result of running the command
+defined in the "Ignored Build Step" setting.
+```
+
+The cost of that is worth knowing: if the Supabase integration ever stops
+writing the variables, no red build says so — the pull request simply never
+gets a preview. **`Supabase Preview` on the pull request is where that shows**,
+so it is the check to read when a preview does not appear.
+
 If Supabase gets there first, step 1 never happens and there is one deployment.
 Either way the build log is where to confirm the schema arrived:
 
@@ -181,6 +196,13 @@ Either way the build log is where to confirm the schema arrived:
 db:deploy: applying migrations to this preview's database
 db:deploy: done
 ```
+
+A pull request ends up with four checks, and only one of them is a gate:
+`CI / verify` is the required one set by the branch rules, so a red Vercel or
+Supabase check does not block a merge. That is deliberate — a preview failing
+says nothing about whether the code is correct — but it does mean a merge can
+go through without anyone having looked at the preview. Looking is the point of
+having one.
 
 ## Three things that will waste an afternoon
 
@@ -199,15 +221,24 @@ PostgresError: password authentication failed for user "postgres"
 ```
 
 and nothing about it improves with time. One branch refused the credentials it
-had been given for half an hour — from the build and from a laptop alike, on
-the pooler host and username the connection string itself named, while the
-database was up and answering other queries. There is nothing to fix on this
-side.
+had been given for half an hour — from the build and from a laptop alike, on the
+pooler host and username the connection string itself named, while the database
+was up and answering other queries. There is nothing to fix on this side: close
+the pull request and open a new one, which gets a new branch with new
+credentials, and those work. Reopening does not, for the reason above.
 
-**Close the pull request and open a new one.** A new pull request gets a new
-branch with new credentials, and those work. Reopening does not, for the reason
-above. Check that the failure really is this one first — the log names the code,
-and `28P01` after three attempts is the only one this applies to.
+Before doing that, it is worth being sure it is this and not a connection string
+pointing somewhere wrong, because the two look identical from the build log.
+Supabase's shared poolers answer differently, and that is the tell:
+
+| Reply | Means |
+|---|---|
+| `28P01 password authentication failed` | the pooler knows this project — the password is wrong |
+| `XX000 tenant/user … not found` | the pooler does not host this project — the host or username is wrong |
+
+Point a client at `aws-1-<region>.pooler.supabase.com` as well as the `aws-0-`
+one the string names. Whichever answers `28P01` is the right host, and a right
+host with a rejected password is this problem.
 
 To rebuild after any preview failure, Redeploy is fine — Vercel reads the
 current environment rather than the failed deployment's, which is exactly how
