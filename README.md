@@ -55,6 +55,10 @@ pnpm dev
 The app runs at `http://localhost:3000`. `/posts` is a worked example — sign up
 at `/signup` first. Interactive API docs are at `/api/docs`.
 
+When it is time to put it on the internet, [`docs/deploy.md`](docs/deploy.md)
+covers that separately — including how each pull request gets a preview running
+against a database of its own.
+
 ## Everyday commands
 
 ```bash
@@ -93,6 +97,9 @@ in `CLAUDE.md` that are only true while this is a template.
 
 - [`docs/setup.md`](docs/setup.md) — what to do, once per project, to get this
   running against a database of your own.
+- [`docs/deploy.md`](docs/deploy.md) — the same, for getting it hosted: the
+  production deployment, and the preview-per-pull-request setup that gives each
+  one its own database. Written down because most of it is not guessable.
 - [`docs/architecture.md`](docs/architecture.md) — the single design document.
   Why the repo is shaped this way, the boundaries and how each is enforced, the
   security model, and S10, the library traps (`C1`…`C18`) that shaped it. Read

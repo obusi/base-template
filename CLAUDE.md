@@ -174,6 +174,11 @@ what to re-check when any of them moves.
 - `docs/setup.md` — the once-per-project procedure: database, env files,
   schema, branch rules. Steps only; the reasoning behind them is in the
   architecture doc.
+- `docs/deploy.md` — the same shape, for hosting: the Vercel project, which
+  environment variable belongs to which scope, and the two Supabase
+  integrations that give each pull request a preview with a database of its
+  own. Several of its settings have to be *off*, and the file says why. S17
+  holds the reasoning.
 - `.claude/rules/` — path-scoped conventions that load when you work in the
   matching directory: `apps/web` structure, shared package conventions, and
   one file each for `api`, `db`, `contract`, and tests.

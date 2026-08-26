@@ -689,6 +689,30 @@ never opened.
 `next dev`) and `packages/db/.env` (used by the `drizzle-kit` commands). Both
 `.env.example` files carry a note that the values must match.
 
+**Some variables reach a process without any `.env` at all.** A deployment sets
+them, so nothing here can carry a value and nothing validates them as required:
+
+| Variable | Set by | Read in |
+|---|---|---|
+| `POSTGRES_URL` | Supabase's Vercel integration, per preview branch | the fallback below |
+| `VERCEL_URL`, `VERCEL_BRANCH_URL` | Vercel, per deployment | `packages/auth/src/config.ts` |
+| `BETTER_AUTH_ALLOWED_HOSTS` | a person, only where the two above cannot apply | the same |
+| `VERCEL_ENV` | Vercel | `packages/db/scripts/deploy.ts` |
+
+`DATABASE_URL` falls back to `POSTGRES_URL` when unset, which is what gives a
+preview deployment a database of its own — S17 has the reasoning. That fallback
+is written out in **three** places: both `env.ts` files and
+`packages/db/scripts/deploy.ts`. The third is not carelessness — a script run as
+`node scripts/deploy.ts` resolves imports the way Node does, needing a file
+extension, and an import ending in `.ts` does not typecheck under this repo's
+`moduleResolution`; `scripts/check.ts` reads `process.env` directly for the same
+reason. All three carry a comment naming the others.
+
+Anything in that table also has to appear in `turbo.json`'s `globalEnv`. Turbo
+passes only declared variables through to a task, and drops the rest with a
+warning in the build log that is easy to scroll past — a variable missing there
+does not fail, it silently is not there.
+
 `apps/web/env.ts` is imported for its side effect from `next.config.ts`.
 Without that line it is only checked when some module happens to read it, so a
 missing variable surfaces on a request rather than at build. Verified:
@@ -923,6 +947,57 @@ Official documentation consulted while building this, on 2026-08-13:
 - Vitest — [projects](https://vitest.dev/guide/projects)
 - t3-env — [core](https://env.t3.gg/docs/core)
 - Next.js 16 — `apps/web/node_modules/next/dist/docs/01-app/02-guides/upgrading/version-16.md` (local, version-matched)
+
+---
+
+## S17. Deployment
+
+Four decisions that a fork will otherwise make again from scratch. The steps
+themselves are in [`deploy.md`](deploy.md); this is only why they are shaped
+that way.
+
+**A preview deployment gets a database of its own.** The alternative — one
+shared preview database — costs nothing and works until two pull requests
+disagree about the schema, which is exactly when a preview is worth having. It
+also means every pull request exercises the migrations from empty, so a
+migration that only works against a database that already exists fails on the
+pull request rather than on production. Supabase Branching supplies this; the
+cost is a Pro plan and per-branch-hour billing, bounded by the branch limit.
+
+**Migrations run in the deployment's build, not in a GitHub Action.** The
+obvious route is a workflow that asks Supabase's Management API for the branch's
+credentials. That API reports the direct connection, which is IPv6-only on
+Supabase, and GitHub-hosted runners have no IPv6 — reaching the pooler instead
+means rebuilding its hostname from a pattern nobody promises to keep. The build
+already holds what the workflow would go and fetch: `POSTGRES_URL`, pooled and
+scoped to that branch. So `apps/web/vercel.json` puts `db:deploy` in front of
+the build command, and no token, workflow or third-party action is involved.
+
+`db:deploy` refuses to touch anything but a preview. A preview database is
+discarded with its pull request; production holds data a bad migration cannot
+un-break, and migrating it automatically is a decision about ordering and
+rollback that should be made deliberately rather than inherited from wanting
+working previews.
+
+**`DATABASE_URL` stays the primary name, with `POSTGRES_URL` as a fallback.**
+Renaming everything to `POSTGRES_URL` would be simpler — one name, no fallback,
+and production would not need the variable set by hand, because the Supabase
+integration already supplies it. That last part is the reason not to.
+`DATABASE_URL` is the name the ecosystem uses and the one a fork deploying
+somewhere else will need; more concretely, a production that depends on a value
+an integration syncs cannot have that integration switched off, and switching it
+off is what removes a service-role key that bypasses RLS and that nothing here
+reads.
+
+**The origin allowlist is read from the platform, not configured.** Better Auth
+derives its trusted origins from `baseURL`, and a preview deployment answers to
+two hostnames that both change on their own. A pattern written into a settings
+page is wrong twice over: it does not match (the deployment URL drops the
+project suffix, and both end in an account-specific hash), and a fork would
+inherit the original account's pattern. `VERCEL_URL` and `VERCEL_BRANCH_URL` are
+stamped onto the deployment by the platform, so unlike a `Host` header a caller
+cannot choose what they say — which is what `packages/auth/src/env.ts` insists
+on. `BETTER_AUTH_ALLOWED_HOSTS` remains for hosts the platform cannot report.
 
 ---
 ---
