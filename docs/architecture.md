@@ -973,13 +973,17 @@ already holds what the workflow would go and fetch: `POSTGRES_URL`, pooled and
 scoped to that branch. So `apps/web/vercel.json` puts `db:deploy` in front of
 the build command, and no token, workflow or third-party action is involved.
 
-It does have to wait, though. Supabase writes the connection string and asks
-for a build in the same breath, and the database refuses those credentials —
-`28P01` — for some minutes afterwards, on roughly half the builds. Nothing in
-the build can hurry that along, so `db:deploy` retries for five minutes rather
-than failing on the first refusal. A build that was going to succeed pays
-nothing for this, and one that exhausts every attempt has said something worth
-knowing: the credentials are wrong rather than early.
+It retries three times, fifteen seconds apart, and no longer. Supabase writes
+the connection string and asks for a build in the same breath, so a first
+connection can arrive before the far end is listening, and half a minute
+covers that. The temptation is to wait much longer, because the failure that
+prompted the retry looks like impatience — `28P01`, the database refusing the
+credentials it was just given. It is not. One branch refused them for half an
+hour, from the build and from a laptop alike, while the database was up and
+serving; Supabase had written a password its own database did not hold. No
+wait fixes that, and a new pull request does, so a long wait buys nothing but
+a slower red build. What the retry is really for is the log line naming the
+error code, which is what distinguishes the two cases at a glance.
 
 `db:deploy` refuses to touch anything but a preview. A preview database is
 discarded with its pull request; production holds data a bad migration cannot

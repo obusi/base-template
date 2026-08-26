@@ -147,7 +147,8 @@ cannot report — a second custom domain, or another platform.
 
 ## What a normal deployment looks like
 
-Opening a pull request produces **two** deployments, and the first one is red:
+Opening a pull request usually produces **two** deployments, and the first one
+is red:
 
 ```
 1.  Vercel builds immediately          ❌  ~8s
@@ -159,21 +160,13 @@ Opening a pull request produces **two** deployments, and the first one is red:
        db:deploy applies the migrations, then next build runs.
 ```
 
-That first failure is inherent to the order the two services work in, not a
-sign of anything wrong. The build log of the second is where to confirm the
-schema arrived:
+That first failure is the order the two services work in, not a sign of
+anything wrong — and when Supabase happens to get there first, there is only
+one deployment and it is green. Either way the build log is where to confirm
+the schema arrived:
 
 ```
 db:deploy: applying migrations to this preview's database
-db:deploy: done
-```
-
-Sometimes with a wait in the middle, which is also normal — see the next
-section:
-
-```
-db:deploy: attempt 1 of 6 failed with 28P01 — the branch database is
-           likely still being provisioned. Retrying in 60s.
 db:deploy: done
 ```
 
@@ -185,21 +178,24 @@ the `opened` event only. Reopen a closed pull request and its check reports
 `POSTGRES_URL` with nothing explaining why. Open a new pull request instead —
 the same branch is fine.
 
-**A build can get the credentials before the database will accept them.**
-Supabase writes the branch's connection string into Vercel and asks for a build
-in the same breath, and the database is not always ready: the build dies on
+**Supabase sometimes hands a branch a password its own database rejects.** The
+build dies on
 
 ```
+db:deploy: attempt 3 of 3 failed with 28P01. ...
 PostgresError: password authentication failed for user "postgres"
-code: '28P01'
 ```
 
-a minute after those credentials were minted. Same commit, same settings,
-roughly half the builds — a race, not a misconfiguration.
-`packages/db/scripts/deploy.ts` absorbs it by retrying for five minutes, so
-this should now show up as a wait rather than a failure. If it still fails
-after all six attempts, waiting is not the answer and the Supabase integration
-is worth looking at.
+and nothing about it improves with time. One branch refused the credentials it
+had been given for half an hour — from the build and from a laptop alike, on
+the pooler host and username the connection string itself named, while the
+database was up and answering other queries. There is nothing to fix on this
+side.
+
+**Close the pull request and open a new one.** A new pull request gets a new
+branch with new credentials, and those work. Reopening does not, for the reason
+above. It is worth checking the deployments list first, though: a build red for
+eight seconds is the ordinary first one and means nothing.
 
 To rebuild after any preview failure, Redeploy is fine — Vercel reads the
 current environment rather than the failed deployment's, which is exactly how

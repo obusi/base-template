@@ -19,18 +19,19 @@
 // builds against one database can interleave. Harmless here, where each pull
 // request has a database to itself, and not harmless on a shared one.
 //
-// **Why it retries.** Supabase writes the branch's connection string into
-// Vercel and asks for a build in the same breath, and the database is not
-// always ready to accept it yet: the build then dies on `28P01 password
-// authentication failed`, a minute after the credentials were minted. Same
-// commit, same settings, roughly half the builds — which is the shape of a
-// race, not of a misconfiguration. Waiting is the whole fix. A build that
-// would have succeeded anyway pays nothing, because the first attempt returns.
+// **Why it retries, and why not for long.** Supabase writes the branch's
+// connection string into Vercel and asks for a build in the same breath, so a
+// first connection can plausibly arrive before the far end is listening. That
+// is worth waiting out.
 //
-// If it ever exhausts every attempt, that is worth reading as a result rather
-// than as noise: five minutes is long enough that the credentials are simply
-// wrong, and the answer is somewhere in the Supabase integration rather than
-// in here.
+// What it will not fix is a connection string whose password is simply wrong,
+// which Supabase does occasionally produce: one branch refused the credentials
+// it had been given for half an hour, from the build and from a laptop alike,
+// while the database itself was up and serving. No amount of patience helps
+// there, and the fix is a new pull request, which gets a new branch and new
+// credentials. So the wait is short enough not to drag out a build that is
+// going to fail anyway, and the log line naming the error code is the part
+// that earns its keep.
 
 import { setTimeout as sleep } from "node:timers/promises"
 import { fileURLToPath } from "node:url"
@@ -74,14 +75,13 @@ if (!url) {
   process.exit(1)
 }
 
-// One attempt, then five retries a minute apart. A minute because the wait is
-// for another service to finish provisioning, which no shorter backoff would
-// shorten.
-const ATTEMPTS = 6
-const RETRY_DELAY_MS = 60_000
+// Three attempts, fifteen seconds apart. Half a minute covers a far end that
+// is a moment behind; past that the answer is not more waiting.
+const ATTEMPTS = 3
+const RETRY_DELAY_MS = 15_000
 
-// Both halves of the race look different from Postgres. `28P01` is the one
-// actually seen: the database answered and rejected the password. The
+// Two different failures, both worth one more try. `28P01` is the one actually
+// seen: the database answered and rejected the password. The
 // connection codes are postgres-js's own, for the case where the host is not
 // listening yet. Anything else — a bad migration, a table that already exists —
 // is a real failure that retrying only makes slower.
@@ -141,18 +141,19 @@ for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
     console.error(
       code
         ? `db:deploy: still failing with ${code} after ${ATTEMPTS} attempts ` +
-            `over ${((ATTEMPTS - 1) * RETRY_DELAY_MS) / 60_000} minutes. ` +
-            `This is no longer a matter of waiting — check that the Supabase ` +
-            `integration is writing this branch's own credentials.`
+            `over ${((ATTEMPTS - 1) * RETRY_DELAY_MS) / 1000}s. This is not a ` +
+            `matter of waiting. If the code is 28P01, Supabase has handed ` +
+            `this branch a password its own database rejects — close this ` +
+            `pull request and open a new one, which gets a new branch and ` +
+            `new credentials.`
         : "db:deploy: migration failed."
     )
     throw failure
   }
 
   console.log(
-    `db:deploy: attempt ${attempt} of ${ATTEMPTS} failed with ${code} — the ` +
-      `branch database is likely still being provisioned. Retrying in ` +
-      `${RETRY_DELAY_MS / 1000}s.`
+    `db:deploy: attempt ${attempt} of ${ATTEMPTS} failed with ${code}. ` +
+      `Retrying in ${RETRY_DELAY_MS / 1000}s.`
   )
   await sleep(RETRY_DELAY_MS)
 }
