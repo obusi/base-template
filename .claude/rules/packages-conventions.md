@@ -157,6 +157,24 @@ values live in `apps/web/.env`. `DATABASE_URL` is knowingly duplicated across
 `apps/web/.env` and `packages/db/.env`; both `.env.example` files carry a note
 that the values must match.
 
+**Some variables no `.env` carries.** A deployment sets them, so they are
+optional everywhere and no example file can show a value:
+
+| Variable | Set by | Read in |
+|---|---|---|
+| `POSTGRES_URL` | Supabase, per preview branch | the `DATABASE_URL` fallback in both `env.ts` files and `scripts/deploy.ts` |
+| `VERCEL_URL`, `VERCEL_BRANCH_URL` | Vercel, per deployment | `packages/auth/src/config.ts` |
+| `BETTER_AUTH_ALLOWED_HOSTS` | a person, rarely | the same |
+| `VERCEL_ENV` | Vercel | `packages/db/scripts/deploy.ts` |
+
+Two rules when adding to that list. **Declare it in `turbo.json`'s `globalEnv`**
+— turbo passes only declared variables to a task and drops the rest with a
+warning that is easy to miss, so the failure is a variable that is silently not
+there. And **do not make one of them required**: absent is the normal case
+everywhere except the one platform that sets it.
+
+`docs/architecture.md` S9 has the full picture, S17 the reasoning.
+
 ## Adding a new domain
 
 The folder name is the same in every package, and singular (`post`, not

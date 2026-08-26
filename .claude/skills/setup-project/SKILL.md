@@ -143,6 +143,10 @@ procedure a real deployment runs — database, env files, schema, branch rules �
 and it is where the `db:check` warning lives now that `README.md` only links to
 it. Leave the file alone.
 
+`docs/deploy.md` likewise. It is the hosting half of the same procedure, and a
+project needs it more after the rename than before. Leave it alone too, and keep
+the README's pointer to it alongside the one to `setup.md`.
+
 The version string in `apps/web/app/api/spec/route.ts` is hard-coded separately
 from `package.json`. Mention it, since it is published in the OpenAPI document,
 but leave the decision — pin it, or read it from `package.json` — to the person.
