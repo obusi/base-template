@@ -79,6 +79,12 @@ both `env.ts` files fall back to it when `DATABASE_URL` is unset. That fallback
 is what gives a preview its own database. It never applies locally or in
 production, where `DATABASE_URL` is set and wins.
 
+That database arrives empty, so `apps/web/vercel.json` runs
+`packages/db/scripts/deploy.ts` before the build. It applies the migrations, and
+only when `VERCEL_ENV` is `preview` — production stays a hand-run `db:migrate`,
+because a migration that goes wrong there cannot be thrown away with the pull
+request.
+
 ### `DATABASE_URL`
 
 In the Supabase dashboard, **Connect** at the top of the project (older
