@@ -110,6 +110,14 @@ otherwise exits quietly, so production remains a deliberate, hand-run
 `db:migrate`. Deliberately not a turbo task: turbo caches by task, and a cached
 "the migrations already ran" is exactly the wrong thing to remember.
 
+It retries a refused connection three times, fifteen seconds apart, and no
+longer — long enough for a database that is a moment behind, and deliberately
+too short to sit through the failure it looks like. Supabase occasionally hands
+a branch a password its own database rejects (`28P01`), and no wait fixes that;
+the fix is a new pull request. Lengthening the wait would only slow down a
+build that is going to fail. `docs/architecture.md` S17 has the reasoning, and
+`docs/deploy.md` what to do when it happens.
+
 ## Column types follow what is actually stored
 
 A foreign key onto an auth table is `text`, not `uuid`, because Better Auth

@@ -984,6 +984,13 @@ production deployment missing its database must still fail loudly — that is
 what validating at build time is for. Making the validation lazy would have
 "fixed" the red build by moving the failure to a request.
 
+What that trades away is a warning. A red build was, accidentally, how a broken
+Supabase integration would have announced itself; now the pull request would
+just quietly never get a preview. The `Supabase Preview` check is the honest
+place for that signal and reports it whether or not the build is skipped, so
+the trade is a signal moving rather than disappearing — but it moves, and
+anyone debugging a missing preview needs to know where it went.
+
 It retries three times, fifteen seconds apart, and no longer. Supabase writes
 the connection string and asks for a build in the same breath, so a first
 connection can arrive before the far end is listening, and half a minute
