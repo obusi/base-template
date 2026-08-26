@@ -1,7 +1,14 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
-  "globalEnv": ["BETTER_AUTH_SECRET", "BETTER_AUTH_URL", "DATABASE_URL"],
+  "globalEnv": [
+    "BETTER_AUTH_ALLOWED_HOSTS",
+    "BETTER_AUTH_SECRET",
+    "BETTER_AUTH_URL",
+    "DATABASE_URL",
+    "POSTGRES_URL",
+    "VERCEL_ENV"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

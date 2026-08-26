@@ -1,9 +1,20 @@
 name: CI
 
 on:
+  # The two triggers that matter. `pull_request` is what the branch ruleset
+  # waits for; `push` on main catches the semantic conflict two independently
+  # green pull requests can create.
   pull_request:
   push:
     branches: [main]
+
+  # A hand-run button, under Actions -> CI -> Run workflow. Nothing needs it on
+  # a normal day, which is the point: when a run fails to start — GitHub
+  # reported `startup_failure` here once and then created no runs at all for
+  # several pull requests — there is otherwise no way to ask for one, and a
+  # ruleset that requires `verify` leaves every pull request unmergeable until
+  # something reports it.
+  workflow_dispatch:
 
 jobs:
   verify:

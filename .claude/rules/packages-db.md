@@ -102,6 +102,14 @@ helpers re-run the whole folder from scratch on every `resetDb`.
 real deployment goes through a generated migration, or the ledger and the
 schema disagree.
 
+`db:deploy` is the third one, and no person runs it: `apps/web/vercel.json`
+puts it in front of the build command so a Supabase preview branch — which
+arrives empty, with a connection string that exists nowhere else — gets its
+schema. It applies the migrations only when `VERCEL_ENV` is `preview` and
+otherwise exits quietly, so production remains a deliberate, hand-run
+`db:migrate`. Deliberately not a turbo task: turbo caches by task, and a cached
+"the migrations already ran" is exactly the wrong thing to remember.
+
 ## Column types follow what is actually stored
 
 A foreign key onto an auth table is `text`, not `uuid`, because Better Auth

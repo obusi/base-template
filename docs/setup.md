@@ -56,11 +56,34 @@ values come from.
 | `RESEND_FROM` | web | no | a domain Resend has verified |
 | `GOOGLE_CLIENT_ID` | web | no | Google Cloud console |
 | `GOOGLE_CLIENT_SECRET` | web | no | Google Cloud console |
+| `BETTER_AUTH_ALLOWED_HOSTS` | web | no | nothing — see below |
 
-The three optional ones are each a feature switch rather than a setting: with
+Three of the optional ones are feature switches rather than settings: with
 `RESEND_API_KEY` absent, password-reset links go to the server log; with the
 Google pair absent, the "Continue with Google" button still renders and fails on
 click. The app runs without any of them.
+
+`BETTER_AUTH_ALLOWED_HOSTS` is the odd one out — not a feature but a deployment
+detail, and one most projects never set. It names extra hostnames the origin
+check should accept, which matters only where the hostname is not fixed, as on a
+preview deployment that gets a new one every build. On Vercel that case is
+already covered: `packages/auth/src/config.ts` reads `VERCEL_URL` and
+`VERCEL_BRANCH_URL`, the two hostnames such a deployment answers to, so a custom
+domain or a renamed project needs no edit. Set this only for a host Vercel
+cannot report.
+
+There is one more variable the table leaves out, because nothing writes it by
+hand: **`POSTGRES_URL`**. Supabase's Vercel integration sets it on a preview
+deployment, naming the database branch that belongs to that pull request, and
+both `env.ts` files fall back to it when `DATABASE_URL` is unset. That fallback
+is what gives a preview its own database. It never applies locally or in
+production, where `DATABASE_URL` is set and wins.
+
+That database arrives empty, so `apps/web/vercel.json` runs
+`packages/db/scripts/deploy.ts` before the build. It applies the migrations, and
+only when `VERCEL_ENV` is `preview` — production stays a hand-run `db:migrate`,
+because a migration that goes wrong there cannot be thrown away with the pull
+request.
 
 ### `DATABASE_URL`
 

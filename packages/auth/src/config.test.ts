@@ -14,7 +14,7 @@ import { createTestDb, resetDb, type TestDb } from "@packages/db/testing"
 import { APIError } from "better-auth/api"
 import { beforeAll, beforeEach, describe, expect, it } from "vitest"
 
-import { createAuth } from "./config"
+import { createAuth, toHostList } from "./config"
 
 const EMAIL = "pinned@example.com"
 const PASSWORD = "correct-horse-battery-staple"
@@ -265,6 +265,65 @@ describe("password reset", () => {
     // Someone resetting a password may be doing it because another person has
     // their old one. Leaving that person's session alive defeats the reset.
     expect(await auth.api.getSession({ headers: cookie })).toBeNull()
+  })
+})
+
+describe("allowed hosts", () => {
+  // A preview deployment's hostname changes with every build, so `baseURL` is
+  // a list of patterns rather than one string. Better Auth expands that list
+  // into `trustedOrigins`, and the origin check — the thing that would
+  // otherwise reject a sign-in coming from a preview URL — reads it there.
+  //
+  // The check itself cannot be exercised from here. Better Auth sets
+  // `skipOriginCheck` to true whenever it detects a test environment, so a
+  // request-level assertion would pass no matter what this list said, which is
+  // worse than no assertion at all. Pinning the expansion is what is left, and
+  // it still catches what matters: a canonical host that stopped being
+  // included, a protocol that stopped following `BETTER_AUTH_URL`, or a
+  // version that changed how patterns are written.
+
+  /** The origins this configuration ends up trusting, in order, deduplicated —
+   *  the canonical host and the fallback produce the same entry twice. */
+  async function trusted(...allowedHosts: string[]) {
+    const auth = createAuth(db, { allowedHosts })
+
+    return [...new Set((await auth.$context).trustedOrigins)]
+  }
+
+  it("trusts the canonical origin, and nothing else, by default", async () => {
+    // The companion to the test below: without this, an implementation that
+    // trusted every host would satisfy the "adds" assertion just as well.
+    expect(await trusted()).toEqual(["http://localhost:3000"])
+  })
+
+  it("collects hosts from several variables, comma-separated", () => {
+    // Three sources feed one list: the escape-hatch variable, and the two
+    // hostnames Vercel mints for a preview deployment. Order is preserved so
+    // the list reads the way it was configured.
+    expect(
+      toHostList("a.example.com, b.example.com", "c.example.com", undefined)
+    ).toEqual(["a.example.com", "b.example.com", "c.example.com"])
+  })
+
+  it("drops blanks rather than keeping a host that matches nothing", () => {
+    // The companion. A deployment that sets the variable to an empty string
+    // instead of deleting it, or leaves a trailing comma, would otherwise get
+    // an entry that looks configured and matches no request at all.
+    expect(toHostList("", undefined, "a.example.com,")).toEqual([
+      "a.example.com",
+    ])
+    expect(toHostList(undefined, undefined)).toEqual([])
+  })
+
+  it("adds each configured host, wildcard intact", async () => {
+    // The wildcard has to survive as a pattern — expanding or escaping it here
+    // would leave preview deployments matching nothing. The `http` prefix is
+    // not incidental either: it follows `BETTER_AUTH_URL`, which is what keeps
+    // a local server from being handed https origins.
+    expect(await trusted("preview-*.example.com")).toEqual([
+      "http://localhost:3000",
+      "http://preview-*.example.com",
+    ])
   })
 })
 
