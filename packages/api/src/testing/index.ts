@@ -96,24 +96,40 @@ export function fakeStorage(): Storage & { readonly signed: string[] } {
 /**
  * A context for a signed-in caller.
  *
- * `reportStorage` defaults to a working stand-in so that domains with nothing
- * to do with attachments never mention it. Pass `null` to be the deployment
- * that has none configured.
+ * Every storage field defaults to a working stand-in, so a domain with nothing
+ * to do with attachments never mentions one. `overrides` is how a test says it
+ * wants something else — `{ reportStorage: null }` is the deployment that has
+ * no bucket configured.
+ *
+ * Overrides is an object rather than more parameters on purpose: a second
+ * bucket would otherwise make every caller count positions and pass `null` for
+ * fields it does not care about. This way adding a field to `ApiContext`
+ * changes no signature and no existing call.
  */
 export function contextFor(
   db: Database,
   user: TestUser,
-  reportStorage: Storage | null = fakeStorage()
+  overrides: Partial<ApiContext> = {}
 ): ApiContext {
-  return { db, auth: createAuth(db), headers: user.headers, reportStorage }
+  return {
+    db,
+    auth: createAuth(db),
+    headers: user.headers,
+    reportStorage: fakeStorage(),
+    ...overrides,
+  }
 }
 
 /** A context for a caller with no session at all. */
-export function anonymousContext(db: Database): ApiContext {
+export function anonymousContext(
+  db: Database,
+  overrides: Partial<ApiContext> = {}
+): ApiContext {
   return {
     db,
     auth: createAuth(db),
     headers: new Headers(),
     reportStorage: fakeStorage(),
+    ...overrides,
   }
 }

@@ -48,7 +48,9 @@ const anonymous = () =>
 
 /** A signed-in caller on a deployment where no bucket is configured. */
 const withoutStorage = (user: TestUser) =>
-  createRouterClient(router, { context: () => contextFor(db, user, null) })
+  createRouterClient(router, {
+    context: () => contextFor(db, user, { reportStorage: null }),
+  })
 
 /**
  * Assert on the error's `code`, never its message. The code is what the

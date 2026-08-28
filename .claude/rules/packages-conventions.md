@@ -208,3 +208,35 @@ already serve whatever the router exposes.
 While the `post` example domain is still present, it is a working instance of
 all six steps, checked by `tsc` and Vitest on every run. Copy it rather than
 this description — prose goes stale, a compiled example does not.
+
+### If the domain stores files
+
+A bucket belongs to one domain — the file-size limit and the MIME allowlist are
+properties of a bucket, and a folder inside one cannot carry its own. So a
+domain that stores files gets a bucket of its own rather than a folder in
+`report`'s, and wiring it is five edits and no new abstraction:
+
+1. **Create the bucket by hand**, private, with its own size limit and MIME
+   allowlist. `docs/setup.md` does this for `report-attachments` and says which
+   settings are not cosmetic.
+2. **`packages/api/src/env.ts`** — `SUPABASE_<X>_BUCKET`, optional with a
+   default. `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are already there and
+   are the same for every bucket in the project.
+3. **`turbo.json`** — add the variable to `globalEnv`, or turbo drops it with a
+   warning that is easy to miss.
+4. **`packages/api/src/shared/context.ts`** — `<x>Storage: Storage | null`,
+   named after the domain so a handler can only reach its own bucket.
+5. **`packages/api/src/connection/live.ts`** — one line:
+   `const <x>Storage = storageFromEnv(env, env.SUPABASE_<X>_BUCKET)`, then
+   return it in the context.
+
+Nothing else. `contextFor` and `anonymousContext` take `Partial<ApiContext>`
+overrides, so existing tests keep compiling and a new one says
+`{ <x>Storage: null }` when it wants the unconfigured deployment. Add a default
+stand-in in `testing/index.ts` beside `reportStorage`'s if the new field should
+also work without being asked for.
+
+`storage` is deliberately **not** a map keyed by bucket name. A typo in
+`context.storage["avatr"]` would be `undefined` at runtime instead of red at
+build time, and every handler would be able to reach every bucket while holding
+the service role key. Five named lines buy both of those back.
