@@ -7,6 +7,7 @@
 import { ORPCError } from "@orpc/client"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation } from "@tanstack/react-query"
+import { XIcon } from "lucide-react"
 import { useSearchParams } from "next/navigation"
 import { useRef, useState } from "react"
 import { Controller, useForm } from "react-hook-form"
@@ -123,12 +124,39 @@ export function ReportForm({
     },
   })
 
-  const pickFiles = (selected: FileList | null) => {
+  const replaceFiles = (next: File[]) => {
+    setFiles(next)
+    setFilesError(validateAttachments(next))
+  }
+
+  /**
+   * Add to the selection rather than replace it, which is what a native
+   * `<input multiple>` would do — picking a second screenshot should not throw
+   * away the first.
+   *
+   * The input is cleared each time for two reasons: it is no longer the source
+   * of truth, so its "4 files" caption would contradict the list below it, and
+   * clearing it is what lets the same file be picked again after removal.
+   */
+  const addFiles = (selected: FileList | null) => {
     const picked = [...(selected ?? [])]
 
-    setFiles(picked)
-    setFilesError(validateAttachments(picked))
+    if (fileInput.current) fileInput.current.value = ""
+    if (picked.length === 0) return
+
+    // Same file twice is a slip, not a request. Compared by `fileKey` rather
+    // than by identity, because picking the same file again produces a
+    // different `File` object for the same bytes.
+    const alreadyPicked = new Set(files.map((file) => fileKey(file)))
+
+    replaceFiles([
+      ...files,
+      ...picked.filter((file) => !alreadyPicked.has(fileKey(file))),
+    ])
   }
+
+  const removeFile = (key: string) =>
+    replaceFiles(files.filter((file) => fileKey(file) !== key))
 
   return (
     <form
@@ -212,15 +240,35 @@ export function ReportForm({
             type="file"
             multiple
             accept={AttachmentContentType.options.join(",")}
-            onChange={(event) => pickFiles(event.target.files)}
+            onChange={(event) => addFiles(event.target.files)}
             className="text-sm file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:text-secondary-foreground"
           />
 
-          {files.length > 0 && !filesError && (
-            <ul className="flex flex-col gap-1 text-xs text-muted-foreground">
+          {/*
+            Rendered even while `filesError` is set: the error is usually "one
+            too many", and the way out of it is removing one — which needs the
+            list to still be here.
+          */}
+          {files.length > 0 && (
+            <ul className="flex flex-col gap-1">
               {files.map((file) => (
-                <li key={file.name}>
-                  {file.name} · {formatBytes(file.size)}
+                <li
+                  key={fileKey(file)}
+                  className="flex items-center gap-2 rounded border px-2 py-1 text-xs"
+                >
+                  <span className="truncate">{file.name}</span>
+                  <span className="text-muted-foreground">
+                    {formatBytes(file.size)}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => removeFile(fileKey(file))}
+                    aria-label={`Remove ${file.name}`}
+                    className="ml-auto rounded p-0.5 text-muted-foreground hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/30 focus-visible:outline-none"
+                  >
+                    <XIcon className="size-4" />
+                  </button>
                 </li>
               ))}
             </ul>
@@ -241,4 +289,17 @@ export function ReportForm({
       </Button>
     </form>
   )
+}
+
+/**
+ * Identity for a picked file: `File` objects are not comparable, and a name
+ * alone is neither unique enough to key a list on nor specific enough to call
+ * two picks the same file.
+ *
+ * The modified time is what makes this exact. Picking the same file twice
+ * reads all three back off the same disk entry, so the two match; two
+ * different screenshots that happen to share a name and a byte count do not.
+ */
+function fileKey(file: File): string {
+  return `${file.name}:${file.size}:${file.lastModified}`
 }
