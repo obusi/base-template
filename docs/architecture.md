@@ -378,16 +378,51 @@ request-body limit in production rather than in review.
 
 **The browser holds no Supabase key of any kind.** Both directions are signed
 on the server with the `service_role` key, so switching storage on does not
-reopen the anon-key surface `setup.md` step 2 goes out of its way to close, and
-no `@supabase/*` package reaches the browser bundle. The bucket is private with
-no policies, for the same reason tables have RLS with no policies: the server
-holds a key that bypasses them and authorization lives in oRPC.
+reopen the anon-key surface `setup.md` step 2 goes out of its way to close.
+Checked rather than assumed: that key appears zero times in `.next/static`
+after a build. The bucket is private with no policies, for the same reason
+tables have RLS with no policies: the server holds a key that bypasses them and
+authorization lives in oRPC.
 
 **A path is minted, never accepted.** It is `report/<user id>/<uuid>.<ext>`, and
 `report.create` checks that every path it is handed starts with the caller's own
 prefix. The paths make a round trip through a browser, so they are input like
 any other — the prefix is what turns "is this yours?" into a string comparison,
 the same instinct as putting ownership in a `where` clause.
+
+**What the upload URL is worth if someone copies it.** The URL carries a JWT in
+its query string, which looks alarming in a Network tab and is the narrowest
+thing in the exchange. Decoded, it says:
+
+```json
+{ "url": "report-attachments/report/<user id>/<uuid>.png",
+  "scope": "upload", "upsert": false, "exp": "+2h" }
+```
+
+Measured against a live bucket: uploading to the signed path answers `200`;
+reusing the same token a second time answers `409 KeyAlreadyExists`, because
+`upsert` is false; and editing the path in the URL answers
+`400 InvalidSignature`, because the path is inside the signature. So a stolen
+URL is one write, to one object that does not exist yet, for two hours — no
+read, no list, no delete, nothing near the database. Stealing it also means
+already being inside that browser, where the session cookie is worth more.
+
+Two hours is longer than the few seconds an upload needs, and cannot be
+shortened: `createSignedUploadUrl` takes no expiry.
+
+**Size and type are enforced by the bucket, not by this API.** The bytes never
+reach a handler, so `createUploadUrls` validating its `size` and `contentType`
+inputs constrains a claim, not a file. The bucket's own file-size limit and MIME
+allowlist are what hold — a 7 MB body declared as 1 KB is refused with `413`,
+and a PDF declared as `application/pdf` with `415`. `setup.md` treats setting
+them as part of creating the bucket, and says why `image/*` is the wrong value.
+
+**Two gaps a project inherits.** Supabase checks the declared content type and
+not the bytes, so HTML stored as `image/png` is stored — it comes back as
+`image/png`, which no browser parses as a document, so it is junk rather than a
+hole. And nothing in this repo rate-limits anything, so a signed-in caller can
+call `createUploadUrls` in a loop and fill the bucket. The second is the one
+worth fixing first in a real project.
 
 **This is the one place a test gets a stand-in.** `testing/index.ts` has a
 `fakeStorage`, and `testing.md`'s rule against mocks still holds everywhere

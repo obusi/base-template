@@ -27,7 +27,7 @@ fetching fits into all of it.
 
 ## `app/` — routing only
 
-Three kinds of file live here, and nothing else.
+Four kinds of file live here, and nothing else.
 
 **Pages.** One thin wrapper per route, with an explicit function body rather
 than a bare re-export — that leaves room for `generateMetadata`, a prefetch,
@@ -55,6 +55,32 @@ by the framework itself. Not a feature, and not a shared component either:
 `Providers` is technically a component, but the reuse rule below is about
 things used in more than one place, and this is used in exactly one.
 
+**Segment guards** — a `layout.tsx` deeper in the tree, whose job is to decide
+who may see everything under it. `app/(app)/admin/layout.tsx` is the one that
+exists:
+
+```tsx
+export default async function AdminLayout({ children }) {
+  await requireAdminPage()
+  return children
+}
+```
+
+Still routing only in the sense this file means: the decision is one call into
+a feature, and the layout's contribution is *where it sits*. A route added
+under `/admin` is guarded by its position rather than by whoever adds it
+remembering. Prefer this over a check repeated in each page — the second admin
+page is where a per-page check gets forgotten.
+
+Two things to keep straight when writing one. **It is not what secures the
+data** — `requireAdmin` in `packages/api` refuses the procedure and would do so
+if the layout were deleted; the layout only decides what a refused person sees,
+and 404 beats "not allowed", which confirms the route exists. And **a layout
+does not re-render on a client-side navigation inside its own segment**, so a
+page whose data can start refusing mid-session still needs to handle that
+itself. `features/report/admin-reports-page.tsx` carries that backstop and says
+so.
+
 ## `features/` — one folder per business domain
 
 ```
@@ -76,6 +102,23 @@ from `features/auth/components/sign-out-button.tsx` directly. Anything inside
 `features/post/components/` is invisible outside `features/post/`. This is
 what keeps a feature's internals free to change without hunting down every
 importer.
+
+**A barrel that exports Server Components cannot be imported from a Client
+Component**, and the failure is a build error rather than a type error. Most
+feature barrels export a `<name>-page.tsx` that reaches `lib/session.ts`, and
+that file carries `server-only`; a `"use client"` file importing the barrel
+pulls the marker into the browser graph and the build stops with
+`module-not-found`.
+
+The fix is not to reach past the barrel. It is to move the import up to
+something that already runs on the server — usually the `app/` route, or
+`components/nav-bar.tsx`, which composes one row out of several features
+anyway — and pass the result down as a prop. `UserMenu` takes its
+"Report a problem" entry that way: `features/report` owns the item, the navbar
+imports it, and `UserMenu` renders whatever it is handed.
+
+The general shape: **a Client Component receives cross-feature pieces, it does
+not fetch them.**
 
 **Ownership is about meaning, not about which route renders it.** A
 `SignOutButton` belongs in `features/auth/` even if the only page that renders

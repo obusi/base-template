@@ -148,24 +148,49 @@ Resend rejects a `from` on a domain it has not verified.
 The switch for attaching screenshots to a report. Leave all three empty and the
 form simply has no file picker; nothing else changes.
 
-The bucket has to be **created by hand and left private**:
+The bucket has to be **created by hand**, and three of its settings are not
+cosmetic. Supabase → **Storage → New bucket**:
 
-1. Supabase → **Storage → New bucket**, named `report-attachments`.
-2. **Public bucket: off.** This is the whole security model. Nothing reads an
-   object without a signed URL, and the server signs one per image at the
-   moment an admin loads the page — see [`architecture.md`](architecture.md) S4.
-3. Supabase → **Project Settings → API** for the other two values.
-   `SUPABASE_URL` is the project URL. The key is the one labelled
-   **`service_role`**, not `anon`.
+| Setting | Value | What it is |
+|---|---|---|
+| Name | `report-attachments` | must match `SUPABASE_STORAGE_BUCKET` |
+| Public bucket | **off** | nothing is readable without a URL this server signed |
+| Restrict file size | **on**, `5` MB | the only place a size is actually enforced |
+| Restrict MIME types | **on** | the only place a type is actually enforced |
+| Allowed MIME types | `image/jpeg,image/png,image/webp` | must match `AttachmentContentType` |
 
-The service role key bypasses every policy in the project, which is exactly why
-it never leaves the server: the browser is handed a signed URL and uploads with
-`fetch`. That is also why turning this on does not reopen the Data API that
-step 2 above switched off — nothing here uses the anon key, and no `@supabase/*`
-package reaches the browser bundle.
+Then Supabase → **Project Settings → API** for the two values. `SUPABASE_URL`
+is the project URL; the key is the one labelled **`service_role`**, not `anon`.
+
+**Why the last three are not optional.** The bytes go from the browser straight
+to the bucket, so what a caller told this API about its own file was never more
+than a claim — a request can declare "1 KB, image/png" and then PUT 40 MB of
+something else. Measured against a live bucket with these settings on: a 7 MB
+body declared as 1 KB is refused with `413 EntityTooLarge`, and a PDF declared
+as `application/pdf` with `415 InvalidMimeType`. With them off, both are stored.
+
+**Do not use `image/*`,** even though the field accepts wildcards. It matches
+`image/svg+xml`, and an SVG is a document that can carry script. The three
+types listed above cannot.
+
+The size and the type list are also declared in
+`packages/contract/src/domains/report/attachment.ts`, and the two copies have
+to agree — a type the contract allows and the bucket refuses fails after the
+person has waited for the upload. When changing either, change both.
+
+**What this still does not stop.** Supabase checks the declared content type,
+not the bytes: a file that is really HTML, uploaded as `image/png`, is stored.
+It is junk rather than a hole — it comes back with `Content-Type: image/png`,
+which browsers will not parse as a document, so it renders as a broken image
+and nothing runs. Verified by uploading `<script>` bytes and opening the signed
+URL directly. There is also no rate limit anywhere in this repo, so a signed-in
+caller can fill the bucket; see [`architecture.md`](architecture.md) S4.
 
 No policies are needed on the bucket. Same reasoning as RLS deny-all: the
-server holds a key that bypasses them, and authorization lives in oRPC.
+server holds a key that bypasses them, and authorization lives in oRPC. The
+service role key never leaves the server for the same reason — the browser is
+handed a signed URL and uploads with `fetch`, so turning this on does not
+reopen the Data API that step 2 above switched off.
 
 ### `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` — optional
 
