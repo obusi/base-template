@@ -46,7 +46,13 @@ const SignInInput = z.object({
 
 type Values = z.infer<typeof SignInInput>
 
-export function SignInPage({ searchParams }: { searchParams: SearchParams }) {
+export function SignInPage({
+  searchParams,
+  googleEnabled,
+}: {
+  searchParams: SearchParams
+  googleEnabled: boolean
+}) {
   const router = useRouter()
 
   // Undefined whenever nothing was asked for, or what was asked for would
@@ -128,7 +134,10 @@ export function SignInPage({ searchParams }: { searchParams: SearchParams }) {
               </Button>
             </Field>
 
-            <SocialButtons callbackURL={returnTo ?? DEFAULT_DESTINATION} />
+            <SocialButtons
+              callbackURL={returnTo ?? DEFAULT_DESTINATION}
+              enabled={googleEnabled}
+            />
           </FieldGroup>
         </form>
 

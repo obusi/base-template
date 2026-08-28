@@ -23,6 +23,13 @@ export const env = createEnv({
     // the Supabase project. Nothing below sends it anywhere.
     SUPABASE_URL: z.url().optional(),
     SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
+
+    // Read here only to decide whether the "Continue with Google" button is
+    // rendered at all. `packages/auth` validates the same pair and is what
+    // actually registers the provider; a button offering a door that cannot
+    // open is the thing this presence check removes.
+    GOOGLE_CLIENT_ID: z.string().optional(),
+    GOOGLE_CLIENT_SECRET: z.string().optional(),
   },
 
   // Nothing here yet. Anything added becomes readable by anyone who opens
@@ -44,5 +51,7 @@ export const env = createEnv({
     BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
     SUPABASE_URL: process.env.SUPABASE_URL,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
   },
 })

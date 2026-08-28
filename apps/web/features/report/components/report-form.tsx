@@ -193,9 +193,9 @@ export function ReportForm({
 
       {/*
         Hidden rather than shown-and-failing where no bucket is configured.
-        `social-buttons.tsx` makes the opposite call for Google on purpose —
-        a sign-in button that vanishes looks like a broken page, while a
-        missing "add a screenshot" row looks like a form that never had one.
+        `social-buttons.tsx` does the same for Google: an unconfigured switch
+        removes its control instead of offering a door that cannot open. See
+        docs/architecture.md S4.
       */}
       {attachmentsEnabled && (
         <div className="flex flex-col gap-2">

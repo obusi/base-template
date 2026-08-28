@@ -63,11 +63,11 @@ values come from.
 | `SUPABASE_STORAGE_BUCKET` | web | no | defaults to `report-attachments` |
 | `BETTER_AUTH_ALLOWED_HOSTS` | web | no | nothing — see below |
 
-Most of the optional ones are feature switches rather than settings: with
-`RESEND_API_KEY` absent, password-reset links go to the server log; with the
-Google pair absent, the "Continue with Google" button still renders and fails on
-click; with the Supabase pair absent, the report form has no file picker. The
-app runs without any of them.
+Most of the optional ones are feature switches rather than settings, and each
+absent pair simply removes its feature from the page: no `RESEND_API_KEY` sends
+password-reset links to the server log, no Google pair means no "Continue with
+Google" row, no Supabase pair means the report form has no file picker. The app
+runs without any of them.
 
 `BETTER_AUTH_ALLOWED_HOSTS` is the odd one out — not a feature but a deployment
 detail, and one most projects never set. It names extra hostnames the origin
@@ -169,10 +169,15 @@ server holds a key that bypasses them, and authorization lives in oRPC.
 
 ### `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` — optional
 
-Both or neither: `packages/auth/src/config.ts` registers the provider only when
-both are set. The button renders either way. Unconfigured, it answers
-`PROVIDER_NOT_FOUND` on click, which is deliberate — `social-buttons.tsx` says
-why it fails loudly rather than hiding itself.
+Both or neither, and they gate two things independently. `packages/auth` decides
+whether the provider exists: `config.ts` registers it only when both are set,
+and answers `PROVIDER_NOT_FOUND` otherwise. `apps/web` decides whether the
+button is offered: `app/signin/page.tsx` reads the same pair and renders no
+Google row without them — separator included, since an "Or" with nothing under
+it looks worse than no row.
+
+Hiding the button is not what secures anything; the server is. It is what stops
+a fresh clone from showing a door that cannot open.
 
 1. [console.cloud.google.com](https://console.cloud.google.com) → create or
    select a project.

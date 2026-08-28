@@ -41,7 +41,13 @@ const SignUpInput = z.object({
 
 type Values = z.infer<typeof SignUpInput>
 
-export function SignUpPage({ searchParams }: { searchParams: SearchParams }) {
+export function SignUpPage({
+  searchParams,
+  googleEnabled,
+}: {
+  searchParams: SearchParams
+  googleEnabled: boolean
+}) {
   const router = useRouter()
 
   // Carried over from the sign-in page when someone switched, so arriving via
@@ -132,7 +138,10 @@ export function SignUpPage({ searchParams }: { searchParams: SearchParams }) {
               </Button>
             </Field>
 
-            <SocialButtons callbackURL={returnTo ?? DEFAULT_DESTINATION} />
+            <SocialButtons
+              callbackURL={returnTo ?? DEFAULT_DESTINATION}
+              enabled={googleEnabled}
+            />
           </FieldGroup>
         </form>
 

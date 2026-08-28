@@ -349,6 +349,20 @@ assert on the authorization URL Better Auth builds, without a real OAuth
 client or a browser. Adding another provider later is the same shape again —
 a new key in `socialProviders`, gated on its own pair of env vars.
 
+**An unconfigured switch hides its UI rather than rendering a dead control.**
+`app/signin/page.tsx` reads the same pair and passes `googleEnabled` down, so a
+fresh clone shows no Google row; the report form hides its file picker the same
+way. The alternative — render always, fail on click — was tried and is what a
+person meets first on a clone, which reads as a broken page rather than an
+unconfigured one.
+
+This is a presentation rule, not a security one, and the distinction matters:
+the server refuses regardless. `packages/auth/src/config.test.ts` still asserts
+`PROVIDER_NOT_FOUND` for an unconfigured provider, and that test is the one
+that would catch a real hole. Deciding it in the route file is deliberate — the
+page component is a Client Component, and a check made there would need the
+credentials published to the browser.
+
 ### Object storage is the third seam, and it holds the only stand-in
 
 Report attachments need somewhere to put bytes, and `ApiContext` carries a
