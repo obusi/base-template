@@ -36,10 +36,19 @@ export function UserMenu({
   name,
   email,
   image,
+  extraItems,
 }: {
   name: string
   email: string
   image?: string | null
+
+  /**
+   * Menu entries owned by other features, rendered beside Profile and
+   * Settings. Passed in rather than imported, because this file is a Client
+   * Component and a feature's barrel can carry `server-only` pages with it —
+   * `components/nav-bar.tsx` does the importing instead.
+   */
+  extraItems?: React.ReactNode
 }) {
   const router = useRouter()
   const [pending, setPending] = useState(false)
@@ -84,6 +93,7 @@ export function UserMenu({
             Profile
           </DropdownMenuItem>
           <DropdownMenuItem render={<a href="#" />}>Settings</DropdownMenuItem>
+          {extraItems}
         </DropdownMenuGroup>
 
         <DropdownMenuSeparator />

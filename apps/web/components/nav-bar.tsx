@@ -9,12 +9,13 @@
 // features/post/posts-page.tsx.
 //
 // Lives outside any one feature's folder because it isn't owned by one
-// domain: the identity half comes from auth, the "Posts" link from post, and
-// "Report a problem" from report.
+// domain: the identity half comes from auth and the "Posts" link from post.
 //
-// There is deliberately no link to /admin/reports. Knowing whether to render
-// one would mean reading the caller's role on every page in the app, and an
-// admin can type the URL. See
+// "Report a problem" is not here — it sits in the account menu, because
+// reporting needs a session anyway and a signed-out navbar has no use for it.
+// Neither is a link to /admin/reports: knowing whether to render one would
+// mean reading the caller's role on every page in the app, and an admin can
+// type the URL. See
 // .claude/rules/apps-web-structure.md on components/ vs features/.
 
 import { GalleryVerticalEndIcon } from "lucide-react"
@@ -23,7 +24,7 @@ import Link from "next/link"
 import { buttonVariants } from "@packages/ui/components/button"
 
 import { authPath, UserMenu } from "@/features/auth"
-import { ReportLink } from "@/features/report"
+import { ReportMenuItem } from "@/features/report"
 import { getSession } from "@/lib/session"
 
 export async function NavBar() {
@@ -44,10 +45,6 @@ export async function NavBar() {
           >
             Posts
           </Link>
-
-          <ReportLink className="text-sm text-muted-foreground hover:text-foreground">
-            Report a problem
-          </ReportLink>
         </div>
 
         {session ? (
@@ -55,6 +52,7 @@ export async function NavBar() {
             name={session.user.name}
             email={session.user.email}
             image={session.user.image}
+            extraItems={<ReportMenuItem />}
           />
         ) : (
           <div className="flex items-center gap-2">
