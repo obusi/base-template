@@ -9,13 +9,13 @@ export const createUploadUrls = os.report.createUploadUrls
   .handler(async ({ context, input, errors }) => {
     // A deployment with no bucket configured. Declared in the contract so the
     // form can hide its file picker instead of showing one that fails.
-    if (!context.storage) {
+    if (!context.reportStorage) {
       throw errors.ATTACHMENTS_UNAVAILABLE()
     }
 
     return {
       targets: await service.createUploadTargets(
-        context.storage,
+        context.reportStorage,
         context.user.id,
         input.files
       ),
@@ -50,7 +50,7 @@ export const create = os.report.create
 export const list = os.report.list
   .use(requireAdminRole)
   .handler(({ context, input }) =>
-    service.listReports(context.db, context.storage, input)
+    service.listReports(context.db, context.reportStorage, input)
   )
 
 export const reportRouter = { createUploadUrls, create, list }

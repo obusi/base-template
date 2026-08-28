@@ -96,16 +96,16 @@ export function fakeStorage(): Storage & { readonly signed: string[] } {
 /**
  * A context for a signed-in caller.
  *
- * `storage` defaults to a working stand-in so that domains with nothing to do
- * with attachments never mention it. Pass `null` to be the deployment that has
- * none configured.
+ * `reportStorage` defaults to a working stand-in so that domains with nothing
+ * to do with attachments never mention it. Pass `null` to be the deployment
+ * that has none configured.
  */
 export function contextFor(
   db: Database,
   user: TestUser,
-  storage: Storage | null = fakeStorage()
+  reportStorage: Storage | null = fakeStorage()
 ): ApiContext {
-  return { db, auth: createAuth(db), headers: user.headers, storage }
+  return { db, auth: createAuth(db), headers: user.headers, reportStorage }
 }
 
 /** A context for a caller with no session at all. */
@@ -114,6 +114,6 @@ export function anonymousContext(db: Database): ApiContext {
     db,
     auth: createAuth(db),
     headers: new Headers(),
-    storage: fakeStorage(),
+    reportStorage: fakeStorage(),
   }
 }

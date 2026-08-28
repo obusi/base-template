@@ -132,19 +132,27 @@ it.
 
 ## The context is handed in, never assembled here
 
-`ApiContext` is `{ db, auth, headers, storage }`, and all four are supplied by
-the caller. `apps/web` passes the live database, the live auth instance, the
-real request headers and storage built from the environment; a test passes a
-throwaway PGlite database, an auth instance bound to it, headers carrying a
-cookie from a real sign-in, and `fakeStorage()`. Neither handlers nor middleware
-can tell the difference, which is why there is no test-only branch anywhere in
-this package.
+`ApiContext` is `{ db, auth, headers, reportStorage }`, and all four are
+supplied by the caller. `apps/web` passes the live database, the live auth
+instance, the real request headers and storage built from the environment; a
+test passes a throwaway PGlite database, an auth instance bound to it, headers
+carrying a cookie from a real sign-in, and `fakeStorage()`. Neither handlers nor
+middleware can tell the difference, which is why there is no test-only branch
+anywhere in this package.
 
-`storage` is `Storage | null`, and `null` is a normal state rather than a
+`reportStorage` is `Storage | null`, and `null` is a normal state rather than a
 broken one — the same shape as an absent `sendResetPassword`. A deployment with
 no bucket configured runs fine; `report.createUploadUrls` answers
 `ATTACHMENTS_UNAVAILABLE` and the form hides its file picker. Handlers that
 touch attachments check for `null` rather than assuming it.
+
+**A storage field is named after the domain that owns its bucket**, which is
+why it is not just `storage`. A bucket is where Supabase keeps the file-size
+limit and the MIME allowlist, and a folder inside one cannot carry its own — so
+a second domain that stores files gets a second bucket and a second field
+beside this one. `storageFromEnv(env, bucket)` takes the bucket as an argument
+precisely so that costs a line in `connection/live.ts` rather than a second way
+of building storage.
 
 `connection/live.ts` is the one file that names the real `db` and the real
 `auth`. It carries `import "server-only"`, and **nothing inside this package

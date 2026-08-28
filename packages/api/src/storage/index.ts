@@ -78,21 +78,31 @@ export function createSupabaseStorage(config: StorageConfig): Storage {
 }
 
 /**
- * The storage the environment describes, or `null` when it describes none.
+ * Storage for one bucket, or `null` when the environment describes no Supabase
+ * project at all.
+ *
+ * The bucket is a separate argument because it is the only part of this that
+ * belongs to a domain. A project's URL and service key are the same for every
+ * bucket it will ever hold, so a second domain adding a bucket calls this again
+ * with a different name rather than needing a function of its own — and the
+ * domain gets named once, at the composition root, which is what a composition
+ * root is for.
  *
  * Both secrets have to be present: half a configuration is a deployment that
  * fails on somebody's first upload rather than at startup.
  */
-export function storageFromEnv(config: {
-  SUPABASE_URL?: string
-  SUPABASE_SERVICE_ROLE_KEY?: string
-  SUPABASE_REPORT_BUCKET: string
-}): Storage | null {
+export function storageFromEnv(
+  config: {
+    SUPABASE_URL?: string
+    SUPABASE_SERVICE_ROLE_KEY?: string
+  },
+  bucket: string
+): Storage | null {
   if (!config.SUPABASE_URL || !config.SUPABASE_SERVICE_ROLE_KEY) return null
 
   return createSupabaseStorage({
     url: config.SUPABASE_URL,
     serviceRoleKey: config.SUPABASE_SERVICE_ROLE_KEY,
-    bucket: config.SUPABASE_REPORT_BUCKET,
+    bucket,
   })
 }

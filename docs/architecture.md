@@ -366,10 +366,17 @@ credentials published to the browser.
 ### Object storage is the third seam, and it holds the only stand-in
 
 Report attachments need somewhere to put bytes, and `ApiContext` carries a
-`storage` that is `Storage | null` — `null` being the normal state, exactly as
-an absent `sendResetPassword` is. A deployment with no bucket runs: the form
-hides its file picker and `report.createUploadUrls` answers
+`reportStorage` that is `Storage | null` — `null` being the normal state,
+exactly as an absent `sendResetPassword` is. A deployment with no bucket runs:
+the form hides its file picker and `report.createUploadUrls` answers
 `ATTACHMENTS_UNAVAILABLE`.
+
+The field names a domain rather than a capability, and so does
+`SUPABASE_REPORT_BUCKET`, for the reason two subsections down: a bucket belongs
+to one domain, so the second domain to store files adds a field beside this one.
+`storageFromEnv(env, bucket)` takes the bucket separately so that stays a line
+in `connection/live.ts` — the project's URL and service key are the same for
+every bucket it will ever hold, and only the bucket name is per-domain.
 
 **The bytes never pass through this API.** `createUploadUrls` mints a path,
 signs a URL for it, and the browser PUTs straight to Supabase. Sending images

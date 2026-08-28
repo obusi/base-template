@@ -22,9 +22,13 @@ import { storageFromEnv } from "../storage"
 /**
  * Built once rather than per request: it holds no request state, and creating
  * a client per call would open a connection pool per call.
+ *
+ * This is the one place the report bucket is named. A second domain needing
+ * storage adds a line here with its own variable, not a second way of building
+ * one.
  */
-const storage = storageFromEnv(env)
+const reportStorage = storageFromEnv(env, env.SUPABASE_REPORT_BUCKET)
 
 export function liveContext(headers: Headers): ApiContext {
-  return { db, auth, headers, storage }
+  return { db, auth, headers, reportStorage }
 }

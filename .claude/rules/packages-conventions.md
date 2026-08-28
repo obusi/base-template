@@ -130,9 +130,11 @@ through oRPC's context (which it needs anyway, to carry the session, so `db`
 rides along free) and `packages/auth` takes it as an argument.
 
 **The same applies to anything else that reaches off the machine.** Object
-storage rides in the context as `storage`, for the identical reason: a
+storage rides in the context as `reportStorage`, for the identical reason: a
 module-level Supabase client could not be pointed anywhere else, and every test
-touching an attachment would need a real bucket.
+touching an attachment would need a real bucket. It carries a domain's name
+rather than being called `storage` because one bucket belongs to one domain —
+see `packages-api.md`.
 
 The type is `Database` — the shared `PgAsyncDatabase` base — deliberately, not
 `typeof db`. The postgres-js and PGlite drivers are otherwise incompatible
