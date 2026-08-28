@@ -19,7 +19,9 @@ src/
 ├── shared/
 │   ├── context.ts          ApiContext — what a handler receives
 │   └── builder.ts          os = implement(contract).$context<ApiContext>()
-├── middleware/auth.ts    requireAuth
+├── middleware/auth.ts    requireAuth, requireAdmin
+├── storage/index.ts      the Storage port + its Supabase implementation
+├── env.ts                the storage switch, validated
 ├── connection/live.ts    the real context, for production requests
 └── testing/index.ts      the throwaway context, for tests
 ```
@@ -72,6 +74,21 @@ it have no `context.user` to read, so forgetting it is a type error rather than
 an open door. Do not read the session directly in a handler, and do not add a
 second path that decides whether a request is authenticated.
 
+`requireAdmin` is not a second path. It is `requireAuth.concat(...)` — the same
+session lookup followed by a role check — so `.use(requireAdmin)` on its own
+both authenticates and authorizes, and stacking it on `requireAuth` would be
+redundant:
+
+```ts
+export const list = os.report.list
+  .use(requireAdmin)
+  .handler(({ context, input }) => service.listReports(context.db, input))
+```
+
+Reach for it only where ownership cannot be written as a `where` clause. Today
+that is `report.list`, which is not scoped to the caller at all. A handler that
+reads the caller's own rows still filters in the query — see the next section.
+
 ## Authorization is a `where` clause, never a read-then-check
 
 ```ts
@@ -94,8 +111,8 @@ user-owned rows filters explicitly, in the query.
 **A miss returns `NOT_FOUND`, not `FORBIDDEN`.** "No such post" and "not yours"
 are deliberately indistinguishable — answering them differently turns the
 endpoint into a way to discover which ids exist. `FORBIDDEN` is declared in
-`commonErrors` for the case where the caller may see a row but not act on it,
-which the example domain does not have.
+`commonErrors` for the case where there is no id to leak in the first place —
+`requireAdmin` raising it on `report.list` is the one use in this repo.
 
 ## Errors: declared means the caller can act on it
 
@@ -115,12 +132,19 @@ it.
 
 ## The context is handed in, never assembled here
 
-`ApiContext` is `{ db, auth, headers }`, and all three are supplied by the
-caller. `apps/web` passes the live database, the live auth instance, and the
-real request headers; a test passes a throwaway PGlite database, an auth
-instance bound to it, and headers carrying a cookie from a real sign-in.
-Neither handlers nor middleware can tell the difference, which is why there is
-no test-only branch anywhere in this package.
+`ApiContext` is `{ db, auth, headers, storage }`, and all four are supplied by
+the caller. `apps/web` passes the live database, the live auth instance, the
+real request headers and storage built from the environment; a test passes a
+throwaway PGlite database, an auth instance bound to it, headers carrying a
+cookie from a real sign-in, and `fakeStorage()`. Neither handlers nor middleware
+can tell the difference, which is why there is no test-only branch anywhere in
+this package.
+
+`storage` is `Storage | null`, and `null` is a normal state rather than a
+broken one — the same shape as an absent `sendResetPassword`. A deployment with
+no bucket configured runs fine; `report.createUploadUrls` answers
+`ATTACHMENTS_UNAVAILABLE` and the form hides its file picker. Handlers that
+touch attachments check for `null` rather than assuming it.
 
 `connection/live.ts` is the one file that names the real `db` and the real
 `auth`. It carries `import "server-only"`, and **nothing inside this package

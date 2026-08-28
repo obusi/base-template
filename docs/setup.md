@@ -4,7 +4,7 @@ Everything here is done once per project, and none of it can be carried in the
 repository — each step depends on something that does not exist until someone
 creates it: a database, a GitHub repository, a local `.env`.
 
-Steps 1–5 are needed by every deployment. Step 6 is needed once per repository
+Steps 1–6 are needed by every deployment. Step 7 is needed once per repository
 and applies only to GitHub.
 
 This document says *what to do*. When a step turns on something surprising, it
@@ -14,7 +14,7 @@ lives there and only there.
 ## Requirements
 
 **Node 24+**, **pnpm 10**, a Postgres database (Supabase is what this is built
-against), and the [`gh` CLI](https://cli.github.com) for step 6.
+against), and the [`gh` CLI](https://cli.github.com) for step 7.
 
 ## 1. Install
 
@@ -28,9 +28,11 @@ On Supabase, two options must be set **at project creation**. Not on Supabase?
 See "On another Postgres host" below; the rest of this document is unchanged.
 
 - **Enable Data API — off.** It publishes a REST endpoint that reaches the
-  database with the anon key. Nothing here uses it — no `@supabase/*` package is
-  installed anywhere. RLS deny-all is the wall; not opening the door at all is
-  better.
+  database with the anon key. Nothing here uses it, and nothing here uses the
+  anon key at all: the one `@supabase/*` package in the repo is
+  `@supabase/storage-js`, which lives in `packages/api`, talks to Storage rather
+  than to the database, and holds the service role key on the server. RLS
+  deny-all is the wall; not opening this door at all is better.
 - **Enable automatic RLS — on.** An event trigger enables RLS on every new
   table, as a backstop for tables created by hand in the SQL editor.
 
@@ -56,12 +58,16 @@ values come from.
 | `RESEND_FROM` | web | no | a domain Resend has verified |
 | `GOOGLE_CLIENT_ID` | web | no | Google Cloud console |
 | `GOOGLE_CLIENT_SECRET` | web | no | Google Cloud console |
+| `SUPABASE_URL` | web | no | the Supabase dashboard |
+| `SUPABASE_SERVICE_ROLE_KEY` | web | no | the Supabase dashboard |
+| `SUPABASE_STORAGE_BUCKET` | web | no | defaults to `report-attachments` |
 | `BETTER_AUTH_ALLOWED_HOSTS` | web | no | nothing — see below |
 
-Three of the optional ones are feature switches rather than settings: with
+Most of the optional ones are feature switches rather than settings: with
 `RESEND_API_KEY` absent, password-reset links go to the server log; with the
 Google pair absent, the "Continue with Google" button still renders and fails on
-click. The app runs without any of them.
+click; with the Supabase pair absent, the report form has no file picker. The
+app runs without any of them.
 
 `BETTER_AUTH_ALLOWED_HOSTS` is the odd one out — not a feature but a deployment
 detail, and one most projects never set. It names extra hostnames the origin
@@ -137,6 +143,30 @@ enough for real users. For those: **Domains → Add Domain**, publish the DNS
 records Resend lists, then set `RESEND_FROM` to an address on that domain.
 Resend rejects a `from` on a domain it has not verified.
 
+### `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET` — optional
+
+The switch for attaching screenshots to a report. Leave all three empty and the
+form simply has no file picker; nothing else changes.
+
+The bucket has to be **created by hand and left private**:
+
+1. Supabase → **Storage → New bucket**, named `report-attachments`.
+2. **Public bucket: off.** This is the whole security model. Nothing reads an
+   object without a signed URL, and the server signs one per image at the
+   moment an admin loads the page — see [`architecture.md`](architecture.md) S4.
+3. Supabase → **Project Settings → API** for the other two values.
+   `SUPABASE_URL` is the project URL. The key is the one labelled
+   **`service_role`**, not `anon`.
+
+The service role key bypasses every policy in the project, which is exactly why
+it never leaves the server: the browser is handed a signed URL and uploads with
+`fetch`. That is also why turning this on does not reopen the Data API that
+step 2 above switched off — nothing here uses the anon key, and no `@supabase/*`
+package reaches the browser bundle.
+
+No policies are needed on the bucket. Same reasoning as RLS deny-all: the
+server holds a key that bypasses them, and authorization lives in oRPC.
+
 ### `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` — optional
 
 Both or neither: `packages/auth/src/config.ts` registers the provider only when
@@ -203,7 +233,23 @@ pnpm dev
 The app is at `http://localhost:3000`. Sign up at `/signup`, then `/posts` is a
 worked example. Interactive API docs are at `/api/docs`.
 
-## 6. Protect the default branch
+## 6. Make yourself an admin
+
+`/report` works for anyone signed in. `/admin/reports`, where those reports are
+read, answers 404 to everybody until somebody holds the role — and nothing in
+the app grants it, on purpose: an endpoint that hands out admin is a bigger
+risk than a one-off SQL statement.
+
+Open `pnpm --filter @packages/db db:studio` and run it against your own account:
+
+```sql
+update profile set role = 'admin'
+where user_id = (select id from "user" where email = 'you@example.com');
+```
+
+Sign out and back in is not needed — the role is read per request.
+
+## 7. Protect the default branch
 
 Branch rules live in GitHub's settings rather than in the repository, so a fork
 starts with none of them. `.github/rulesets/` keeps them as files instead, split

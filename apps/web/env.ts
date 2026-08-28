@@ -13,6 +13,16 @@ export const env = createEnv({
     DATABASE_URL: z.url(),
     BETTER_AUTH_SECRET: z.string().min(32),
     BETTER_AUTH_URL: z.url(),
+
+    // Read here only to decide whether the report form shows a file picker.
+    // `packages/api` validates the same pair on its own side and is the only
+    // thing that uses their values — this process is the one that opens a
+    // `.env`, which is why both appear here too (architecture S9).
+    //
+    // `server`, never `client`: the service role key bypasses every policy in
+    // the Supabase project. Nothing below sends it anywhere.
+    SUPABASE_URL: z.url().optional(),
+    SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
   },
 
   // Nothing here yet. Anything added becomes readable by anyone who opens
@@ -32,5 +42,7 @@ export const env = createEnv({
     DATABASE_URL: process.env.DATABASE_URL || process.env.POSTGRES_URL,
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
     BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
+    SUPABASE_URL: process.env.SUPABASE_URL,
+    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
   },
 })

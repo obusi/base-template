@@ -18,6 +18,8 @@
     "@packages/auth": "workspace:*",
     "@packages/contract": "workspace:*",
     "@packages/db": "workspace:*",
+    "@supabase/storage-js": "^2.112.4",
+    "@t3-oss/env-core": "catalog:",
     "drizzle-orm": "catalog:",
     "server-only": "catalog:",
     "zod": "catalog:"

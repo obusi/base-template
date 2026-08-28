@@ -10,7 +10,11 @@
 //
 // Lives outside any one feature's folder because it isn't owned by one
 // domain: the identity half comes from auth, the "Posts" link from post, and
-// a third domain would add its own link here too. See
+// "Report a problem" from report.
+//
+// There is deliberately no link to /admin/reports. Knowing whether to render
+// one would mean reading the caller's role on every page in the app, and an
+// admin can type the URL. See
 // .claude/rules/apps-web-structure.md on components/ vs features/.
 
 import { GalleryVerticalEndIcon } from "lucide-react"
@@ -19,6 +23,7 @@ import Link from "next/link"
 import { buttonVariants } from "@packages/ui/components/button"
 
 import { authPath, UserMenu } from "@/features/auth"
+import { ReportLink } from "@/features/report"
 import { getSession } from "@/lib/session"
 
 export async function NavBar() {
@@ -39,6 +44,10 @@ export async function NavBar() {
           >
             Posts
           </Link>
+
+          <ReportLink className="text-sm text-muted-foreground hover:text-foreground">
+            Report a problem
+          </ReportLink>
         </div>
 
         {session ? (

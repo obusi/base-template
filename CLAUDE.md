@@ -21,7 +21,10 @@ The section below is the exception.
 This repo is a **base template**, not a product. Several projects start from
 it, and forks get no update path, so what goes in is permanent:
 
-- **There is no business logic to preserve.** It ships structure only.
+- **There is no business logic to preserve, with one exception.** It ships
+  structure only, plus the `report` domain — every project needs a way for its
+  users to say something is wrong, so that one is built in. Unlike `post` it is
+  not an example and is meant to stay.
 - **Keep it lean.** Something a project could add later does not belong here.
   "Might be useful" is not a reason — every dependency added here is inherited
   by every project forked from it.

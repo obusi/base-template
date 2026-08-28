@@ -349,6 +349,40 @@ assert on the authorization URL Better Auth builds, without a real OAuth
 client or a browser. Adding another provider later is the same shape again —
 a new key in `socialProviders`, gated on its own pair of env vars.
 
+### Object storage is the third seam, and it holds the only stand-in
+
+Report attachments need somewhere to put bytes, and `ApiContext` carries a
+`storage` that is `Storage | null` — `null` being the normal state, exactly as
+an absent `sendResetPassword` is. A deployment with no bucket runs: the form
+hides its file picker and `report.createUploadUrls` answers
+`ATTACHMENTS_UNAVAILABLE`.
+
+**The bytes never pass through this API.** `createUploadUrls` mints a path,
+signs a URL for it, and the browser PUTs straight to Supabase. Sending images
+through `/rpc` instead would put 15 MB inside a JSON body and meet a serverless
+request-body limit in production rather than in review.
+
+**The browser holds no Supabase key of any kind.** Both directions are signed
+on the server with the `service_role` key, so switching storage on does not
+reopen the anon-key surface `setup.md` step 2 goes out of its way to close, and
+no `@supabase/*` package reaches the browser bundle. The bucket is private with
+no policies, for the same reason tables have RLS with no policies: the server
+holds a key that bypasses them and authorization lives in oRPC.
+
+**A path is minted, never accepted.** It is `report/<user id>/<uuid>.<ext>`, and
+`report.create` checks that every path it is handed starts with the caller's own
+prefix. The paths make a round trip through a browser, so they are input like
+any other — the prefix is what turns "is this yours?" into a string comparison,
+the same instinct as putting ownership in a `where` clause.
+
+**This is the one place a test gets a stand-in.** `testing/index.ts` has a
+`fakeStorage`, and `testing.md`'s rule against mocks still holds everywhere
+else: a database is Postgres compiled to WASM that boots in 1.4 seconds, while
+storage is an HTTP service on somebody else's machine. What is worth testing is
+this repo's own logic — which paths are minted, whose prefix they carry, that a
+URL is signed per attachment — and every bit of that is visible through two
+functions.
+
 ### Every user field has exactly one owner
 
 Better Auth can add columns to the `user` table through `additionalFields`. Use
@@ -356,13 +390,22 @@ it only for fields Better Auth itself needs in order to work.
 
 | Field | Owner | Where it lives |
 |---|---|---|
-| `email`, `name`, `image`, `role` | Better Auth | `user` table, edited via `authClient.updateUser()` |
-| `bio`, `location`, preferences | The project | Its own table, its own contract, edited via oRPC |
+| `email`, `name`, `image` | Better Auth | `user` table, edited via `authClient.updateUser()` |
+| `role`, `bio`, `location`, preferences | The project | Its own table, its own contract, edited via oRPC |
 
 The test is not how user-related a field feels, it is whether authentication
 breaks without it. `email` sends the password-reset link, so it belongs to
 Better Auth; taking it over gains nothing and risks two copies disagreeing.
 `bio` is business data wearing a user-shaped hat.
+
+`role` is the borderline case, and it went to the project. Better Auth's admin
+plugin would own it legitimately — turning the plugin on makes `auth:generate`
+emit the column, and the session then carries the role, sparing `requireAdmin`
+a query. What arrives with it is the rest of the plugin: `banUser`,
+`impersonateUser`, `listUsers` and `removeUser` mounted under `/api/auth`, plus
+a column on `session`, inherited by every project forked from here whether or
+not it wanted an admin console. Nothing signs in differently because of `role`,
+so by the test above it is the project's, and it is a column on `profile`.
 
 Putting business fields in `additionalFields` costs four things: their
 validation rules move out of `packages/contract` into the auth config, so there
@@ -420,6 +463,38 @@ handler turns its cross-user test red with
 **Why not RLS policies:** when a policy is wrong, the symptom is rows silently
 disappearing or a generic message — neither of which AI can diagnose. It also
 splits the rules across two languages and two locations.
+
+### The one rule that cannot be a `where` clause
+
+`report.list` hands back every report rather than the caller's own, so there is
+no ownership term that could express who may read it. What decides the answer
+is who is asking, and that lives in a second middleware:
+
+```ts
+// packages/api/src/middleware/auth.ts
+export const requireAdmin = requireAuth.concat(async ({ context, next }) => {
+  if ((await getRole(context.db, context.user.id)) !== "admin") {
+    throw new ORPCError("FORBIDDEN")
+  }
+  return next()
+})
+```
+
+Built with `.concat` on `requireAuth` rather than declared beside it, so a
+procedure carries one middleware instead of two in an order that could be
+written the wrong way round. There is still exactly one place that turns a
+cookie into a user.
+
+`FORBIDDEN` here, not `NOT_FOUND`. The NOT_FOUND rule exists so a caller cannot
+learn which ids are real from the error it gets back; this procedure takes no
+id, so there is nothing to leak and the honest answer is the useful one.
+
+The role is a column on `profile` — S4 has why it did not go to Better Auth.
+`getRole` reads it without creating a row: `requireAdmin` runs on every admin
+request, and a read should not write.
+
+This is the exception, not a second pattern to reach for. A handler that
+touches the caller's own rows still filters in the query.
 
 ### RLS deny-all — protection if a key leaks
 
@@ -1048,8 +1123,16 @@ this file:
 
 | Principle | What it means in practice |
 |---|---|
-| **No business logic** | The template ships structure and conventions only. |
+| **No business logic** | Structure and conventions only, with one deliberate exception — see below. |
 | **Lean** | Nothing is included until it is needed. Everything omitted can be added later without a rewrite. |
+
+**The exception is the `report` domain.** Every project forked from here needs
+a way for the people using it to say something is wrong, so that one feature is
+built in rather than left to each fork to rediscover. Unlike `post` it is not
+an example and is not on the list of things to delete: a fork keeps it, and
+extends it. What it deliberately does not carry is anything that would drag a
+dependency in with it — no attachments, no outbox, no rate limiting — each of
+which is described where it is missing.
 
 These two are under constant pressure here, because every dependency added is
 inherited by every project started from this one and those get no update path

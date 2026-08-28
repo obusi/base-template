@@ -54,6 +54,20 @@ Three, all scoped to **Production** only.
 password and a signing key. `BETTER_AUTH_URL` is deliberately `Config`: it is a
 public URL, and when sign-in breaks it is the first thing worth reading.
 
+Add two more only if report attachments are wanted — the app deploys fine
+without them, minus the file picker:
+
+| Key | Type | Value |
+|---|---|---|
+| `SUPABASE_URL` | Config | the project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | **Secret** | the `service_role` key, never `anon` |
+
+**Scope these to Production only, and think before copying them to Preview.**
+The database is branched per pull request; the storage bucket is not. Pointing
+previews at the same pair means a preview writes into the production bucket —
+which may be what you want for one shared bin of screenshots, and is certainly
+not what you want if a preview is ever handed to someone outside the team.
+
 Set all three **before the first deploy**. `next.config.ts` imports `./env` for
 its side effect, so a missing variable fails the build rather than surfacing on
 a request — see [`architecture.md`](architecture.md) S9.

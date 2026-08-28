@@ -129,6 +129,11 @@ throwaway PGlite instance a test just seeded. `packages/api` takes the database
 through oRPC's context (which it needs anyway, to carry the session, so `db`
 rides along free) and `packages/auth` takes it as an argument.
 
+**The same applies to anything else that reaches off the machine.** Object
+storage rides in the context as `storage`, for the identical reason: a
+module-level Supabase client could not be pointed anywhere else, and every test
+touching an attachment would need a real bucket.
+
 The type is `Database` — the shared `PgAsyncDatabase` base — deliberately, not
 `typeof db`. The postgres-js and PGlite drivers are otherwise incompatible
 types, so `typeof db` would reject exactly the instance a test supplies.
@@ -151,6 +156,7 @@ whatever program starts in that folder:
 | `apps/web` | yes | yes | `next dev` / `next build` |
 | `packages/db` | `src/connection/env.ts` | yes | the `drizzle-kit` commands |
 | `packages/auth` | yes | **no** | nothing runs here — it is imported into `apps/web` |
+| `packages/api` | yes | **no** | same — the storage switch, read in `connection/live.ts` |
 
 So `packages/auth/.env.example` documents what the package requires while the
 values live in `apps/web/.env`. `DATABASE_URL` is knowingly duplicated across

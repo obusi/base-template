@@ -1,6 +1,8 @@
 import type { Auth } from "@packages/auth/server"
 import type { Database } from "@packages/db"
 
+import type { Storage } from "../storage"
+
 /**
  * What a caller must supply before any procedure can run.
  *
@@ -26,4 +28,14 @@ export type ApiContext = {
    * oRPC's adapters provide these; `createRouterClient` callers construct them.
    */
   headers: Headers
+
+  /**
+   * Object storage for report attachments, or `null` where none is configured.
+   *
+   * `null` is a normal state, not a broken one — the same shape as
+   * `sendResetPassword` being absent. A deployment without a bucket runs
+   * fine; `report.createUploadUrls` answers ATTACHMENTS_UNAVAILABLE and the
+   * form hides its file picker.
+   */
+  storage: Storage | null
 }
