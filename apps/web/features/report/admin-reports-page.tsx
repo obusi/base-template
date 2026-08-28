@@ -93,11 +93,14 @@ export async function AdminReportsPage() {
 }
 
 /**
- * 404 rather than an error page for anyone who is not an admin.
+ * 404 rather than an error page, for the one case the segment's layout cannot
+ * cover.
  *
- * The procedure has already refused them — this only decides what they see.
- * A "you are not allowed here" page would confirm the route exists, which is
- * the same thing `NOT_FOUND` avoids on the API side.
+ * `app/(app)/admin/layout.tsx` is what stops a non-admin entering, and it runs
+ * once. A layout does not re-render on a client-side navigation within its own
+ * segment, so an admin whose role is revoked while they sit on this page would
+ * otherwise meet an unhandled FORBIDDEN on the next fetch. This is that
+ * backstop, not a second copy of the rule.
  */
 async function listReports() {
   try {

@@ -12,3 +12,8 @@ export { UserMenu } from "./components/user-menu"
 // afterwards. Building the query string by hand elsewhere would spread the
 // parameter's name across the codebase and skip the check on the way back.
 export { authPath } from "./redirect"
+
+// The guard `app/(app)/admin/layout.tsx` uses. It belongs to auth rather than
+// to whatever the admin pages show, and lives behind this barrel like
+// everything else another folder is allowed to reach.
+export { requireAdminPage } from "./require-admin"
