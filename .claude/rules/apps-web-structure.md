@@ -55,31 +55,45 @@ by the framework itself. Not a feature, and not a shared component either:
 `Providers` is technically a component, but the reuse rule below is about
 things used in more than one place, and this is used in exactly one.
 
-**Segment guards** — a `layout.tsx` deeper in the tree, whose job is to decide
-who may see everything under it. `app/(app)/admin/layout.tsx` is the one that
-exists:
+**Segment guards** — a `layout.tsx` whose job is to decide who may see
+everything under it. The app has three route groups, and the guard is what
+each one is for:
 
-```tsx
-export default async function AdminLayout({ children }) {
-  await requireAdminPage()
-  return children
-}
+```
+app/(app)/layout.tsx           the navbar, shared by all three
+├── (user)/                    requireUserPage()   →  /, /posts
+├── (admin)/                   requireAdminPage()  →  /admin, /admin/reports
+└── (account)/                 no role guard       →  /profile, /report
 ```
 
-Still routing only in the sense this file means: the decision is one call into
-a feature, and the layout's contribution is *where it sits*. A route added
-under `/admin` is guarded by its position rather than by whoever adds it
-remembering. Prefer this over a check repeated in each page — the second admin
-page is where a per-page check gets forgotten.
+A route group never appears in a URL, so `/posts` is still `/posts`. What it
+buys is that **a page is guarded by where it sits** rather than by whoever adds
+it remembering — the second admin page is where a per-page check gets
+forgotten. `(admin)` holds the guard and the `admin/` folder inside it holds
+the URL segment; two folders because they do two different jobs.
 
-Two things to keep straight when writing one. **It is not what secures the
-data** — `requireAdmin` in `packages/api` refuses the procedure and would do so
-if the layout were deleted; the layout only decides what a refused person sees,
-and 404 beats "not allowed", which confirms the route exists. And **a layout
-does not re-render on a client-side navigation inside its own segment**, so a
-page whose data can start refusing mid-session still needs to handle that
-itself. `features/report/admin-reports-page.tsx` carries that backstop and says
-so.
+`(account)` has a layout that guards nothing, on purpose. Its pages belong to
+whoever is signed in rather than to either side, and the file says so — the
+omission is a decision, and a decision that is not written down reads as an
+oversight to the next person.
+
+Three things to keep straight when writing one:
+
+**It is not what secures the data.** `requireUserRole` and `requireAdminRole`
+in `packages/api` refuse the procedures and would refuse them if these layouts
+were deleted. A layout only decides what a refused person sees.
+
+**What they see is not the same on both sides.** The admin side answers 404,
+because a back-office route confirming it exists is the thing `NOT_FOUND`
+avoids on the API side too. The user side redirects to `/admin`, because an
+admin landing there has taken a wrong turn rather than found something secret,
+and a dead end is the less useful answer. `features/auth/role.ts` carries that
+reasoning next to the two functions.
+
+**A layout does not re-render on a client-side navigation inside its own
+segment**, so a page whose data can start refusing mid-session still needs to
+handle that itself. `features/report/admin-reports-page.tsx` carries that
+backstop and says so.
 
 ## `features/` — one folder per business domain
 

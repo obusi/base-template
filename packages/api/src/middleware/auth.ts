@@ -27,25 +27,48 @@ export const requireAuth = os.middleware(async ({ context, next }) => {
 })
 
 /**
- * The one authorization rule that cannot be a `where` clause.
+ * The two sides of the app, as middleware.
  *
- * Row ownership belongs in the query that reads the row, and every handler
- * here still does that. `report.list` is the exception the rule does not
- * cover: it is not scoped to the caller at all, so what decides the answer is
- * who is asking rather than which rows match. That question has exactly one
- * answer, so it lives in exactly one middleware.
+ * Both are built with `.concat` on `requireAuth` rather than declared beside
+ * it, so a procedure carries one middleware instead of two in an order that
+ * could be written the wrong way round. `.use(requireUserRole)` authenticates
+ * and authorizes; stacking `requireAuth` in front of either would run the
+ * session lookup twice for no gain.
  *
- * Built with `.concat` on `requireAuth` rather than declared beside it, so a
- * procedure carries one middleware instead of two in an order that could be
- * written wrongly. `.use(requireAdmin)` authenticates and authorizes.
+ * They cover the one kind of rule a `where` clause cannot express. Row
+ * ownership belongs in the query that reads the row, and every handler here
+ * still does that — these decide something else: which *half of the product*
+ * the caller belongs to. That question has no row to attach itself to.
  *
  * `FORBIDDEN`, not `NOT_FOUND`. The NOT_FOUND rule exists so a caller cannot
- * discover which ids are real from the error it gets back; this procedure
- * takes no id, so there is nothing to leak and the honest answer is the
- * useful one.
+ * discover which ids are real from the error it gets back; neither of these
+ * takes an id, so there is nothing to leak.
+ *
+ * **Not every procedure picks a side.** `profile.*` and `report.create` stay on
+ * plain `requireAuth` on purpose: they are about the caller's own account, not
+ * about either half of the product, and an admin who cannot read their own
+ * profile or report a bug is a worse outcome than a tidy rule. `requireAdminRole`
+ * itself reads the profile, so locking that door would lock out the key.
  */
-export const requireAdmin = requireAuth.concat(async ({ context, next }) => {
-  if ((await getRole(context.db, context.user.id)) !== "admin") {
+export const requireAdminRole = requireAuth.concat(
+  async ({ context, next }) => {
+    if ((await getRole(context.db, context.user.id)) !== "admin") {
+      throw new ORPCError("FORBIDDEN")
+    }
+
+    return next()
+  }
+)
+
+/**
+ * The mirror of the above: an admin account is a back-office account, and is
+ * refused the product's own features.
+ *
+ * A caller with no profile row yet is a user, not a refusal — that is the same
+ * answer the column's default would have given.
+ */
+export const requireUserRole = requireAuth.concat(async ({ context, next }) => {
+  if ((await getRole(context.db, context.user.id)) === "admin") {
     throw new ORPCError("FORBIDDEN")
   }
 

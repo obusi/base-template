@@ -7,6 +7,7 @@ import { router } from "../../index"
 import {
   anonymousContext,
   contextFor,
+  promoteToAdmin,
   signUpTestUser,
   type TestUser,
 } from "../../testing"
@@ -133,5 +134,38 @@ describe("post.list", () => {
     const { items } = await anonymous().post.list({ limit: 20 })
 
     expect(items).toHaveLength(1)
+  })
+})
+
+// The product's own features belong to the product's own users. An admin
+// account is a back-office account — see middleware/auth.ts.
+describe("the two sides of the app", () => {
+  it("refuses an admin the features that belong to users", async () => {
+    await promoteToAdmin(db, alice)
+
+    await rejectsWith(
+      as(alice).post.create({ title: "Hello", content: "World" }),
+      "FORBIDDEN"
+    )
+  })
+
+  // Reading stays open to everyone, admins included: the list is public for
+  // anonymous callers too, which is what makes the page indexable.
+  it("still lets an admin read what is public", async () => {
+    await as(bob).post.create({ title: "Hello", content: "World" })
+    await promoteToAdmin(db, alice)
+
+    expect((await as(alice).post.list({ limit: 20 })).items).toHaveLength(1)
+  })
+
+  // Both halves share the account itself. An admin who cannot read their own
+  // profile locks out `requireAdminRole`, which reads it.
+  it("leaves the caller's own account to both", async () => {
+    await promoteToAdmin(db, alice)
+
+    expect((await as(alice).profile.me()).role).toBe("admin")
+    await expect(
+      as(alice).report.create({ category: "bug", message: "from an admin" })
+    ).resolves.toBeTruthy()
   })
 })

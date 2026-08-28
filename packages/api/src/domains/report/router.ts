@@ -1,6 +1,6 @@
 // Translates between oRPC and ./service — see packages-api.md.
 
-import { requireAdmin, requireAuth } from "../../middleware/auth"
+import { requireAdminRole, requireAuth } from "../../middleware/auth"
 import { os } from "../../shared/builder"
 import * as service from "./service"
 
@@ -45,10 +45,10 @@ export const create = os.report.create
     })
   })
 
-// `requireAdmin` already carries `requireAuth`, so an anonymous caller is
+// `requireAdminRole` already carries `requireAuth`, so an anonymous caller is
 // refused with UNAUTHORIZED and a signed-in non-admin with FORBIDDEN.
 export const list = os.report.list
-  .use(requireAdmin)
+  .use(requireAdminRole)
   .handler(({ context, input }) =>
     service.listReports(context.db, context.storage, input)
   )

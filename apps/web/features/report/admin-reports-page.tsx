@@ -96,7 +96,7 @@ export async function AdminReportsPage() {
  * 404 rather than an error page, for the one case the segment's layout cannot
  * cover.
  *
- * `app/(app)/admin/layout.tsx` is what stops a non-admin entering, and it runs
+ * `app/(app)/(admin)/layout.tsx` is what stops a non-admin entering, and it runs
  * once. A layout does not re-render on a client-side navigation within its own
  * segment, so an admin whose role is revoked while they sit on this page would
  * otherwise meet an unhandled FORBIDDEN on the next fetch. This is that
