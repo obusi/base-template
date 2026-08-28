@@ -12,3 +12,7 @@ export { UserMenu } from "./components/user-menu"
 // afterwards. Building the query string by hand elsewhere would spread the
 // parameter's name across the codebase and skip the check on the way back.
 export { authPath } from "./redirect"
+
+// The guards the two route-group layouts use, plus the role behind them. They
+// belong to auth rather than to whatever either side happens to show.
+export { getRole, isAdmin, requireAdminPage, requireUserPage } from "./role"

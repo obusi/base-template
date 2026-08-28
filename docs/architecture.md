@@ -349,6 +349,106 @@ assert on the authorization URL Better Auth builds, without a real OAuth
 client or a browser. Adding another provider later is the same shape again —
 a new key in `socialProviders`, gated on its own pair of env vars.
 
+**An unconfigured switch hides its UI rather than rendering a dead control.**
+`app/signin/page.tsx` reads the same pair and passes `googleEnabled` down, so a
+fresh clone shows no Google row; the report form hides its file picker the same
+way. The alternative — render always, fail on click — was tried and is what a
+person meets first on a clone, which reads as a broken page rather than an
+unconfigured one.
+
+This is a presentation rule, not a security one, and the distinction matters:
+the server refuses regardless. `packages/auth/src/config.test.ts` still asserts
+`PROVIDER_NOT_FOUND` for an unconfigured provider, and that test is the one
+that would catch a real hole. Deciding it in the route file is deliberate — the
+page component is a Client Component, and a check made there would need the
+credentials published to the browser.
+
+### Object storage is the third seam, and it holds the only stand-in
+
+Report attachments need somewhere to put bytes, and `ApiContext` carries a
+`reportStorage` that is `Storage | null` — `null` being the normal state,
+exactly as an absent `sendResetPassword` is. A deployment with no bucket runs:
+the form hides its file picker and `report.createUploadUrls` answers
+`ATTACHMENTS_UNAVAILABLE`.
+
+The field names a domain rather than a capability, and so does
+`SUPABASE_REPORT_BUCKET`, for the reason two subsections down: a bucket belongs
+to one domain, so the second domain to store files adds a field beside this one.
+`storageFromEnv(env, bucket)` takes the bucket separately so that stays a line
+in `connection/live.ts` — the project's URL and service key are the same for
+every bucket it will ever hold, and only the bucket name is per-domain.
+
+**The bytes never pass through this API.** `createUploadUrls` mints a path,
+signs a URL for it, and the browser PUTs straight to Supabase. Sending images
+through `/rpc` instead would put 15 MB inside a JSON body and meet a serverless
+request-body limit in production rather than in review.
+
+**The browser holds no Supabase key of any kind.** Both directions are signed
+on the server with the `service_role` key, so switching storage on does not
+reopen the anon-key surface `setup.md` step 2 goes out of its way to close.
+Checked rather than assumed: that key appears zero times in `.next/static`
+after a build. The bucket is private with no policies, for the same reason
+tables have RLS with no policies: the server holds a key that bypasses them and
+authorization lives in oRPC.
+
+**A path is minted, never accepted.** It is `report/<user id>/<uuid>.<ext>`, and
+`report.create` checks that every path it is handed starts with the caller's own
+prefix. The paths make a round trip through a browser, so they are input like
+any other — the prefix is what turns "is this yours?" into a string comparison,
+the same instinct as putting ownership in a `where` clause.
+
+**What the upload URL is worth if someone copies it.** The URL carries a JWT in
+its query string, which looks alarming in a Network tab and is the narrowest
+thing in the exchange. Decoded, it says:
+
+```json
+{ "url": "report-attachments/report/<user id>/<uuid>.png",
+  "scope": "upload", "upsert": false, "exp": "+2h" }
+```
+
+Measured against a live bucket: uploading to the signed path answers `200`;
+reusing the same token a second time answers `409 KeyAlreadyExists`, because
+`upsert` is false; and editing the path in the URL answers
+`400 InvalidSignature`, because the path is inside the signature. So a stolen
+URL is one write, to one object that does not exist yet, for two hours — no
+read, no list, no delete, nothing near the database. Stealing it also means
+already being inside that browser, where the session cookie is worth more.
+
+Two hours is longer than the few seconds an upload needs, and cannot be
+shortened: `createSignedUploadUrl` takes no expiry.
+
+**Size and type are enforced by the bucket, not by this API.** The bytes never
+reach a handler, so `createUploadUrls` validating its `size` and `contentType`
+inputs constrains a claim, not a file. The bucket's own file-size limit and MIME
+allowlist are what hold — a 7 MB body declared as 1 KB is refused with `413`,
+and a PDF declared as `application/pdf` with `415`. `setup.md` treats setting
+them as part of creating the bucket, and says why `image/*` is the wrong value.
+
+**Which is why a second domain gets a second bucket.** The limit, the allowlist
+and the public flag are properties of a bucket; a folder inside one carries
+none of them. `report/<userId>/` is enforced by this API, and it separates
+users, not features. A shared bucket would mean the first feature that needs a
+PDF, a 20 MB file, or a public URL widens all three for reports at the same
+time — including back to `image/*`, which is what keeps the paragraph above
+from being a hole. So the variable is `SUPABASE_REPORT_BUCKET` rather than
+`SUPABASE_STORAGE_BUCKET`: the name says the bucket belongs to a domain, and
+the next domain adds its own beside it.
+
+**Two gaps a project inherits.** Supabase checks the declared content type and
+not the bytes, so HTML stored as `image/png` is stored — it comes back as
+`image/png`, which no browser parses as a document, so it is junk rather than a
+hole. And nothing in this repo rate-limits anything, so a signed-in caller can
+call `createUploadUrls` in a loop and fill the bucket. The second is the one
+worth fixing first in a real project.
+
+**This is the one place a test gets a stand-in.** `testing/index.ts` has a
+`fakeStorage`, and `testing.md`'s rule against mocks still holds everywhere
+else: a database is Postgres compiled to WASM that boots in 1.4 seconds, while
+storage is an HTTP service on somebody else's machine. What is worth testing is
+this repo's own logic — which paths are minted, whose prefix they carry, that a
+URL is signed per attachment — and every bit of that is visible through two
+functions.
+
 ### Every user field has exactly one owner
 
 Better Auth can add columns to the `user` table through `additionalFields`. Use
@@ -356,13 +456,22 @@ it only for fields Better Auth itself needs in order to work.
 
 | Field | Owner | Where it lives |
 |---|---|---|
-| `email`, `name`, `image`, `role` | Better Auth | `user` table, edited via `authClient.updateUser()` |
-| `bio`, `location`, preferences | The project | Its own table, its own contract, edited via oRPC |
+| `email`, `name`, `image` | Better Auth | `user` table, edited via `authClient.updateUser()` |
+| `role`, `bio`, `location`, preferences | The project | Its own table, its own contract, edited via oRPC |
 
 The test is not how user-related a field feels, it is whether authentication
 breaks without it. `email` sends the password-reset link, so it belongs to
 Better Auth; taking it over gains nothing and risks two copies disagreeing.
 `bio` is business data wearing a user-shaped hat.
+
+`role` is the borderline case, and it went to the project. Better Auth's admin
+plugin would own it legitimately — turning the plugin on makes `auth:generate`
+emit the column, and the session then carries the role, sparing `requireAdmin`
+a query. What arrives with it is the rest of the plugin: `banUser`,
+`impersonateUser`, `listUsers` and `removeUser` mounted under `/api/auth`, plus
+a column on `session`, inherited by every project forked from here whether or
+not it wanted an admin console. Nothing signs in differently because of `role`,
+so by the test above it is the project's, and it is a column on `profile`.
 
 Putting business fields in `additionalFields` costs four things: their
 validation rules move out of `packages/contract` into the auth config, so there
@@ -420,6 +529,38 @@ handler turns its cross-user test red with
 **Why not RLS policies:** when a policy is wrong, the symptom is rows silently
 disappearing or a generic message — neither of which AI can diagnose. It also
 splits the rules across two languages and two locations.
+
+### The one rule that cannot be a `where` clause
+
+`report.list` hands back every report rather than the caller's own, so there is
+no ownership term that could express who may read it. What decides the answer
+is who is asking, and that lives in a second middleware:
+
+```ts
+// packages/api/src/middleware/auth.ts
+export const requireAdmin = requireAuth.concat(async ({ context, next }) => {
+  if ((await getRole(context.db, context.user.id)) !== "admin") {
+    throw new ORPCError("FORBIDDEN")
+  }
+  return next()
+})
+```
+
+Built with `.concat` on `requireAuth` rather than declared beside it, so a
+procedure carries one middleware instead of two in an order that could be
+written the wrong way round. There is still exactly one place that turns a
+cookie into a user.
+
+`FORBIDDEN` here, not `NOT_FOUND`. The NOT_FOUND rule exists so a caller cannot
+learn which ids are real from the error it gets back; this procedure takes no
+id, so there is nothing to leak and the honest answer is the useful one.
+
+The role is a column on `profile` — S4 has why it did not go to Better Auth.
+`getRole` reads it without creating a row: `requireAdmin` runs on every admin
+request, and a read should not write.
+
+This is the exception, not a second pattern to reach for. A handler that
+touches the caller's own rows still filters in the query.
 
 ### RLS deny-all — protection if a key leaks
 
@@ -1048,8 +1189,16 @@ this file:
 
 | Principle | What it means in practice |
 |---|---|
-| **No business logic** | The template ships structure and conventions only. |
+| **No business logic** | Structure and conventions only, with one deliberate exception — see below. |
 | **Lean** | Nothing is included until it is needed. Everything omitted can be added later without a rewrite. |
+
+**The exception is the `report` domain.** Every project forked from here needs
+a way for the people using it to say something is wrong, so that one feature is
+built in rather than left to each fork to rediscover. Unlike `post` it is not
+an example and is not on the list of things to delete: a fork keeps it, and
+extends it. What it deliberately does not carry is anything that would drag a
+dependency in with it — no attachments, no outbox, no rate limiting — each of
+which is described where it is missing.
 
 These two are under constant pressure here, because every dependency added is
 inherited by every project started from this one and those get no update path

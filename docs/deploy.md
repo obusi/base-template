@@ -54,6 +54,42 @@ Three, all scoped to **Production** only.
 password and a signing key. `BETTER_AUTH_URL` is deliberately `Config`: it is a
 public URL, and when sign-in breaks it is the first thing worth reading.
 
+Add these only if report attachments are wanted — the app deploys fine without
+them, minus the file picker:
+
+| Key | Type | Value |
+|---|---|---|
+| `SUPABASE_URL` | Config | the project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | **Secret** | the `service_role` key, never `anon` |
+| `SUPABASE_REPORT_BUCKET` | Config | only if the bucket is not named `report-attachments` |
+
+The first two are a pair: `packages/api` treats storage as configured only when
+both are present, so half of them is the same as neither. The third has a
+default and is usually left unset — it exists because a bucket belongs to one
+domain, and a project adding a second one adds a variable beside it rather than
+sharing this bucket. `architecture.md` S4 says why.
+
+And two more only if the app should offer Google sign-in:
+
+| Key | Type | Value |
+|---|---|---|
+| `GOOGLE_CLIENT_ID` | Config | from the Google Cloud OAuth client |
+| `GOOGLE_CLIENT_SECRET` | **Secret** | the same client's secret |
+
+Also a pair, and absent is a supported state rather than a broken one: with
+neither set, `packages/auth` does not register the provider and the sign-in page
+renders no Google button — a button offering a door that cannot open is worse
+than no button. Setting them also means registering this deployment's
+`/api/auth/callback/google` as an authorised redirect URI on Google's side;
+production and each preview hostname are different origins to Google.
+
+**Scope the Supabase pair to Production only, and think before copying them to
+Preview.**
+The database is branched per pull request; the storage bucket is not. Pointing
+previews at the same pair means a preview writes into the production bucket —
+which may be what you want for one shared bin of screenshots, and is certainly
+not what you want if a preview is ever handed to someone outside the team.
+
 Set all three **before the first deploy**. `next.config.ts` imports `./env` for
 its side effect, so a missing variable fails the build rather than surfacing on
 a request — see [`architecture.md`](architecture.md) S9.
@@ -147,6 +183,22 @@ database as `POSTGRES_URL`, and both `env.ts` files fall back to it. Setting
 **Do not set `BETTER_AUTH_ALLOWED_HOSTS`** either. It exists for a host Vercel
 cannot report — a second custom domain, or another platform.
 
+**A preview has no admin.** Each branch gets an empty database, and everyone who
+signs up on it is a `user` — the column defaults to that. So `/admin` and
+everything under it answer 404 on every preview, for everybody, including the
+person who opened the pull request. That is the guard working, not a bug.
+
+To review a change to the admin side, promote an account inside that branch's
+own database — Supabase → Branches → the branch → SQL Editor:
+
+```sql
+update profile set role = 'admin'
+where user_id = (select id from "user" where email = 'you@example.com');
+```
+
+It lasts as long as the branch does, which is until the pull request closes.
+`setup.md` step 6 is the same statement for a development database.
+
 ## What a normal deployment looks like
 
 Opening a pull request sets two services off in an order neither controls:
@@ -203,6 +255,32 @@ Supabase check does not block a merge. That is deliberate — a preview failing
 says nothing about whether the code is correct — but it does mean a merge can
 go through without anyone having looked at the preview. Looking is the point of
 having one.
+
+## Merging a schema change
+
+**Production migrations are a hand-run step, and nothing reminds you.**
+`db:deploy` returns immediately unless `VERCEL_ENV` is `preview`, so a merge
+deploys new code against the old production schema. The reasoning for keeping
+production out of an automatic path is in [`architecture.md`](architecture.md)
+S17; the consequence is this paragraph.
+
+Point `packages/db/.env` at production and run it yourself:
+
+```bash
+pnpm --filter @packages/db db:migrate
+```
+
+**How bad the gap is depends on the migration, and it is easy to
+underestimate.** A new table breaks only the pages that read it. A column added
+to a table something already reads breaks everything that reads it — the
+`profile.role` column is loaded by the navbar on every page under `app/(app)/`,
+so shipping that migration late takes the whole site down rather than one route.
+
+Which way round to do it is a per-migration judgement. Additive changes — a new
+table, a nullable column, a column with a default — are safe to apply *before*
+the merge, and that ordering leaves no gap at all. A migration that drops or
+renames something is not, because the running production code still expects what
+it removes; those go after, and the site is inconsistent in between.
 
 ## Three things that will waste an afternoon
 

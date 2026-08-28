@@ -58,9 +58,11 @@ export const env = createEnv({
     RESEND_FROM: z.string().default("onboarding@resend.dev"),
 
     // Optional, and only take effect together — `config.ts` registers the
-    // provider when both are present and omits it otherwise. The button in
-    // `social-buttons.tsx` renders either way, and fails loudly on click
-    // rather than hiding itself. Get a pair from
+    // provider when both are present and omits it otherwise. `apps/web` reads
+    // the same pair on its own side to decide whether to render the button at
+    // all, so an unconfigured project shows no Google row rather than one that
+    // fails on click. This side is still what closes the door: called
+    // directly, the server answers PROVIDER_NOT_FOUND. Get a pair from
     // https://console.cloud.google.com/apis/credentials; the
     // redirect URI to register there is `${BETTER_AUTH_URL}/api/auth/callback/google`.
     GOOGLE_CLIENT_ID: z.string().optional(),

@@ -6,18 +6,33 @@
 // template ships wired — `packages/auth/src/config.ts` adds more the same way
 // if a project needs them, via `socialProviders`.
 //
-// This button always renders once this file is in this state. What actually
-// gates Google sign-in is the server: `packages/auth/src/config.ts` only adds
-// `google` to `socialProviders` when `GOOGLE_CLIENT_ID` and
-// `GOOGLE_CLIENT_SECRET` are both set (see `packages/auth/src/env.ts`), so a
-// project that hasn't configured Google gets a button that answers
-// PROVIDER_NOT_FOUND on click rather than silently mis-hiding.
+// Nothing renders here until Google is configured. `enabled` is decided in
+// `app/signin/page.tsx`, which is a Server Component and can read the
+// environment; this file cannot, and a client-side check would need the
+// credentials published to the browser to make it.
+//
+// The server still gates the real thing — `packages/auth/src/config.ts` adds
+// `google` to `socialProviders` only when `GOOGLE_CLIENT_ID` and
+// `GOOGLE_CLIENT_SECRET` are both set, and answers PROVIDER_NOT_FOUND
+// otherwise. Hiding the button is about not offering a door that cannot open;
+// it is not what closes the door.
+//
+// The whole block goes, separator included: an "Or" with nothing under it
+// looks more broken than no row at all.
 
 import { signIn } from "@packages/auth/client"
 import { Button } from "@packages/ui/components/button"
 import { Field, FieldSeparator } from "@packages/ui/components/field"
 
-export function SocialButtons({ callbackURL }: { callbackURL?: string }) {
+export function SocialButtons({
+  callbackURL,
+  enabled,
+}: {
+  callbackURL?: string
+  enabled: boolean
+}) {
+  if (!enabled) return null
+
   return (
     <>
       <FieldSeparator>Or</FieldSeparator>

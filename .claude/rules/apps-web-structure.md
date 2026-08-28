@@ -27,7 +27,7 @@ fetching fits into all of it.
 
 ## `app/` — routing only
 
-Three kinds of file live here, and nothing else.
+Four kinds of file live here, and nothing else.
 
 **Pages.** One thin wrapper per route, with an explicit function body rather
 than a bare re-export — that leaves room for `generateMetadata`, a prefetch,
@@ -55,6 +55,46 @@ by the framework itself. Not a feature, and not a shared component either:
 `Providers` is technically a component, but the reuse rule below is about
 things used in more than one place, and this is used in exactly one.
 
+**Segment guards** — a `layout.tsx` whose job is to decide who may see
+everything under it. The app has three route groups, and the guard is what
+each one is for:
+
+```
+app/(app)/layout.tsx           the navbar, shared by all three
+├── (user)/                    requireUserPage()   →  /, /posts
+├── (admin)/                   requireAdminPage()  →  /admin, /admin/reports
+└── (account)/                 no role guard       →  /profile, /report
+```
+
+A route group never appears in a URL, so `/posts` is still `/posts`. What it
+buys is that **a page is guarded by where it sits** rather than by whoever adds
+it remembering — the second admin page is where a per-page check gets
+forgotten. `(admin)` holds the guard and the `admin/` folder inside it holds
+the URL segment; two folders because they do two different jobs.
+
+`(account)` has a layout that guards nothing, on purpose. Its pages belong to
+whoever is signed in rather than to either side, and the file says so — the
+omission is a decision, and a decision that is not written down reads as an
+oversight to the next person.
+
+Three things to keep straight when writing one:
+
+**It is not what secures the data.** `requireUserRole` and `requireAdminRole`
+in `packages/api` refuse the procedures and would refuse them if these layouts
+were deleted. A layout only decides what a refused person sees.
+
+**What they see is not the same on both sides.** The admin side answers 404,
+because a back-office route confirming it exists is the thing `NOT_FOUND`
+avoids on the API side too. The user side redirects to `/admin`, because an
+admin landing there has taken a wrong turn rather than found something secret,
+and a dead end is the less useful answer. `features/auth/role.ts` carries that
+reasoning next to the two functions.
+
+**A layout does not re-render on a client-side navigation inside its own
+segment**, so a page whose data can start refusing mid-session still needs to
+handle that itself. `features/report/admin-reports-page.tsx` carries that
+backstop and says so.
+
 ## `features/` — one folder per business domain
 
 ```
@@ -76,6 +116,23 @@ from `features/auth/components/sign-out-button.tsx` directly. Anything inside
 `features/post/components/` is invisible outside `features/post/`. This is
 what keeps a feature's internals free to change without hunting down every
 importer.
+
+**A barrel that exports Server Components cannot be imported from a Client
+Component**, and the failure is a build error rather than a type error. Most
+feature barrels export a `<name>-page.tsx` that reaches `lib/session.ts`, and
+that file carries `server-only`; a `"use client"` file importing the barrel
+pulls the marker into the browser graph and the build stops with
+`module-not-found`.
+
+The fix is not to reach past the barrel. It is to move the import up to
+something that already runs on the server — usually the `app/` route, or
+`components/nav-bar.tsx`, which composes one row out of several features
+anyway — and pass the result down as a prop. `UserMenu` takes its
+"Report a problem" entry that way: `features/report` owns the item, the navbar
+imports it, and `UserMenu` renders whatever it is handed.
+
+The general shape: **a Client Component receives cross-feature pieces, it does
+not fetch them.**
 
 **Ownership is about meaning, not about which route renders it.** A
 `SignOutButton` belongs in `features/auth/` even if the only page that renders

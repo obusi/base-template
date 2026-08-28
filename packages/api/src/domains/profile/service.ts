@@ -55,7 +55,15 @@ export async function updateProfile(
   userId: string,
   changes: { bio?: string | null; phone?: string | null }
 ): Promise<Profile> {
-  await getOrCreateProfile(db, userId)
+  const existing = await getOrCreateProfile(db, userId)
+
+  // Every field of UpdateProfileInput is optional, so "change nothing" is a
+  // request the contract accepts. Drizzle throws "No values to set" on
+  // `.set({})`, which would surface as INTERNAL_SERVER_ERROR, so answer it
+  // with the row as it stands.
+  if (Object.keys(changes).length === 0) {
+    return existing
+  }
 
   const [row] = await db
     .update(profile)
@@ -68,4 +76,24 @@ export async function updateProfile(
   }
 
   return row
+}
+
+/**
+ * The caller's role, or `undefined` when no profile row exists yet.
+ *
+ * Deliberately not built on `getOrCreateProfile`: `requireAdmin` runs on every
+ * admin request, and a read should not write. A caller with no row is not an
+ * admin, which is the same answer the column's default would have given.
+ */
+export async function getRole(
+  db: Database,
+  userId: string
+): Promise<string | undefined> {
+  const [row] = await db
+    .select({ role: profile.role })
+    .from(profile)
+    .where(eq(profile.userId, userId))
+    .limit(1)
+
+  return row?.role
 }

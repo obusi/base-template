@@ -24,6 +24,15 @@ Nearly all logic lives in handlers that talk to the database, so **a test that
 mocks the database verifies almost nothing.** Do not reach for a mock or a fake
 repository here; get a real database instead — it costs about 1.4 seconds.
 
+**One exception, and it is the only one: object storage.** `fakeStorage` in
+`packages/api/src/testing/` stands in for Supabase, because that is an HTTP
+service on somebody else's machine rather than a database that compiles to
+WASM. The rule above is not weakened by it — what the report tests check is
+still this repo's own logic (which paths are minted, whose prefix they carry,
+that a URL is signed per attachment), and all of it is visible through the two
+functions `Storage` declares. Anything reachable with a real Postgres still
+gets a real Postgres.
+
 ## The database lifecycle, exactly
 
 ```ts

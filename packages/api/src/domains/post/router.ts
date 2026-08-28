@@ -7,7 +7,7 @@
 // contract-shaped — so another domain's service could call them directly
 // without dragging oRPC along. See docs/architecture.md S2.
 
-import { requireAuth } from "../../middleware/auth"
+import { requireUserRole } from "../../middleware/auth"
 import { os } from "../../shared/builder"
 import * as service from "./service"
 
@@ -26,7 +26,7 @@ export const byId = os.post.byId.handler(async ({ context, input, errors }) => {
 })
 
 export const create = os.post.create
-  .use(requireAuth)
+  .use(requireUserRole)
   .handler(async ({ context, input, errors }) => {
     const result = await service.createPost(context.db, context.user.id, input)
 
@@ -40,7 +40,7 @@ export const create = os.post.create
   })
 
 export const update = os.post.update
-  .use(requireAuth)
+  .use(requireUserRole)
   .handler(async ({ context, input, errors }) => {
     const { id, ...changes } = input
     const row = await service.updatePost(
@@ -60,7 +60,7 @@ export const update = os.post.update
   })
 
 export const remove = os.post.delete
-  .use(requireAuth)
+  .use(requireUserRole)
   .handler(async ({ context, input, errors }) => {
     const row = await service.deletePost(context.db, context.user.id, input.id)
 

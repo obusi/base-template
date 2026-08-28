@@ -6,8 +6,10 @@
 import { os } from "./shared/builder"
 import { postRouter } from "./domains/post/router"
 import { profileRouter } from "./domains/profile/router"
+import { reportRouter } from "./domains/report/router"
 
 export const router = os.router({
   post: postRouter,
   profile: profileRouter,
+  report: reportRouter,
 })

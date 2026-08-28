@@ -13,6 +13,16 @@ export const profile = pgTable.withRLS("profile", {
     .references(() => user.id, { onDelete: "cascade" }),
   bio: text("bio"),
   phone: text("phone"),
+
+  // Who may read `report.list`, and the reason this table is where it lives:
+  // `schema/auth.ts` is generated, so a column added to `user` by hand is
+  // gone at the next `auth:generate`. Better Auth's admin plugin would put it
+  // there legitimately, but drags ban / impersonate / list-users onto
+  // /api/auth for every project forked from here. See docs/architecture.md S5.
+  //
+  // Nothing a caller sends can reach this column: `UpdateProfileInput` does
+  // not declare it, and `updateProfile` only ever `.set()`s validated input.
+  role: text("role").notNull().default("user"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()

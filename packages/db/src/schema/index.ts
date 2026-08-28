@@ -12,3 +12,5 @@
 export * from "./auth"
 export * from "./profile"
 export * from "./post"
+export * from "./report"
+export * from "./report-attachment"
