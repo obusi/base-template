@@ -25,7 +25,15 @@ export const env = createEnv({
     SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
 
     // Private, and created by hand once per project — see docs/setup.md.
-    SUPABASE_STORAGE_BUCKET: z.string().default("report-attachments"),
+    //
+    // Named for the report domain, not for storage in general. A bucket is
+    // where Supabase keeps the size limit, the MIME allowlist and the public
+    // flag, and not one of the three can be set per folder — so a second
+    // domain that needs storage gets a second bucket and a variable of its
+    // own. Sharing this one would mean widening its limits for reports too,
+    // and those limits are the only thing enforcing them: the browser uploads
+    // straight to Supabase, which does not read the bytes it is handed.
+    SUPABASE_REPORT_BUCKET: z.string().default("report-attachments"),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,

@@ -60,7 +60,7 @@ values come from.
 | `GOOGLE_CLIENT_SECRET` | web | no | Google Cloud console |
 | `SUPABASE_URL` | web | no | the Supabase dashboard |
 | `SUPABASE_SERVICE_ROLE_KEY` | web | no | the Supabase dashboard |
-| `SUPABASE_STORAGE_BUCKET` | web | no | defaults to `report-attachments` |
+| `SUPABASE_REPORT_BUCKET` | web | no | defaults to `report-attachments` |
 | `BETTER_AUTH_ALLOWED_HOSTS` | web | no | nothing — see below |
 
 Most of the optional ones are feature switches rather than settings, and each
@@ -143,7 +143,7 @@ enough for real users. For those: **Domains → Add Domain**, publish the DNS
 records Resend lists, then set `RESEND_FROM` to an address on that domain.
 Resend rejects a `from` on a domain it has not verified.
 
-### `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET` — optional
+### `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_REPORT_BUCKET` — optional
 
 The switch for attaching screenshots to a report. Leave all three empty and the
 form simply has no file picker; nothing else changes.
@@ -153,7 +153,7 @@ cosmetic. Supabase → **Storage → New bucket**:
 
 | Setting | Value | What it is |
 |---|---|---|
-| Name | `report-attachments` | must match `SUPABASE_STORAGE_BUCKET` |
+| Name | `report-attachments` | must match `SUPABASE_REPORT_BUCKET` |
 | Public bucket | **off** | nothing is readable without a URL this server signed |
 | Restrict file size | **on**, `5` MB | the only place a size is actually enforced |
 | Restrict MIME types | **on** | the only place a type is actually enforced |

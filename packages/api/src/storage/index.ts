@@ -86,13 +86,13 @@ export function createSupabaseStorage(config: StorageConfig): Storage {
 export function storageFromEnv(config: {
   SUPABASE_URL?: string
   SUPABASE_SERVICE_ROLE_KEY?: string
-  SUPABASE_STORAGE_BUCKET: string
+  SUPABASE_REPORT_BUCKET: string
 }): Storage | null {
   if (!config.SUPABASE_URL || !config.SUPABASE_SERVICE_ROLE_KEY) return null
 
   return createSupabaseStorage({
     url: config.SUPABASE_URL,
     serviceRoleKey: config.SUPABASE_SERVICE_ROLE_KEY,
-    bucket: config.SUPABASE_STORAGE_BUCKET,
+    bucket: config.SUPABASE_REPORT_BUCKET,
   })
 }

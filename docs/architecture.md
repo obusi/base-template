@@ -417,6 +417,16 @@ allowlist are what hold — a 7 MB body declared as 1 KB is refused with `413`,
 and a PDF declared as `application/pdf` with `415`. `setup.md` treats setting
 them as part of creating the bucket, and says why `image/*` is the wrong value.
 
+**Which is why a second domain gets a second bucket.** The limit, the allowlist
+and the public flag are properties of a bucket; a folder inside one carries
+none of them. `report/<userId>/` is enforced by this API, and it separates
+users, not features. A shared bucket would mean the first feature that needs a
+PDF, a 20 MB file, or a public URL widens all three for reports at the same
+time — including back to `image/*`, which is what keeps the paragraph above
+from being a hole. So the variable is `SUPABASE_REPORT_BUCKET` rather than
+`SUPABASE_STORAGE_BUCKET`: the name says the bucket belongs to a domain, and
+the next domain adds its own beside it.
+
 **Two gaps a project inherits.** Supabase checks the declared content type and
 not the bytes, so HTML stored as `image/png` is stored — it comes back as
 `image/png`, which no browser parses as a document, so it is junk rather than a
