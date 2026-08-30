@@ -52,23 +52,6 @@ public = false
 file_size_limit = "5MiB"
 allowed_mime_types = ["image/jpeg", "image/png", "image/webp"]
 
-# TEMPORARY — a second bucket, added to check something. Not part of any domain
-# in this repo. Settings deliberately unlike the one above, to show that they
-# belong to the bucket rather than to the project.
-[storage.buckets.invoice-attachments]
-public = false
-file_size_limit = "20MiB"
-allowed_mime_types = ["application/pdf"]
-
-# TEMPORARY — a third bucket. The second one has been sitting in `main` since
-# the last merge without ever reaching the hosted project, so it is already the
-# control; this one is the same question asked while the GitHub integration's
-# "Deploy to production" switch is on. Settings unlike either of the two above.
-[storage.buckets.export-attachments]
-public = false
-file_size_limit = "1MiB"
-allowed_mime_types = ["text/csv"]
-
 # S3-compatible access to the same objects. The app signs URLs through
 # `@supabase/storage-js`, so this is a second door to the same room.
 [storage.s3_protocol]
