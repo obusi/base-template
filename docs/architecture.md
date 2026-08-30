@@ -437,7 +437,8 @@ request-body limit in production rather than in review.
 
 **The browser holds no Supabase key of any kind.** Both directions are signed
 on the server with the `service_role` key, so switching storage on does not
-reopen the anon-key surface `setup.md` step 2 goes out of its way to close.
+reopen the anon-key surface `provisioning.md` step 1 goes out of its way to
+close.
 Checked rather than assumed: that key appears zero times in `.next/static`
 after a build. The bucket is private with no policies, for the same reason
 tables have RLS with no policies: the server holds a key that bypasses them and
@@ -473,7 +474,8 @@ shortened: `createSignedUploadUrl` takes no expiry.
 reach a handler, so `createUploadUrls` validating its `size` and `contentType`
 inputs constrains a claim, not a file. The bucket's own file-size limit and MIME
 allowlist are what hold — a 7 MB body declared as 1 KB is refused with `413`,
-and a PDF declared as `application/pdf` with `415`. `setup.md` treats setting
+and a PDF declared as `application/pdf` with `415`. `provisioning.md` treats
+setting
 them as part of creating the bucket, and says why `image/*` is the wrong value.
 
 **Which is why a second domain gets a second bucket.** The limit, the allowlist

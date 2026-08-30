@@ -3,7 +3,8 @@
 Getting the app onto the internet, and giving every pull request a preview that
 runs against a database of its own.
 
-This assumes [`setup.md`](setup.md) is done: a Supabase project exists, the
+This assumes [`provisioning.md`](provisioning.md) is done: a Supabase project
+exists, the
 schema is applied, `db:check` passes, and the branch rules are in place. Steps 1
 and 2 here are enough to serve production. Steps 3 to 5 are what add previews,
 and they are the half that costs money.
@@ -205,7 +206,7 @@ where user_id = (select id from "user" where email = 'you@example.com');
 ```
 
 It lasts as long as the branch does, which is until the pull request closes.
-`setup.md`'s "Make yourself an admin" is the same statement for a hosted
+`provisioning.md`'s "Make yourself an admin" is the same statement for a hosted
 database; locally, `pnpm seed` creates an admin account instead.
 
 ## What a normal deployment looks like

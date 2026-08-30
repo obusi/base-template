@@ -74,8 +74,8 @@ pnpm --filter @packages/api exec vitest run -t "refuses a caller with no session
 **Local Supabase.** Postgres and object storage run in Docker, configured by
 `supabase/config.toml` — which switches off the nine services this repo does not
 use and declares the `report-attachments` bucket so it is created rather than
-clicked. Nothing here talks to a hosted project; `docs/setup.md` covers both
-halves.
+clicked. Nothing here talks to a hosted project; `docs/getting-started.md` is
+the local procedure and `docs/provisioning.md` the hosted one.
 
 ```bash
 pnpm supabase:start   # Postgres on 54322, storage on 54321, studio on 54323
@@ -237,7 +237,9 @@ what to re-check when any of them moves.
   decision above, plus S10, the library traps (`C1`…`C18`) that shaped the
   repo and are cited by number from several source comments. Read the relevant
   section before changing a structural rule.
-- `docs/setup.md` — the once-per-project procedure: database, env files,
+- `docs/getting-started.md` — clone to running app on one machine: install,
+  start Supabase, copy two env files, migrate, seed, run.
+- `docs/provisioning.md` — the once-per-project procedure: database, env files,
   schema, branch rules. Steps only; the reasoning behind them is in the
   architecture doc.
 - `docs/deploy.md` — the same shape, for hosting: the Vercel project, which

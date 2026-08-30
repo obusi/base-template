@@ -87,8 +87,9 @@ interactive API docs are at `/api/docs`. `pnpm seed` creates
 `user@example.com` and `admin@example.com`, both with the password `12345678`,
 so the admin half of the app is visible without any setup.
 
-[`docs/setup.md`](docs/setup.md) has the detail, plus the other half of the
-file: what a real deployment needs, which is a Supabase project of its own.
+[`docs/getting-started.md`](docs/getting-started.md) has the detail. What a
+real deployment needs instead — a Supabase project of its own — is
+[`docs/provisioning.md`](docs/provisioning.md).
 
 When it is time to put it on the internet, [`docs/deploy.md`](docs/deploy.md)
 covers that separately — including how each pull request gets a preview running
@@ -127,15 +128,17 @@ Use GitHub's **"Use this template"** button. The histories are unrelated, so a
 fork receives no later template updates — which is the main reason this repo
 stays small.
 
-Then run through [`docs/setup.md`](docs/setup.md), and S13 of
+Then run through [`docs/provisioning.md`](docs/provisioning.md), and S13 of
 [`docs/architecture.md`](docs/architecture.md) for stripping the template out of
 itself: the rename, deleting the `post` example domain (S14), and the passages
 in `CLAUDE.md` that are only true while this is a template.
 
 ## Documentation
 
-- [`docs/setup.md`](docs/setup.md) — what to do, once per project, to get this
-  running against a database of your own.
+- [`docs/getting-started.md`](docs/getting-started.md) — clone to running app,
+  on your own machine. No accounts, nothing to create.
+- [`docs/provisioning.md`](docs/provisioning.md) — what to do once per project
+  to get this running against a database of your own.
 - [`docs/deploy.md`](docs/deploy.md) — the same, for getting it hosted: the
   production deployment, and the preview-per-pull-request setup that gives each
   one its own database. Written down because most of it is not guessable.

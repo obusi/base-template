@@ -75,7 +75,8 @@ can be answered wrongly.
 template. Rewrite it for the project: what this codebase is *for*, then the path
 from clone to running app. Keep the parts that are about the stack rather than
 the template — the package table, the dependency graph, the everyday commands,
-and the pointer to `docs/setup.md` — and drop the "Starting a real project from
+and the pointers to `docs/getting-started.md` and `docs/provisioning.md` — and
+drop the "Starting a real project from
 this" section, which has just been carried out. Read the existing file rather than
 starting from a blank page; most of it survives.
 
@@ -138,15 +139,15 @@ for removing the example domain when the time comes. Do not commit unless asked.
 describe the *stack* rather than the template. They apply unchanged to a real
 project, and editing them would be a regression rather than a cleanup.
 
-`docs/setup.md` is the same case, and the one most likely to be mistaken for
-template text because it opens by talking about starting a project. It is the
-procedure a real deployment runs — database, env files, schema, branch rules —
-and it is where the `db:check` warning lives now that `README.md` only links to
-it. Leave the file alone.
+`docs/provisioning.md` is the same case, and the one most likely to be mistaken
+for template text because it opens by talking about starting a project. It is
+the procedure a real deployment runs — database, env files, schema, branch
+rules — and it is where the `db:check` warning lives now that `README.md` only
+links to it. Leave the file alone, and `docs/getting-started.md` with it.
 
 `docs/deploy.md` likewise. It is the hosting half of the same procedure, and a
 project needs it more after the rename than before. Leave it alone too, and keep
-the README's pointer to it alongside the one to `setup.md`.
+the README's pointer to it alongside the other two.
 
 The version string in `apps/web/app/api/spec/route.ts` is hard-coded separately
 from `package.json`. Mention it, since it is published in the OpenAPI document,

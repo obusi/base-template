@@ -237,7 +237,8 @@ domain that stores files gets a bucket of its own rather than a folder in
 1. **Declare the bucket** in `supabase/config.toml`, private, with its own size
    limit and MIME allowlist — `supabase start` then creates it locally, and
    `supabase seed buckets` creates it on a hosted project.
-   `report-attachments` is the worked example, and `docs/setup.md` says which
+   `report-attachments` is the worked example, and `docs/provisioning.md` says
+   which
    of its settings are not cosmetic.
 2. **`packages/api/src/domains/<x>/service.ts`** — `export const <X>_BUCKET`,
    the same string as step 1. A constant rather than an env var: step 1 is what

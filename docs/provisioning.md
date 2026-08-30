@@ -1,129 +1,22 @@
-# Setup
+# Provisioning
 
-Two different jobs share this file.
+The once-per-project half: a Supabase project, real environment values, the
+schema, the first admin, and the branch rules. None of it can be carried in the
+repository, because each step depends on something that does not exist until
+somebody creates it.
 
-**[Running it locally](#running-it-locally)** creates nothing anywhere and needs
-no account: Postgres and Storage run in Docker, and the app is five commands
-away. Every value a local `.env` needs is already in the `.env.example` next to
-it, because none of them is a secret.
-
-**[Setting up a deployment](#setting-up-a-deployment)** is the once-per-project
-half — a Supabase project, real environment values, and the branch rules. None
-of it can be carried in the repository, because each step depends on something
-that does not exist until someone creates it.
+Running the app on your own machine needs none of this — see
+[`getting-started.md`](getting-started.md). Once these steps are done,
+[`deploy.md`](deploy.md) covers the hosting itself.
 
 This document says *what to do*. When a step turns on something surprising, it
 links to [`architecture.md`](architecture.md), which says *why* — the reasoning
 lives there and only there.
 
----
-
-# Running it locally
-
-**Node 24+**, **pnpm 10**, and **Docker Desktop**, running.
-
-## 1. Install
-
-```bash
-pnpm install
-```
-
-## 2. Start Postgres and Storage
-
-```bash
-pnpm supabase:start
-```
-
-The first run pulls a few images and takes some minutes; after that it is
-seconds. It reads [`supabase/config.toml`](../supabase/config.toml), which
-switches off everything this repo does not use — sessions are Better Auth's, and
-the Data API is off in production too — and declares the
-`report-attachments` bucket so it is created rather than clicked.
-
-Five containers, of which two do the work:
-
-| | |
-|---|---|
-| `db` | Postgres, on 54322 |
-| `storage` + `kong` | the bucket, on 54321 |
-| `studio` + `pg_meta` | the dashboard, on [54323](http://127.0.0.1:54323) |
-
-Studio is worth the two containers for one thing `db:studio` cannot do: browse
-the files in the bucket. Turn it off in `config.toml` if you disagree.
-
-## 3. Copy the environment files
-
-```bash
-cp apps/web/.env.example apps/web/.env
-cp packages/db/.env.example packages/db/.env
-```
-
-Two files because they belong to two processes — `next dev` reads the first,
-the `drizzle-kit` commands read the second, and their `DATABASE_URL` must match.
-
-Nothing to fill in. The URLs, the ports and the demo service-role key are the
-same on every machine and in every project that runs Supabase locally, and
-`BETTER_AUTH_SECRET` is a fixed development string that says what it is.
-
-## 4. Apply the schema
-
-```bash
-pnpm db:migrate
-```
-
-## 5. Create the two development accounts
-
-```bash
-pnpm seed
-```
-
-The app is two apps either side of one column, so developing with only one role
-means never seeing the other half:
-
-| Email | Password | Sees |
-|---|---|---|
-| `user@example.com` | `12345678` | the ordinary app |
-| `admin@example.com` | `12345678` | that, plus `/admin` |
-
-Running it twice is safe — an account that already exists is skipped. Running
-it against a database with no tables exits non-zero, on purpose: this is a
-command someone typed, so it should fail where it can be seen rather than warn
-and leave the accounts it promised missing.
-
-The code is `packages/scripts/src/seed.ts`. It signs both accounts up through
-Better Auth rather than inserting rows, because the password has to be hashed
-the way sign-in will verify it — a SQL insert produces a row nobody can log in
-as, which is also why `[db.seed]` is switched off in `supabase/config.toml`.
-
-Sign up normally at `/signup` for a third account whenever you want one.
-
-## 6. Run it
-
-```bash
-pnpm dev
-```
-
-The app is at `http://localhost:3000`, `/posts` is a worked example, and the
-interactive API docs are at `/api/docs`.
-
-## Everyday
-
-```bash
-pnpm supabase:stop     # frees the memory; the data survives
-pnpm supabase:reset    # wipes it and re-applies the migrations
-pnpm seed              # the two accounts again, on the empty database
-```
-
-`supabase:reset` also recreates the bucket from `config.toml` and empties it.
-`pnpm seed` works while `pnpm dev` is running, so an empty database with a
-working login is two commands and no restart.
-
----
-
-# Setting up a deployment
-
 Steps 1–4 are needed by every deployment. Step 5 is needed once per repository
-and applies only to GitHub. [`deploy.md`](deploy.md) covers the hosting itself.
+and applies only to GitHub.
+
+---
 
 ## 1. Create the database
 
@@ -142,8 +35,9 @@ See "On another Postgres host" below; the rest of this document is unchanged.
 ## 2. Fill in the environment values
 
 Each variable is commented where it is declared. What follows is where a real
-value comes from — the local defaults in `.env.example` are described above and
-none of them is right for a deployment.
+value comes from. The defaults sitting in `.env.example` are the local stack's,
+covered in [`getting-started.md`](getting-started.md), and not one of them is
+right for a deployment.
 
 | Variable | File | Required | Where it comes from |
 |---|---|---|---|

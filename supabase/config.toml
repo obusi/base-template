@@ -8,7 +8,8 @@
 # well, to look at them.
 #
 # Sessions are Better Auth's, in tables of our own. The Data API is off in
-# production too (docs/setup.md), and `packages/db/scripts/check.ts` exists to
+# production too (docs/provisioning.md), and `packages/db/scripts/check.ts`
+# exists to
 # prove `anon` and `authenticated` can reach nothing. Realtime, Edge Functions
 # and the mail catcher have no caller anywhere in the repo.
 #

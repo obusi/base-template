@@ -51,7 +51,7 @@ export type StorageConfig = {
  * The bucket is private, so both directions are signed here and the browser
  * never holds a Supabase key of any kind — it gets a URL and uses `fetch`.
  * That is what lets this repo add object storage without also adopting the
- * anon key `docs/setup.md` went out of its way to leave switched off.
+ * anon key `docs/provisioning.md` went out of its way to leave switched off.
  */
 export function createSupabaseStorage(config: StorageConfig): Storage {
   const bucket = new StorageClient(`${config.url}/storage/v1`, {
