@@ -107,6 +107,17 @@ pnpm supabase:reset    # wipes it and re-applies the migrations
 pnpm seed              # the two accounts again, on the empty database
 ```
 
+Three separate situations rather than a sequence. In particular
+**`supabase:reset` needs the stack running** — it talks to Postgres to drop and
+recreate it, so straight after `supabase:stop` it fails with
+`supabase start is not running`. Start it again first.
+
+Stopping keeps everything: the data lives in two Docker volumes
+(`supabase_db_…` and `supabase_storage_…`) that `stop` does not touch, so
+`supabase:start` brings back the same tables, the same accounts and the same
+uploaded files. Removing those volumes by hand is the only thing besides
+`supabase:reset` that loses data.
+
 `supabase:reset` also recreates the bucket from `config.toml` and empties it.
 `pnpm seed` works while `pnpm dev` is running, so an empty database with a
 working login is two commands and no restart.

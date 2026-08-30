@@ -103,7 +103,7 @@ pnpm dev
 pnpm build
 pnpm format
 pnpm supabase:stop   # frees the memory; the data survives
-pnpm supabase:reset  # wipes it and re-applies the migrations
+pnpm supabase:reset  # wipes it and re-applies the migrations — needs it running
 pnpm seed            # the two development accounts, safe to run twice
 ```
 
