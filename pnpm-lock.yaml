@@ -395,6 +395,37 @@ importers:
         specifier: 'catalog:'
         version: 4.1.10(@types/node@20.19.41)(vite@8.2.1(@types/node@20.19.41)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13))
 
+  packages/scripts:
+    dependencies:
+      '@packages/auth':
+        specifier: workspace:*
+        version: link:../auth
+      '@packages/db':
+        specifier: workspace:*
+        version: link:../db
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 1.0.0-rc.4(@electric-sql/pglite@0.5.4)(postgres@3.4.9)(zod@4.4.3)
+    devDependencies:
+      '@tooling/eslint-config':
+        specifier: workspace:*
+        version: link:../../tooling/eslint-config
+      '@tooling/typescript-config':
+        specifier: workspace:*
+        version: link:../../tooling/typescript-config
+      '@types/node':
+        specifier: 'catalog:'
+        version: 20.19.41
+      eslint:
+        specifier: 'catalog:'
+        version: 9.39.4(jiti@2.7.0)
+      tsx:
+        specifier: ^4.20.6
+        version: 4.23.13
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+
   packages/ui:
     dependencies:
       '@base-ui/react':
@@ -7158,7 +7189,6 @@ snapshots:
       '@esbuild/win32-arm64': 0.28.2
       '@esbuild/win32-ia32': 0.28.2
       '@esbuild/win32-x64': 0.28.2
-    optional: true
 
   escalade@3.2.0: {}
 
@@ -8818,7 +8848,6 @@ snapshots:
       esbuild: 0.28.2
     optionalDependencies:
       fsevents: 2.3.3
-    optional: true
 
   turbo@2.10.8:
     optionalDependencies:

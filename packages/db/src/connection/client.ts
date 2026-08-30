@@ -12,6 +12,21 @@ const client = postgres(env.DATABASE_URL, { prepare: false })
 export const db = drizzle({ client })
 
 /**
+ * Close the pool, so a process that only wanted to run a few statements can
+ * exit.
+ *
+ * Only a script needs this. A server holds the pool open for its whole life,
+ * and the two scripts under `scripts/` open connections of their own and close
+ * those — this exists for the ones that use the shared `db` above, where
+ * `client` is not otherwise reachable. Without it the script finishes its work
+ * and then hangs on an idle connection, which reads as a hung script rather
+ * than a finished one.
+ */
+export function closeDb(): Promise<void> {
+  return client.end()
+}
+
+/**
  * What every consumer should accept, in place of `typeof db`.
  *
  * `typeof db` is specifically a postgres-js database, and the PGlite database
