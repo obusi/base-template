@@ -19,6 +19,7 @@ apps/web ──┬─► ui              ┐
                  │
                  ├─► contract
                  ├─► auth/server
+                 ├─► storage
                  └─► db
 ```
 
@@ -28,12 +29,15 @@ apps/web ──┬─► ui              ┐
 | `db` | Drizzle schema, client, migrations |
 | `auth` | Better Auth (server + client entry points) |
 | `api` | The oRPC router, implementing the contract |
+| `storage` | The `Storage` port and its Supabase implementation |
 | `ui` | shadcn/ui components on Base UI + Tailwind v4 |
 
-Five packages because merging any two breaks something specific — `contract`
+Six packages because merging two of them breaks something specific — `contract`
 must stay importable from a future Expo app without dragging in Drizzle, and
-`db` must sit outside `api` or `auth → api → auth` becomes a cycle. The full
-reasoning is in [`docs/architecture.md`](docs/architecture.md).
+`db` must sit outside `api` or `auth → api → auth` becomes a cycle. `storage`
+is split for a softer reason with the same teeth: it holds the Supabase
+dependency, so `api` cannot resolve one. The full reasoning is in
+[`docs/architecture.md`](docs/architecture.md).
 
 ## What it ships
 
@@ -54,7 +58,7 @@ and the user agent from the request rather than the form, takes up to three
 screenshots straight into private object storage, and shows the result to
 admins at `/admin/reports` behind signed URLs. This one is meant to stay —
 every project needs a way for its users to say something is wrong. It is also
-the worked example of a domain that touches all five packages and a bucket.
+the worked example of a domain that touches every package and a bucket.
 
 **A `post` domain that is meant to go**, kept only so `tsc` and Vitest have a
 live end-to-end example to keep honest when oRPC or Drizzle changes an API.

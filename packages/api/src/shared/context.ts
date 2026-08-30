@@ -1,7 +1,6 @@
 import type { Auth } from "@packages/auth/server"
 import type { Database } from "@packages/db"
-
-import type { Storage } from "../storage"
+import type { Storage } from "@packages/storage"
 
 /**
  * What a caller must supply before any procedure can run.

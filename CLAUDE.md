@@ -115,8 +115,8 @@ start it with `preview_start` rather than running a server through Bash.
 
 ## Architecture
 
-Five packages and a runner, one app. The split follows hard technical
-constraints, not taste — merging any two of the five breaks something specific:
+Six packages and a runner, one app. The split follows hard technical
+constraints, not taste — merging any two of the six breaks something specific:
 
 | Package | Holds | Why it cannot be merged |
 |---|---|---|
@@ -124,12 +124,21 @@ constraints, not taste — merging any two of the five breaks something specific
 | `db` | Drizzle schema, client, migrations | Both `auth` and `api` need it; nesting it in `api` creates `auth → api → auth` |
 | `auth` | Better Auth server + client entries | The browser login page calls it directly, bypassing oRPC |
 | `api` | The oRPC router — implements the contract | The layer that composes everything else |
+| `storage` | The `Storage` port + its Supabase implementation | It holds the one dependency `api` must not be able to resolve |
 | `ui` | shadcn components | DOM-only; unusable from React Native |
+
+`storage` is the soft one, and the reason is enforcement rather than a cycle:
+`@supabase/storage-js` is declared there and nowhere else, so pnpm strict
+layout makes it unresolvable from `api`. The API layer sees two functions and
+cannot see the provider behind them — the same mechanism that keeps `apps/web`
+away from `db`. `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` live in
+`@packages/storage/env`; `SUPABASE_REPORT_BUCKET` does not, because a package
+that serves every domain must not carry one domain's name.
 
 `packages/scripts` sits outside that table on purpose. It is a **runner, not a
 library** — nothing imports it, it has no `exports` map, and it holds the
 commands that need the real database and the real auth instance at once (today
-just `seed`). It could be merged into any of the five without breaking
+just `seed`). It could be merged into any of the six without breaking
 anything; it is separate so that "what does this package export?" has an
 answer for every other package in the repo.
 
@@ -142,6 +151,7 @@ apps/web ──┬─► ui              ┐
                  │
                  ├─► contract
                  ├─► auth/server
+                 ├─► storage
                  └─► db
 ```
 

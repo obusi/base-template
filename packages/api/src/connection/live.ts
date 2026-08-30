@@ -14,10 +14,11 @@ import "server-only"
 
 import { auth } from "@packages/auth/server"
 import { db } from "@packages/db"
+import { storageFromEnv } from "@packages/storage"
+import { env as storageEnv } from "@packages/storage/env"
 
 import { env } from "../env"
 import type { ApiContext } from "../shared/context"
-import { storageFromEnv } from "../storage"
 
 /**
  * Built once rather than per request: it holds no request state, and creating
@@ -27,7 +28,7 @@ import { storageFromEnv } from "../storage"
  * storage adds a line here with its own variable, not a second way of building
  * one.
  */
-const reportStorage = storageFromEnv(env, env.SUPABASE_REPORT_BUCKET)
+const reportStorage = storageFromEnv(storageEnv, env.SUPABASE_REPORT_BUCKET)
 
 export function liveContext(headers: Headers): ApiContext {
   return { db, auth, headers, reportStorage }

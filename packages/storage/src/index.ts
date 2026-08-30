@@ -1,12 +1,20 @@
 // Object storage, as two functions and an implementation of them.
 //
+// A package of its own so that `@packages/api` cannot resolve
+// `@supabase/storage-js` at all — pnpm strict layout turns "the API layer does
+// not know which provider it talks to" from a convention into a build failure,
+// the same mechanism that stops `apps/web` reaching the database.
+//
 // The port exists for the same reason `ApiContext` takes a `Database` rather
 // than importing one: a handler reaching for a module-level Supabase client
 // could not be pointed anywhere else, and every test touching an attachment
-// would need a real bucket. This is the one place in the repo where a test
-// gets a stand-in rather than the real thing — storage is an HTTP service on
-// someone else's machine, which is not the same as a database that compiles to
-// WASM and boots in 1.4 seconds.
+// would need a real bucket. That stand-in is `@packages/storage/testing`, and
+// it is the one place in the repo where a test gets a fake rather than the
+// real thing — storage is an HTTP service on someone else's machine, which is
+// not the same as a database that compiles to WASM and boots in 1.4 seconds.
+//
+// Nothing here names a domain. A bucket belongs to whatever stores files in
+// it, so its name arrives as an argument.
 
 import { StorageClient } from "@supabase/storage-js"
 

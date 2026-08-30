@@ -20,8 +20,7 @@ src/
 │   ├── context.ts          ApiContext — what a handler receives
 │   └── builder.ts          os = implement(contract).$context<ApiContext>()
 ├── middleware/auth.ts    requireAuth, requireAdmin
-├── storage/index.ts      the Storage port + its Supabase implementation
-├── env.ts                the storage switch, validated
+├── env.ts                the report bucket's name, validated
 ├── connection/live.ts    the real context, for production requests
 └── testing/index.ts      the throwaway context, for tests
 ```
@@ -136,7 +135,8 @@ it.
 supplied by the caller. `apps/web` passes the live database, the live auth
 instance, the real request headers and storage built from the environment; a
 test passes a throwaway PGlite database, an auth instance bound to it, headers
-carrying a cookie from a real sign-in, and `fakeStorage()`. Neither handlers nor
+carrying a cookie from a real sign-in, and `fakeStorage()` from
+`@packages/storage/testing`. Neither handlers nor
 middleware can tell the difference, which is why there is no test-only branch
 anywhere in this package.
 
@@ -150,9 +150,18 @@ touch attachments check for `null` rather than assuming it.
 why it is not just `storage`. A bucket is where Supabase keeps the file-size
 limit and the MIME allowlist, and a folder inside one cannot carry its own — so
 a second domain that stores files gets a second bucket and a second field
-beside this one. `storageFromEnv(env, bucket)` takes the bucket as an argument
-precisely so that costs a line in `connection/live.ts` rather than a second way
-of building storage.
+beside this one. `storageFromEnv(config, bucket)` takes the bucket as an
+argument precisely so that costs a line in `connection/live.ts` rather than a
+second way of building storage.
+
+**The `Storage` port itself is not in this package** — it is `@packages/storage`,
+along with its Supabase implementation, its `fakeStorage`, and the two variables
+that say how to reach the project (`SUPABASE_URL`,
+`SUPABASE_SERVICE_ROLE_KEY`, in `@packages/storage/env`). This package declares
+only `SUPABASE_REPORT_BUCKET`, because that is the one part with a domain in its
+name. `@supabase/storage-js` is deliberately absent from this package's
+`package.json`, so an import of it does not resolve: handlers see two functions
+and cannot reach past them to the provider.
 
 `connection/live.ts` is the one file that names the real `db` and the real
 `auth`. It carries `import "server-only"`, and **nothing inside this package

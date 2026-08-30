@@ -7,8 +7,7 @@
 import { and, desc, eq, inArray, lt, or } from "drizzle-orm"
 
 import { schema, type Database } from "@packages/db"
-
-import type { Storage, UploadTarget } from "../../storage"
+import type { Storage, UploadTarget } from "@packages/storage"
 
 const { report, reportAttachment } = schema
 

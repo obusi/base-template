@@ -5,7 +5,7 @@ paths:
 
 # Shared conventions for every `packages/*`
 
-Six packages. Five are split along hard technical constraints rather than
+Seven packages. Six are split along hard technical constraints rather than
 taste — `CLAUDE.md` has the table of why each one cannot be merged into
 another — and `scripts` is a runner rather than a library. This
 file covers what they all share: the files each package carries, how they
@@ -165,7 +165,8 @@ whatever program starts in that folder:
 | `apps/web` | yes | yes | `next dev` / `next build` |
 | `packages/db` | `src/connection/env.ts` | yes | the `drizzle-kit` commands |
 | `packages/auth` | yes | **no** | nothing runs here — it is imported into `apps/web` |
-| `packages/api` | yes | **no** | same — the storage switch, read in `connection/live.ts` |
+| `packages/api` | yes | **no** | same — the report bucket's name, read in `connection/live.ts` |
+| `packages/storage` | yes | **no** | same — how to reach Supabase, read in the same place |
 | `packages/scripts` | no | **no** | it runs, but reads `apps/web/.env` — see below |
 
 `packages/scripts` is the odd one: it *is* a process, so it could own a `.env`,
@@ -233,21 +234,26 @@ properties of a bucket, and a folder inside one cannot carry its own. So a
 domain that stores files gets a bucket of its own rather than a folder in
 `report`'s, and wiring it is five edits and no new abstraction:
 
-1. **Create the bucket by hand**, private, with its own size limit and MIME
-   allowlist. `docs/setup.md` does this for `report-attachments` and says which
-   settings are not cosmetic.
+1. **Declare the bucket** in `supabase/config.toml`, private, with its own size
+   limit and MIME allowlist — `supabase start` then creates it locally, and
+   `supabase seed buckets` creates it on a hosted project.
+   `report-attachments` is the worked example, and `docs/setup.md` says which
+   of its settings are not cosmetic.
 2. **`packages/api/src/env.ts`** — `SUPABASE_<X>_BUCKET`, optional with a
-   default. `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are already there and
-   are the same for every bucket in the project.
+   default. Only the bucket name goes here; `SUPABASE_URL` and
+   `SUPABASE_SERVICE_ROLE_KEY` are in `@packages/storage/env` already and are
+   the same for every bucket in the project.
 3. **`turbo.json`** — add the variable to `globalEnv`, or turbo drops it with a
    warning that is easy to miss.
 4. **`packages/api/src/shared/context.ts`** — `<x>Storage: Storage | null`,
    named after the domain so a handler can only reach its own bucket.
 5. **`packages/api/src/connection/live.ts`** — one line:
-   `const <x>Storage = storageFromEnv(env, env.SUPABASE_<X>_BUCKET)`, then
-   return it in the context.
+   `const <x>Storage = storageFromEnv(storageEnv, env.SUPABASE_<X>_BUCKET)`,
+   then return it in the context.
 
-Nothing else. `contextFor` and `anonymousContext` take `Partial<ApiContext>`
+Nothing else — and in particular, nothing inside `packages/storage`. It takes
+the bucket as an argument precisely so that a second one costs a line rather
+than a function. `contextFor` and `anonymousContext` take `Partial<ApiContext>`
 overrides, so existing tests keep compiling and a new one says
 `{ <x>Storage: null }` when it wants the unconfigured deployment. Add a default
 stand-in in `testing/index.ts` beside `reportStorage`'s if the new field should

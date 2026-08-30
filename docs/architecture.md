@@ -95,13 +95,14 @@ list. Two rules about it:
 │   ├── db/                  Drizzle schema + client + migrations
 │   ├── auth/                Better Auth (server + client entry points)
 │   ├── api/                 oRPC router — implements the contract
+│   ├── storage/             the Storage port + its Supabase implementation
 │   ├── ui/                  shadcn components
 │   └── scripts/             commands run by hand — today just `seed`
 ├── tooling/                 eslint-config, typescript-config, vitest-config
 └── docs/
 ```
 
-### Why five packages, and a sixth folder
+### Why six packages, and a seventh folder
 
 The split follows hard technical constraints, not aesthetics. Merging any two
 breaks something specific:
@@ -112,9 +113,22 @@ breaks something specific:
 | `db` | Both `auth` and `api` depend on it. Putting `db` inside `api` creates the cycle `auth → api → auth` |
 | `auth` | The browser-side login page calls it directly, bypassing oRPC |
 | `api` | The layer that composes everything else |
+| `storage` | Holding the only dependency `api` must not be able to resolve |
 | `ui` | DOM-only (Tailwind + Base UI); unusable from React Native |
 
-`scripts` is the sixth folder and the one exception. It could be merged into
+`storage` is the softest of the six, and worth being honest about: it would
+compile perfectly well inside `api`, and it lived there until it did not. What
+the split buys is enforcement. `@supabase/storage-js` is declared by
+`packages/storage` and by nothing else, so pnpm strict layout makes it
+unresolvable from `api` — "the API layer does not know which provider it is
+talking to" stops being a convention a reviewer has to catch and becomes the
+same kind of build failure that keeps `apps/web` away from `db`. Swapping
+Supabase for S3 is then one new function behind the same two-method port, and
+nothing in `api` changes. It also gives `fakeStorage` a home beside the
+interface it fakes, rather than in the test helpers of the package that
+consumes it.
+
+`scripts` is the seventh folder and the one real exception. It could be merged into
 any of the five without breaking a thing, and it is separate for a weaker
 reason: it is a **runner, not a library**. Nothing imports it, it has no
 `exports` map, and what it holds are commands a person types — today only
@@ -142,6 +156,7 @@ apps/web ──┬─► ui              ┐
                  │
                  ├─► contract
                  ├─► auth/server
+                 ├─► storage
                  └─► db
 ```
 
@@ -392,9 +407,17 @@ the form hides its file picker and `report.createUploadUrls` answers
 The field names a domain rather than a capability, and so does
 `SUPABASE_REPORT_BUCKET`, for the reason two subsections down: a bucket belongs
 to one domain, so the second domain to store files adds a field beside this one.
-`storageFromEnv(env, bucket)` takes the bucket separately so that stays a line
-in `connection/live.ts` — the project's URL and service key are the same for
-every bucket it will ever hold, and only the bucket name is per-domain.
+`storageFromEnv(config, bucket)` takes the bucket separately so that stays a
+line in `connection/live.ts` — the project's URL and service key are the same
+for every bucket it will ever hold, and only the bucket name is per-domain.
+
+**The port lives in `packages/storage`, the bucket name does not.** That
+package holds the two-method `Storage` type, the Supabase implementation, and
+the two variables that describe how to reach the project at all —
+`SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`, in `@packages/storage/env`.
+`SUPABASE_REPORT_BUCKET` stays in `packages/api/src/env.ts`, because a package
+that must serve every domain cannot carry one domain's name. `live.ts` is where
+the two meet, which is what a composition root is for.
 
 **The bytes never pass through this API.** `createUploadUrls` mints a path,
 signs a URL for it, and the browser PUTs straight to Supabase. Sending images
@@ -459,8 +482,9 @@ hole. And nothing in this repo rate-limits anything, so a signed-in caller can
 call `createUploadUrls` in a loop and fill the bucket. The second is the one
 worth fixing first in a real project.
 
-**This is the one place a test gets a stand-in.** `testing/index.ts` has a
-`fakeStorage`, and `testing.md`'s rule against mocks still holds everywhere
+**This is the one place a test gets a stand-in.** `@packages/storage/testing`
+exports `fakeStorage` — beside the interface it fakes rather than in the tests
+of the package that consumes it — and `testing.md`'s rule against mocks still holds everywhere
 else: a database is Postgres compiled to WASM that boots in 1.4 seconds, while
 storage is an HTTP service on somebody else's machine. What is worth testing is
 this repo's own logic — which paths are minted, whose prefix they carry, that a
@@ -838,6 +862,9 @@ looking for it.
 | `apps/web` | `env.ts` | yes | `next dev` / `next build` |
 | `packages/db` | `src/connection/env.ts` | yes | the `drizzle-kit` commands |
 | `packages/auth` | `src/env.ts` | **no** | nothing runs here — it is imported into `apps/web` |
+| `packages/api` | `src/env.ts` | **no** | same — the report bucket's name, read in `connection/live.ts` |
+| `packages/storage` | `src/env.ts` | **no** | same — how to reach Supabase, read in the same place |
+| `packages/scripts` | — | **no** | it runs, but points at `apps/web/.env` rather than owning one |
 
 So `packages/auth/.env.example` documents what the package requires, while the
 values themselves go in `apps/web/.env`. Putting a real `.env` beside
