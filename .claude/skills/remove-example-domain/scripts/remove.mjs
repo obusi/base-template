@@ -134,9 +134,18 @@ edit("apps/web/features/auth/redirect.ts", (t) => {
 
 // ------------------------------------------------------- architecture.md
 
-const BLURB_EXAMPLE_ONLY =
-  "> S14 is an appendix, kept only while the example domain it describes is\n" +
-  "> still in the tree. Deleting both leaves S1–S12 untouched.\n>\n"
+// Whether `setup-project` has already run, which decides whether S14 is the
+// last appendix or one of four. The marker is the heading that skill rewrites,
+// not the paragraph above it: a heading is one line, and the paragraph is three
+// that both scripts would have to keep character-identical. They did not — this
+// script looked for a sentence `rename.mjs` had stopped writing, so on the
+// normal order (rename first, then this) the test silently failed and the file
+// was left promising an appendix that had just been cut.
+const EXAMPLE_ONLY_HEADING =
+  "# Appendix — delete this once the example domain is gone"
+
+// The paragraph that heading implies, matched by shape for the same reason.
+const EXAMPLE_ONLY_BLURB = /> S14 is an appendix[\s\S]*?\n>\n/
 
 edit("docs/architecture.md", (t) => {
   // Cut S14 itself.
@@ -152,8 +161,15 @@ edit("docs/architecture.md", (t) => {
   // If setup-project already ran, S14 was the last appendix and the header
   // block promised it. Both go. If it has not run, S13/S15/S16 are still
   // there and "S13 onward are the appendices" stays true — leave it alone.
-  if (out.includes(BLURB_EXAMPLE_ONLY)) {
-    out = out.replace(BLURB_EXAMPLE_ONLY, "")
+  if (out.includes(EXAMPLE_ONLY_HEADING)) {
+    if (!EXAMPLE_ONLY_BLURB.test(out)) {
+      throw new Error(
+        "the appendix heading says S14 is the only one left, but the " +
+          "paragraph describing it in the header block is missing or has " +
+          "changed shape — check docs/architecture.md before running this"
+      )
+    }
+    out = out.replace(EXAMPLE_ONLY_BLURB, "")
     const divider = out.indexOf("\n---\n---\n\n# Appendi")
     if (divider !== -1) out = out.slice(0, divider) + "\n"
   }
