@@ -77,7 +77,8 @@ is right depends on something only the person knows:
 Ask which it is. Do not guess: the first option silently destroys the record of
 what a deployed database already ran.
 
-**The landing page.** `apps/web/app/page.tsx` may still link to `/posts`, which
+**The landing page.** `apps/web/app/(app)/(user)/page.tsx` may still link to
+`/posts`, which
 is now a 404. What belongs there instead is a product decision — ask rather than
 invent, and if they have no answer, remove the dead link rather than replacing
 it with filler.
@@ -102,7 +103,7 @@ whole process — it proves the two halves are checked against each other.
 under `app/`, and the ones for the deleted pages linger:
 
 ```
-error TS2307: Cannot find module '../../../app/posts/page.js'
+error TS2307: Cannot find module '../../../app/(app)/(user)/posts/page.js'
 ```
 
 `rm -rf apps/web/.next` fixes it. Nothing regenerates those types until a dev

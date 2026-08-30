@@ -79,7 +79,8 @@ and the pointer to `docs/setup.md` — and drop the "Starting a real project fro
 this" section, which has just been carried out. Read the existing file rather than
 starting from a blank page; most of it survives.
 
-**`apps/web/app/page.tsx`** — a placeholder that describes the template and
+**`apps/web/app/(app)/(user)/page.tsx`** — a placeholder that describes the
+template and
 links to the example domain. What replaces it depends on the project, so ask
 rather than invent: a marketing landing page, a redirect to the app's real entry
 point, and a dashboard behind auth are all reasonable, and they are not

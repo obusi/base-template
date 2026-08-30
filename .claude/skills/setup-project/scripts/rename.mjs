@@ -169,7 +169,7 @@ for (const c of changes) console.log(`  ${c.path.padEnd(50)} ${c.note}`)
 console.log(
   "\nStill to do by hand — see SKILL.md:\n" +
     "  README.md               rewrite for this project\n" +
-    "  apps/web/app/page.tsx   replace the placeholder landing page\n" +
+    "  apps/web/app/(app)/(user)/page.tsx  replace the placeholder landing page\n" +
     "  apps/web/app/layout.tsx the metadata description still describes the stack\n" +
     "\nThen delete this skill — it cannot run twice."
 )

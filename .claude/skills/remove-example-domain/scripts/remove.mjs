@@ -53,7 +53,7 @@ for (const path of [
   "packages/contract/src/domains/post",
   "packages/db/src/schema/post.ts",
   "packages/api/src/domains/post",
-  "apps/web/app/posts",
+  "apps/web/app/(app)/(user)/posts",
   "apps/web/features/post",
 ]) {
   remove(path)
@@ -175,7 +175,7 @@ for (const c of changes) console.log(`  ${c.path.padEnd(40)} ${c.note}`)
 console.log(
   "\nNot done here — see SKILL.md:\n" +
     '  packages/db/drizzle/     still contains CREATE TABLE "post"\n' +
-    "  apps/web/app/page.tsx    may still link to /posts\n" +
+    "  apps/web/app/(app)/(user)/page.tsx  may still link to /posts\n" +
     "  features/auth/redirect.ts DEFAULT_DESTINATION is now / — confirm that is right\n" +
     "\nRun `pnpm verify`. Green means the removal is complete: tsc covers four\n" +
     "of the edits above and rls-guard.test.ts covers the pinned table list.\n" +

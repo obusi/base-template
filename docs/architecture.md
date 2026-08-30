@@ -1227,7 +1227,7 @@ keep a real product "lean" and free of business logic.
 
    The version in `api/spec/route.ts` is hard-coded separately from
    `package.json`; set it or wire the two together.
-2. **Rewrite `apps/web/app/page.tsx`.** It is a placeholder that describes the
+2. **Rewrite `apps/web/app/(app)/(user)/page.tsx`.** It is a placeholder that describes the
    template and links to the example domain.
 3. **Delete every appendix in this file**, including this one.
 4. **Delete the "While this repo is still the template" section of
@@ -1259,7 +1259,7 @@ Delete these paths:
 packages/contract/src/domains/post/
 packages/db/src/schema/post.ts
 packages/api/src/domains/post/
-apps/web/app/posts/
+apps/web/app/(app)/(user)/posts/
 apps/web/features/post/
 ```
 
@@ -1283,7 +1283,7 @@ four; the rest are comments, links and a pinned list, which it does not:
 | `packages/api/src/index.ts` | drop `post: postRouter` |
 | `packages/db/src/schema/index.ts` | drop `export * from "./post"` |
 | `packages/db/src/schema/rls-guard.test.ts` | remove `"post"` from the pinned table list |
-| `apps/web/app/page.tsx` | replace the placeholder landing page |
+| `apps/web/app/(app)/(user)/page.tsx` | replace the placeholder landing page |
 | `apps/web/features/auth/redirect.ts` | `DEFAULT_DESTINATION` — send them somewhere that exists |
 | `apps/web/lib/orpc-query.ts` | comments use `orpc.post.*` as examples |
 | `apps/web/lib/orpc.server.ts` | comment uses `client.post.list()` |
