@@ -25,7 +25,7 @@
 > numbered on the same scheme, so removing them leaves every section before
 > S13 untouched.
 >
-> Last updated: 2026-08-17
+> Last updated: 2026-08-30
 
 Three principles every decision below follows from:
 

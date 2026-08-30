@@ -32,7 +32,8 @@ already ran.
 `git diff` and one `git checkout .` away from undone.
 
 **Confirm they mean it.** This deletes working code — a whole vertical slice
-through five packages, plus the page that renders it.
+through `contract`, `db` and `api`, plus the two folders in `apps/web` that
+render it.
 
 The auth pages are **not** part of that. `app/signin/`, `app/signup/` and
 `features/auth/` are real pages wired to Better Auth and they stay. What the

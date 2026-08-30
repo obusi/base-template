@@ -133,8 +133,8 @@ See "On another Postgres host" below; the rest of this document is unchanged.
 - **Enable Data API — off.** It publishes a REST endpoint that reaches the
   database with the anon key. Nothing here uses it, and nothing here uses the
   anon key at all: the one `@supabase/*` package in the repo is
-  `@supabase/storage-js`, which lives in `packages/api`, talks to Storage rather
-  than to the database, and holds the service role key on the server. RLS
+  `@supabase/storage-js`, which lives in `packages/storage`, talks to Storage
+  rather than to the database, and holds the service role key on the server. RLS
   deny-all is the wall; not opening this door at all is better.
 - **Enable automatic RLS — on.** An event trigger enables RLS on every new
   table, as a backstop for tables created by hand in the SQL editor.
@@ -251,9 +251,10 @@ the code names the same string as `REPORT_BUCKET` in
 `packages/api/src/domains/report/service.ts`. A variable pointing anywhere else
 would only aim the app at a bucket nobody made.
 
-The bucket has to be **created by hand** on a deployment — `config.toml`
-declares it for the local stack only. Three of its settings are not cosmetic.
-Supabase → **Storage → New bucket**:
+`supabase/config.toml` declares the bucket, which is what creates it locally.
+A hosted project does not read that file on its own, so the bucket is **created
+by hand** there — Supabase → **Storage → New bucket**. Three of its settings
+are not cosmetic, and each has to match what the config file already says:
 
 | Setting | Value | What it is |
 |---|---|---|
@@ -366,7 +367,8 @@ non-zero.
 read, answers 404 to everybody until somebody holds the role — and nothing in
 the app grants it, on purpose: an endpoint that hands out admin is a bigger
 risk than a one-off SQL statement. (The seeded `admin@example.com` exists only
-in development, where the dev server creates it.)
+where somebody has run `pnpm seed`, which is a local command and points at a
+local database.)
 
 Open `pnpm db:studio` and run it against your own account:
 
