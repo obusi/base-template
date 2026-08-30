@@ -10,8 +10,12 @@ taste — `CLAUDE.md` has the table of why each one cannot be merged into
 another — and `scripts` is a runner rather than a library. This
 file covers what they all share: the files each package carries, how they
 import from each other and from themselves, and what adding a new domain
-touches. Rules specific to one package live in `packages-api.md`,
-`packages-db.md`, and `packages-contract.md`.
+touches.
+
+Every package also has a file of its own, which loads when work touches it:
+`packages-api.md`, `packages-auth.md`, `packages-contract.md`, `packages-db.md`,
+`packages-scripts.md`, `packages-storage.md`, `packages-ui.md`. Anything true of
+exactly one package belongs there rather than here.
 
 ## What every package carries
 
@@ -92,6 +96,12 @@ package has its own reason:
 
 Relative imports have none of these problems in any of the three, so there is
 no case where the alias is worth reaching for.
+
+**`ui` is the exception, and the only one.** Its `exports` map really does list
+`./lib/*` and `./components/*`, so the alias resolves — and shadcn writes those
+imports itself from `components.json`, so rewriting them to relative paths just
+means the next regenerated component arrives with the alias again. See
+`packages-ui.md`.
 
 ## Grouping: `domains/` versus named folders
 

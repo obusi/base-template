@@ -249,8 +249,8 @@ what to re-check when any of them moves.
   holds the reasoning.
 - `docs/template.md` — the parts that are only true while this repo is a template. A real project deletes the file; the two skills below do it between them.
 - `.claude/rules/` — path-scoped conventions that load when you work in the
-  matching directory: `apps/web` structure, shared package conventions, and
-  one file each for `api`, `db`, `contract`, and tests.
+  matching directory: `apps/web` structure, the conventions every package
+  shares, one file for each of the seven packages, and one for tests.
 
 Prose that contradicts the code is worse than no prose. When you change a
 structural rule, update the doc that states it in the same commit.
