@@ -52,6 +52,14 @@ public = false
 file_size_limit = "5MiB"
 allowed_mime_types = ["image/jpeg", "image/png", "image/webp"]
 
+# TEMPORARY — a second bucket, added to check something. Not part of any domain
+# in this repo. Settings deliberately unlike the one above, to show that they
+# belong to the bucket rather than to the project.
+[storage.buckets.invoice-attachments]
+public = false
+file_size_limit = "20MiB"
+allowed_mime_types = ["application/pdf"]
+
 # S3-compatible access to the same objects. The app signs URLs through
 # `@supabase/storage-js`, so this is a second door to the same room.
 [storage.s3_protocol]
