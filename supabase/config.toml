@@ -1,4 +1,10 @@
-# Supabase, running on this machine — `pnpm supabase:start`.
+# Supabase, running on this machine — `pnpm supabase:start` — and on the hosted
+# project, which is synced from this file every time something is merged into
+# `main`. Editing a line here is a production change; `docs/deploy.md` S3 has
+# what that sync does and does not do, and the two rules worth knowing before
+# touching anything below are that it pushes the whole file rather than the
+# diff, and that it never deletes. Values that must differ between a laptop and
+# the hosted project go in a `[remotes.production]` block, not up here.
 #
 # Reference: https://supabase.com/docs/guides/local-development/cli/config
 #
@@ -43,10 +49,14 @@ enabled = false
 [storage]
 enabled = true
 
-# The bucket, declared rather than clicked. These three settings are the whole
-# reason a bucket belongs to one domain: they cannot be set per folder, and the
-# browser uploads straight to Supabase, which does not read the bytes it is
-# handed. They must match `packages/contract/src/domains/report/attachment.ts`.
+# The bucket, declared rather than clicked — here, on every preview branch, and
+# on production. These three settings are the whole reason a bucket belongs to
+# one domain: they cannot be set per folder, and the browser uploads straight to
+# Supabase, which does not read the bytes it is handed. They must match
+# `packages/contract/src/domains/report/attachment.ts`.
+#
+# Deleting this block would not delete the bucket anywhere it has already been
+# created. That is a job for the dashboard, every time.
 [storage.buckets.report-attachments]
 public = false
 file_size_limit = "5MiB"
@@ -67,7 +77,7 @@ enabled = false
 [realtime]
 enabled = false
 
-# Kept on for one thing `pnpm --filter @packages/db db:studio` cannot do: browse
+# Kept on for one thing `pnpm db:studio` cannot do: browse
 # the bucket. Tables are visible in both, files in only this one.
 #
 # It costs a second container (`pg_meta`), which is how it reads the schema —

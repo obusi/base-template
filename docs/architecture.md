@@ -421,8 +421,9 @@ all as a result.
 one place this repo stops short of making something configurable. It could not
 actually vary: `supabase/config.toml` declares
 `[storage.buckets.report-attachments]`, and that declaration is what creates
-the bucket — locally through `supabase start`, on a hosted project through
-`supabase seed buckets`. A variable set to any other name would aim the app at
+the bucket — locally through `supabase start`, on a preview branch when the
+pull request opens, and on production when it merges. A variable set to any
+other name would aim the app at
 a bucket nobody made, so the setting looked adjustable while only ever having
 one correct value. As a constant the name has to agree in two places instead of
 six, and a fork that wants a different one edits both.

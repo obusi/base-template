@@ -245,11 +245,12 @@ domain that stores files gets a bucket of its own rather than a folder in
 `report`'s, and wiring it is four edits and no new abstraction:
 
 1. **Declare the bucket** in `supabase/config.toml`, private, with its own size
-   limit and MIME allowlist — `supabase start` then creates it locally, and
-   `supabase seed buckets` creates it on a hosted project.
-   `report-attachments` is the worked example, and `docs/provisioning.md` says
-   which
-   of its settings are not cosmetic.
+   limit and MIME allowlist. That declaration is the only step: `supabase start`
+   creates it locally, a preview branch creates it when the pull request opens,
+   and production creates it when the pull request merges. Deleting the
+   declaration later does not delete the bucket anywhere — that is a dashboard
+   job. `report-attachments` is the worked example, and `docs/provisioning.md`
+   says which of its settings are not cosmetic.
 2. **`packages/api/src/domains/<x>/service.ts`** — `export const <X>_BUCKET`,
    the same string as step 1. A constant rather than an env var: step 1 is what
    creates the bucket, so a variable naming anything else would only point at
