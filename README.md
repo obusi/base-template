@@ -37,23 +37,28 @@ reasoning is in [`docs/architecture.md`](docs/architecture.md).
 
 ## Getting started
 
-Requires **Node 24+**, **pnpm 10**, and a Postgres database (Supabase is what
-this is built against).
+Requires **Node 24+**, **pnpm 10**, and **Docker Desktop**. No accounts, and
+nothing to create anywhere — Postgres and object storage run locally.
 
 ```bash
 pnpm install
-```
-
-Then work through [`docs/setup.md`](docs/setup.md) — the database, the two
-`.env` files, the schema, and the branch rules, in that order. It is short, and
-none of it is optional.
-
-```bash
+pnpm supabase:start
+cp apps/web/.env.example apps/web/.env
+cp packages/db/.env.example packages/db/.env
+pnpm --filter @packages/db db:migrate
 pnpm dev
 ```
 
-The app runs at `http://localhost:3000`. `/posts` is a worked example — sign up
-at `/signup` first. Interactive API docs are at `/api/docs`.
+Nothing to fill in: every local value is a fixed one that Supabase's local stack
+uses on every machine, so the two `.env` files are copies rather than forms.
+
+The app runs at `http://localhost:3000` — `/posts` is a worked example, and the
+interactive API docs are at `/api/docs`. Two accounts are seeded on first start,
+`user@example.com` and `admin@example.com`, both with the password
+`dev-password`, so the admin half of the app is visible without any setup.
+
+[`docs/setup.md`](docs/setup.md) has the detail, plus the other half of the
+file: what a real deployment needs, which is a Supabase project of its own.
 
 When it is time to put it on the internet, [`docs/deploy.md`](docs/deploy.md)
 covers that separately — including how each pull request gets a preview running
@@ -66,10 +71,13 @@ pnpm verify          # typecheck + lint + test + format:check — the full gate
 pnpm dev
 pnpm build
 pnpm format
+pnpm supabase:stop   # frees the memory; the data survives
+pnpm supabase:reset  # wipes it, re-applies the migrations, re-seeds on next dev
 ```
 
-Tests run against **PGlite** — Postgres compiled to WASM, in-process — so there
-is no Docker daemon to start and no shared database to reset:
+Tests run against **PGlite** — Postgres compiled to WASM, in-process — so they
+need no running database at all, and `pnpm verify` passes with Docker shut
+down:
 
 ```bash
 pnpm --filter @packages/api test

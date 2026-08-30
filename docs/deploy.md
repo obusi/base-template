@@ -46,9 +46,13 @@ Three, all scoped to **Production** only.
 
 | Key | Type | Value |
 |---|---|---|
-| `DATABASE_URL` | **Secret** | the pooler string from `packages/db/.env` |
-| `BETTER_AUTH_SECRET` | **Secret** | a fresh one — never the development value |
+| `DATABASE_URL` | **Secret** | the pooler string from the Supabase dashboard |
+| `BETTER_AUTH_SECRET` | **Secret** | a fresh one — never the string in `.env.example` |
 | `BETTER_AUTH_URL` | Config | the origin the browser will use |
+
+The development value is committed, deliberately and legibly — every clone of
+this repository signs its local sessions with the same string. It is a session
+forgery key anywhere it is reachable from the internet.
 
 `Secret` cannot be read back after saving, which is right for a database
 password and a signing key. `BETTER_AUTH_URL` is deliberately `Config`: it is a
@@ -118,12 +122,17 @@ The two that must be off are the two that arrive on:
 **Deploy to production** lets Supabase apply changes to the production database
 when a pull request merges. This repo's schema is managed by Drizzle, and a
 second thing writing to production is a second source of truth for what the
-schema is. It also syncs `config.toml`, whose default has the Data API on —
-which step 2 of `setup.md` deliberately turned off.
+schema is. It also syncs `supabase/config.toml` — which in this repo describes a
+development machine, not this project: it switches services off, sets a Postgres
+major version, and declares a bucket. None of that is a statement about how the
+hosted project should be configured, and pushing it as one is a category error
+regardless of whether any individual line would be harmful.
 
 **Supabase changes only** limits branch creation to pull requests that touch
 `supabase/`. Migrations here live in `packages/db/drizzle/`, so with it on the
-pull requests that change the schema are exactly the ones that get no database.
+pull requests that change the schema are exactly the ones that get no database —
+while a pull request editing only the local dev config would get one it has no
+use for.
 
 ## 4. Connect Supabase to Vercel
 
@@ -197,7 +206,8 @@ where user_id = (select id from "user" where email = 'you@example.com');
 ```
 
 It lasts as long as the branch does, which is until the pull request closes.
-`setup.md` step 6 is the same statement for a development database.
+`setup.md`'s "Make yourself an admin" is the same statement for a hosted
+database; a local one seeds an admin account on first run instead.
 
 ## What a normal deployment looks like
 

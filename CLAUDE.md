@@ -59,8 +59,24 @@ pnpm --filter @packages/api exec vitest run src/domains/<domain>/router.test.ts
 pnpm --filter @packages/api exec vitest run -t "refuses a caller with no session"
 ```
 
+**Local Supabase.** Postgres and object storage run in Docker, configured by
+`supabase/config.toml` — which switches off the nine services this repo does not
+use and declares the `report-attachments` bucket so it is created rather than
+clicked. Nothing here talks to a hosted project; `docs/setup.md` covers both
+halves.
+
+```bash
+pnpm supabase:start   # Postgres on 54322, storage on 54321, studio on 54323
+pnpm supabase:stop
+pnpm supabase:reset   # wipe, re-apply migrations; next `dev` re-seeds
+```
+
+The dev server seeds `user@example.com` and `admin@example.com` (password
+`dev-password`) the first time it starts against an empty database —
+`packages/api/src/connection/seed.ts`, guarded on `NODE_ENV`.
+
 **Database** (needs `packages/db/.env` — see `docs/architecture.md` S9 for why
-there are two env files, and `docs/setup.md` for writing them):
+there are two env files; both are copies of their `.env.example` for local work):
 
 ```bash
 pnpm --filter @packages/db db:generate   # write a migration from schema changes
@@ -76,9 +92,10 @@ it undoes three hand edits:
 pnpm --filter @packages/auth auth:generate
 ```
 
-**Dev server.** `pnpm --filter web dev`. Claude Code's in-app preview is
-configured in `.claude/launch.json` under the name `web` — start it with
-`preview_start` rather than running a server through Bash.
+**Dev server.** `pnpm --filter web dev`, with `pnpm supabase:start` already
+running or every request fails on a database that is not there. Claude Code's
+in-app preview is configured in `.claude/launch.json` under the name `web` —
+start it with `preview_start` rather than running a server through Bash.
 
 ## Architecture
 

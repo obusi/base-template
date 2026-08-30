@@ -1,20 +1,26 @@
 # Setup
 
-Everything here is done once per project, and none of it can be carried in the
-repository — each step depends on something that does not exist until someone
-creates it: a database, a GitHub repository, a local `.env`.
+Two different jobs share this file.
 
-Steps 1–6 are needed by every deployment. Step 7 is needed once per repository
-and applies only to GitHub.
+**[Running it locally](#running-it-locally)** creates nothing anywhere and needs
+no account: Postgres and Storage run in Docker, and the app is five commands
+away. Every value a local `.env` needs is already in the `.env.example` next to
+it, because none of them is a secret.
+
+**[Setting up a deployment](#setting-up-a-deployment)** is the once-per-project
+half — a Supabase project, real environment values, and the branch rules. None
+of it can be carried in the repository, because each step depends on something
+that does not exist until someone creates it.
 
 This document says *what to do*. When a step turns on something surprising, it
 links to [`architecture.md`](architecture.md), which says *why* — the reasoning
 lives there and only there.
 
-## Requirements
+---
 
-**Node 24+**, **pnpm 10**, a Postgres database (Supabase is what this is built
-against), and the [`gh` CLI](https://cli.github.com) for step 7.
+# Running it locally
+
+**Node 24+**, **pnpm 10**, and **Docker Desktop**, running.
 
 ## 1. Install
 
@@ -22,7 +28,91 @@ against), and the [`gh` CLI](https://cli.github.com) for step 7.
 pnpm install
 ```
 
-## 2. Create the database
+## 2. Start Postgres and Storage
+
+```bash
+pnpm supabase:start
+```
+
+The first run pulls a few images and takes some minutes; after that it is
+seconds. It reads [`supabase/config.toml`](../supabase/config.toml), which
+switches off everything this repo does not use — sessions are Better Auth's, and
+the Data API is off in production too — and declares the
+`report-attachments` bucket so it is created rather than clicked.
+
+Five containers, of which two do the work:
+
+| | |
+|---|---|
+| `db` | Postgres, on 54322 |
+| `storage` + `kong` | the bucket, on 54321 |
+| `studio` + `pg_meta` | the dashboard, on [54323](http://127.0.0.1:54323) |
+
+Studio is worth the two containers for one thing `db:studio` cannot do: browse
+the files in the bucket. Turn it off in `config.toml` if you disagree.
+
+## 3. Copy the environment files
+
+```bash
+cp apps/web/.env.example apps/web/.env
+cp packages/db/.env.example packages/db/.env
+```
+
+Two files because they belong to two processes — `next dev` reads the first,
+the `drizzle-kit` commands read the second, and their `DATABASE_URL` must match.
+
+Nothing to fill in. The URLs, the ports and the demo service-role key are the
+same on every machine and in every project that runs Supabase locally, and
+`BETTER_AUTH_SECRET` is a fixed development string that says what it is.
+
+## 4. Apply the schema
+
+```bash
+pnpm --filter @packages/db db:migrate
+```
+
+## 5. Run it
+
+```bash
+pnpm dev
+```
+
+The app is at `http://localhost:3000`, `/posts` is a worked example, and the
+interactive API docs are at `/api/docs`.
+
+**Two accounts already exist.** The dev server seeds them the first time it
+starts against an empty database, because the app is two apps either side of one
+column and developing with only one role means never seeing the other half:
+
+| Email | Password | Sees |
+|---|---|---|
+| `user@example.com` | `dev-password` | the ordinary app |
+| `admin@example.com` | `dev-password` | that, plus `/admin` |
+
+The code is `packages/api/src/connection/seed.ts`, and it runs only when
+`NODE_ENV` is `development` — a preview deployment builds as production like any
+other, which is what keeps a known password off a public URL. Sign up normally
+at `/signup` for a third account whenever you want one.
+
+## Everyday
+
+```bash
+pnpm supabase:stop     # frees the memory; the data survives
+pnpm supabase:reset    # wipes it and re-applies the migrations
+```
+
+`supabase:reset` recreates the bucket from `config.toml` and empties it, and the
+next `pnpm dev` re-seeds the two accounts — an empty database with a working
+login, in two commands.
+
+---
+
+# Setting up a deployment
+
+Steps 1–4 are needed by every deployment. Step 5 is needed once per repository
+and applies only to GitHub. [`deploy.md`](deploy.md) covers the hosting itself.
+
+## 1. Create the database
 
 On Supabase, two options must be set **at project creation**. Not on Supabase?
 See "On another Postgres host" below; the rest of this document is unchanged.
@@ -36,23 +126,16 @@ See "On another Postgres host" below; the rest of this document is unchanged.
 - **Enable automatic RLS — on.** An event trigger enables RLS on every new
   table, as a backstop for tables created by hand in the SQL editor.
 
-## 3. Write the environment files
+## 2. Fill in the environment values
 
-```bash
-cp apps/web/.env.example apps/web/.env
-cp packages/db/.env.example packages/db/.env
-```
-
-Two files because they belong to two processes. The `DATABASE_URL` in both
-must match.
-
-Each variable is commented where it is declared. What follows is where the
-values come from.
+Each variable is commented where it is declared. What follows is where a real
+value comes from — the local defaults in `.env.example` are described above and
+none of them is right for a deployment.
 
 | Variable | File | Required | Where it comes from |
 |---|---|---|---|
 | `DATABASE_URL` | both | yes | the Supabase dashboard |
-| `BETTER_AUTH_SECRET` | web | yes | generated locally |
+| `BETTER_AUTH_SECRET` | web | yes | generated, fresh per environment |
 | `BETTER_AUTH_URL` | web | yes | the address the browser uses |
 | `RESEND_API_KEY` | web | no | resend.com |
 | `RESEND_FROM` | web | no | a domain Resend has verified |
@@ -109,8 +192,10 @@ reset from the same screen if it was never recorded.
 
 ### `BETTER_AUTH_SECRET`
 
-Generate a fresh one per environment, and never carry the development value
-into production — it signs every session token.
+Generate a fresh one per environment. It signs every session token, and the
+value shipped in `.env.example` is a fixed development string that every clone
+of this repository shares — carrying it into a deployment would mean anyone
+could mint a session.
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
@@ -148,8 +233,9 @@ Resend rejects a `from` on a domain it has not verified.
 The switch for attaching screenshots to a report. Leave all three empty and the
 form simply has no file picker; nothing else changes.
 
-The bucket has to be **created by hand**, and three of its settings are not
-cosmetic. Supabase → **Storage → New bucket**:
+The bucket has to be **created by hand** on a deployment — `config.toml`
+declares it for the local stack only. Three of its settings are not cosmetic.
+Supabase → **Storage → New bucket**:
 
 | Setting | Value | What it is |
 |---|---|---|
@@ -173,10 +259,11 @@ as `application/pdf` with `415 InvalidMimeType`. With them off, both are stored.
 `image/svg+xml`, and an SVG is a document that can carry script. The three
 types listed above cannot.
 
-The size and the type list are also declared in
-`packages/contract/src/domains/report/attachment.ts`, and the two copies have
-to agree — a type the contract allows and the bucket refuses fails after the
-person has waited for the upload. When changing either, change both.
+The size and the type list are declared in three places that have to agree:
+`packages/contract/src/domains/report/attachment.ts`, the bucket above, and
+`[storage.buckets.report-attachments]` in `supabase/config.toml`. A type the
+contract allows and the bucket refuses fails after the person has waited for the
+upload. When changing one, change all three.
 
 **What this still does not stop.** Supabase checks the declared content type,
 not the bytes: a file that is really HTML, uploaded as `image/png`, is stored.
@@ -190,7 +277,7 @@ No policies are needed on the bucket. Same reasoning as RLS deny-all: the
 server holds a key that bypasses them, and authorization lives in oRPC. The
 service role key never leaves the server for the same reason — the browser is
 handed a signed URL and uploads with `fetch`, so turning this on does not
-reopen the Data API that step 2 above switched off.
+reopen the Data API that step 1 above switched off.
 
 ### `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` — optional
 
@@ -224,7 +311,7 @@ While the consent screen is in **Testing**, only the accounts listed on it as
 test users can sign in — the first failure after wiring this up is usually
 that, not the credentials.
 
-## 4. Apply the schema, then check it
+## 3. Apply the schema, then check it
 
 ```bash
 pnpm --filter @packages/db db:migrate
@@ -245,7 +332,7 @@ table. Three answers are safe, and they are not equally strong:
 | `0 of N rows` | the role reads the table and RLS filters every row out |
 | `0 rows (table is empty — inconclusive)` | nothing to prove either way yet |
 
-**`cannot reach` is the expected result here**, because step 2 turned the Data
+**`cannot reach` is the expected result here**, because step 1 turned the Data
 API off. `anon` and `authenticated` exist only to serve PostgREST; with it off
 they are never granted USAGE on the schema, and Postgres reports a table in a
 schema a role cannot use as nonexistent rather than as forbidden. A leaked key
@@ -254,21 +341,13 @@ cannot read those tables, and cannot discover that they exist.
 Anything else is a real finding. The script lists what it found and exits
 non-zero.
 
-## 5. Run it
-
-```bash
-pnpm dev
-```
-
-The app is at `http://localhost:3000`. Sign up at `/signup`, then `/posts` is a
-worked example. Interactive API docs are at `/api/docs`.
-
-## 6. Make yourself an admin
+## 4. Make yourself an admin
 
 `/report` works for anyone signed in. `/admin/reports`, where those reports are
 read, answers 404 to everybody until somebody holds the role — and nothing in
 the app grants it, on purpose: an endpoint that hands out admin is a bigger
-risk than a one-off SQL statement.
+risk than a one-off SQL statement. (The seeded `admin@example.com` exists only
+in development, where the dev server creates it.)
 
 Open `pnpm --filter @packages/db db:studio` and run it against your own account:
 
@@ -279,7 +358,7 @@ where user_id = (select id from "user" where email = 'you@example.com');
 
 Sign out and back in is not needed — the role is read per request.
 
-## 7. Protect the default branch
+## 5. Protect the default branch
 
 Branch rules live in GitHub's settings rather than in the repository, so a fork
 starts with none of them. `.github/rulesets/` keeps them as files instead, split
@@ -337,6 +416,9 @@ tables?**
 
 `db:check` reads that from the catalogue rather than assuming it, so run it and
 read the output rather than porting the Supabase steps literally. What changes
-is only step 2: there is no Data API to switch off, and no automatic-RLS
+is only step 1: there is no Data API to switch off, and no automatic-RLS
 trigger — which makes `rls-guard.test.ts` the sole guard against a table that
 forgot `withRLS()`, rather than one of two.
+
+Local development is unaffected either way — `pnpm supabase:start` serves the
+same Postgres regardless of where the deployment ends up.
