@@ -1,5 +1,5 @@
 // Placeholder landing page — replace it with the project's own. It is listed
-// among the things a real project rewrites in docs/architecture.md S13.
+// among the things a real project rewrites in docs/template.md S13.
 //
 // A Server Component with no data of its own, so there is nothing here worth
 // copying as a pattern; docs/architecture.md S4 covers the two ways a page
@@ -50,8 +50,8 @@ export default function Page() {
       </ul>
 
       <p className="font-mono text-xs text-muted-foreground">
-        Replace this page, then delete the example domain — see
-        docs/architecture.md S14.
+        Replace this page, then delete the example domain — see docs/template.md
+        S14.
       </p>
     </main>
   )

@@ -1,0 +1,24 @@
+{
+  "name": "@packages/scripts",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "seed": "tsx --conditions=react-server --env-file-if-exists=../../apps/web/.env src/seed.ts"
+  },
+  "dependencies": {
+    "@packages/auth": "workspace:*",
+    "@packages/db": "workspace:*",
+    "drizzle-orm": "catalog:"
+  },
+  "devDependencies": {
+    "@tooling/eslint-config": "workspace:*",
+    "@tooling/typescript-config": "workspace:*",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "tsx": "^4.20.6",
+    "typescript": "catalog:"
+  }
+}

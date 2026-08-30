@@ -53,7 +53,7 @@ for (const path of [
   "packages/contract/src/domains/post",
   "packages/db/src/schema/post.ts",
   "packages/api/src/domains/post",
-  "apps/web/app/posts",
+  "apps/web/app/(app)/(user)/posts",
   "apps/web/features/post",
 ]) {
   remove(path)
@@ -132,33 +132,56 @@ edit("apps/web/features/auth/redirect.ts", (t) => {
   return t.replace(before, 'export const DEFAULT_DESTINATION = "/"')
 })
 
-// ------------------------------------------------------- architecture.md
+// ---------------------------------------------------------- docs/template.md
 
-const BLURB_EXAMPLE_ONLY =
-  "> S14 is an appendix, kept only while the example domain it describes is\n" +
-  "> still in the tree. Deleting both leaves S1–S12 untouched.\n>\n"
+// `docs/template.md` holds what is only true while this repo is a template.
+// This skill owns some of its sections; the other skill owns the rest. Whichever
+// runs second finds nothing left and deletes the file, along with the two lines
+// that link to it.
+//
+// Those links are list items on purpose, so removing them is a line regex
+// rather than a paragraph match. The previous arrangement had these two scripts
+// coordinating through a three-line sentence they each kept a copy of; the
+// copies drifted, and the surviving file described a section that had just been
+// cut. `docs/template.md` records the rule and asks that new references keep to
+// one line.
+const TEMPLATE_DOC = "docs/template.md"
+const TEMPLATE_POINTER = /^- .*docs\/template\.md.*\n/gm
 
-edit("docs/architecture.md", (t) => {
-  // Cut S14 itself.
-  const start = t.indexOf("\n## S14. ")
-  let out = t
-  if (start !== -1) {
-    const rest = t.slice(start + 1)
-    const nextRel = rest.search(/\n## S\d+\. /)
-    const end = nextRel === -1 ? t.length : start + 1 + nextRel
-    out = t.slice(0, start) + t.slice(end)
+/** Cut `## S<id>. …` and everything under it, up to the next section. */
+function cutTemplateSection(text, id) {
+  const start = text.indexOf(`\n## ${id}. `)
+  if (start === -1) return text
+  const rest = text.slice(start + 1)
+  const nextRel = rest.search(/\n## S\d+\. /)
+  const end = nextRel === -1 ? text.length : start + 1 + nextRel
+  return text.slice(0, start) + text.slice(end)
+}
+
+/** Cut this skill's sections; delete the file and its links if that empties it. */
+function pruneTemplateDoc(ids) {
+  if (!existsSync(TEMPLATE_DOC)) {
+    changes.push({ path: TEMPLATE_DOC, note: "skipped — file not found" })
+    return
   }
+  const after = ids.reduce(
+    cutTemplateSection,
+    readFileSync(TEMPLATE_DOC, "utf8")
+  )
+  edit(TEMPLATE_DOC, () => after)
 
-  // If setup-project already ran, S14 was the last appendix and the header
-  // block promised it. Both go. If it has not run, S13/S15/S16 are still
-  // there and "S13 onward are the appendices" stays true — leave it alone.
-  if (out.includes(BLURB_EXAMPLE_ONLY)) {
-    out = out.replace(BLURB_EXAMPLE_ONLY, "")
-    const divider = out.indexOf("\n---\n---\n\n# Appendi")
-    if (divider !== -1) out = out.slice(0, divider) + "\n"
+  // No `## S<n>.` heading left means the other skill has already taken its half.
+  if (/^## S\d+\. /m.test(after)) return
+
+  if (!DRY_RUN) rmSync(TEMPLATE_DOC, { recursive: true, force: true })
+  changes.push({ path: TEMPLATE_DOC, note: "deleted — nothing left in it" })
+  for (const path of ["README.md", "CLAUDE.md"]) {
+    edit(path, (t) => t.replace(TEMPLATE_POINTER, ""))
   }
-  return out
-})
+}
+
+// S14 is this skill's: it documents the example domain being deleted here.
+pruneTemplateDoc(["S14"])
 
 // setup-project leaves this note behind while the example is still present.
 edit("CLAUDE.md", (t) =>
@@ -175,7 +198,7 @@ for (const c of changes) console.log(`  ${c.path.padEnd(40)} ${c.note}`)
 console.log(
   "\nNot done here — see SKILL.md:\n" +
     '  packages/db/drizzle/     still contains CREATE TABLE "post"\n' +
-    "  apps/web/app/page.tsx    may still link to /posts\n" +
+    "  apps/web/app/(app)/(user)/page.tsx  may still link to /posts\n" +
     "  features/auth/redirect.ts DEFAULT_DESTINATION is now / — confirm that is right\n" +
     "\nRun `pnpm verify`. Green means the removal is complete: tsc covers four\n" +
     "of the edits above and rls-guard.test.ts covers the pinned table list.\n" +

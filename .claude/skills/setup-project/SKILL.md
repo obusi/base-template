@@ -59,15 +59,16 @@ It renames the project in `package.json`, `apps/web/app/layout.tsx`,
 `docs/architecture.md` S2. Four of those are visible to users — the browser tab,
 the `/api/docs` page, the published OpenAPI document, and the "Welcome to …"
 heading on the sign-in and sign-up pages. It then
-cuts the template-only appendices (S13, S15, S16) out of `docs/architecture.md`
-and the template section out of `CLAUDE.md`.
+cuts S13, S15 and S16 out of `docs/template.md` and the template section out of
+`CLAUDE.md`.
 
 It decides what to do about S14 by looking at whether
 `packages/api/src/domains/post/` still exists, rather than asking. If the
-example is there, S14 stays as its removal checklist; if someone already ran
-`remove-example-domain`, S14 is gone and the last appendix goes with it. Looking
-beats asking here because the answer is a fact about the tree, and a question
-can be answered wrongly.
+example is there, S14 stays as its removal checklist and `docs/template.md`
+survives holding only that; if someone already ran `remove-example-domain`,
+nothing is left, so the file goes and the two list items linking to it go with
+it. Looking beats asking here because the answer is a fact about the tree, and
+a question can be answered wrongly.
 
 ## Write the two files that need judgement
 
@@ -75,11 +76,14 @@ can be answered wrongly.
 template. Rewrite it for the project: what this codebase is *for*, then the path
 from clone to running app. Keep the parts that are about the stack rather than
 the template — the package table, the dependency graph, the everyday commands,
-and the pointer to `docs/setup.md` — and drop the "Starting a real project from
+and the pointers to `docs/getting-started.md` and `docs/provisioning.md`. Keep
+the `docs/template.md` line only if the script left that file standing, which it
+does while the example domain is still there. Drop the "Starting a real project from
 this" section, which has just been carried out. Read the existing file rather than
 starting from a blank page; most of it survives.
 
-**`apps/web/app/page.tsx`** — a placeholder that describes the template and
+**`apps/web/app/(app)/(user)/page.tsx`** — a placeholder that describes the
+template and
 links to the example domain. What replaces it depends on the project, so ask
 rather than invent: a marketing landing page, a redirect to the app's real entry
 point, and a dashboard behind auth are all reasonable, and they are not
@@ -115,21 +119,25 @@ grep -rn "base-template" --exclude-dir=node_modules --exclude-dir=.next \
   --exclude-dir=.git --exclude-dir=.turbo .
 grep -rn "S13\|S15\|S16" --include=*.md --include=*.ts --include=*.tsx \
   --exclude-dir=node_modules .
+grep -rn "docs/template.md" --exclude-dir=node_modules --exclude-dir=.git .
 ```
 
-Both should be empty. If the example domain is still present, S14 references are
-expected and correct — anything pointing at S13, S15, or S16 is now a link to a
-deleted section.
+The first two should be empty. If the example domain is still present, S14
+references are expected and correct — anything pointing at S13, S15, or S16 is
+now a link to a deleted section. The third should be empty **only** when the
+example is already gone; while it is still there, `docs/template.md` holds S14
+and the links to it are correct.
 
 **Then delete this skill**: `rm -rf .claude/skills/setup-project`. It cannot run
-a second time — the script refuses when the paragraphs it edits are already
-gone — so leaving it in a real project is clutter that reads like an unfinished
-step. Mention that `remove-example-domain` stays, because it still has work to
+a second time — the script refuses when the CLAUDE.md markers it edits are
+already gone — so leaving it in a real project is clutter that reads like an
+unfinished step. Mention that `remove-example-domain` stays, because it still has work to
 do.
 
 Finally, show `git diff --stat` and say plainly what changed, what still carries
-the person's own writing, and that `docs/architecture.md` S14 is the checklist
-for removing the example domain when the time comes. Do not commit unless asked.
+the person's own writing, and that `docs/template.md` S14 is the checklist for
+removing the example domain when the time comes — after which that file goes
+too. Do not commit unless asked.
 
 ## What this skill deliberately leaves alone
 
@@ -137,15 +145,15 @@ for removing the example domain when the time comes. Do not commit unless asked.
 describe the *stack* rather than the template. They apply unchanged to a real
 project, and editing them would be a regression rather than a cleanup.
 
-`docs/setup.md` is the same case, and the one most likely to be mistaken for
-template text because it opens by talking about starting a project. It is the
-procedure a real deployment runs — database, env files, schema, branch rules —
-and it is where the `db:check` warning lives now that `README.md` only links to
-it. Leave the file alone.
+`docs/provisioning.md` is the same case, and the one most likely to be mistaken
+for template text because it opens by talking about starting a project. It is
+the procedure a real deployment runs — database, env files, schema, branch
+rules — and it is where the `db:check` warning lives now that `README.md` only
+links to it. Leave the file alone, and `docs/getting-started.md` with it.
 
 `docs/deploy.md` likewise. It is the hosting half of the same procedure, and a
 project needs it more after the rename than before. Leave it alone too, and keep
-the README's pointer to it alongside the one to `setup.md`.
+the README's pointer to it alongside the other two.
 
 The version string in `apps/web/app/api/spec/route.ts` is hard-coded separately
 from `package.json`. Mention it, since it is published in the OpenAPI document,

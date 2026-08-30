@@ -7,10 +7,28 @@
 import { and, desc, eq, inArray, lt, or } from "drizzle-orm"
 
 import { schema, type Database } from "@packages/db"
-
-import type { Storage, UploadTarget } from "../../storage"
+import type { Storage, UploadTarget } from "@packages/storage"
 
 const { report, reportAttachment } = schema
+
+/**
+ * The bucket this domain's attachments live in.
+ *
+ * A constant rather than an environment variable, because it cannot actually
+ * vary: the bucket is declared as `[storage.buckets.report-attachments]` in
+ * `supabase/config.toml`, and that declaration is what creates it — locally
+ * through `supabase start`, on a hosted project through
+ * `supabase seed buckets`. Pointing an env var at some other name without
+ * editing that file would aim the app at a bucket nobody made, so the
+ * configurability was never real. Two places that must agree, not six.
+ *
+ * Still named for the domain rather than for storage in general. A bucket is
+ * where Supabase keeps the size limit, the MIME allowlist and the public flag,
+ * and not one of the three can be set per folder — so the next domain that
+ * stores files declares a bucket of its own beside this one rather than a
+ * folder inside this one.
+ */
+export const REPORT_BUCKET = "report-attachments"
 
 type Report = typeof report.$inferSelect
 type Attachment = typeof reportAttachment.$inferSelect

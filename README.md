@@ -19,6 +19,7 @@ apps/web ──┬─► ui              ┐
                  │
                  ├─► contract
                  ├─► auth/server
+                 ├─► storage
                  └─► db
 ```
 
@@ -28,32 +29,67 @@ apps/web ──┬─► ui              ┐
 | `db` | Drizzle schema, client, migrations |
 | `auth` | Better Auth (server + client entry points) |
 | `api` | The oRPC router, implementing the contract |
+| `storage` | The `Storage` port and its Supabase implementation |
 | `ui` | shadcn/ui components on Base UI + Tailwind v4 |
 
-Five packages because merging any two breaks something specific — `contract`
+Six packages because merging two of them breaks something specific — `contract`
 must stay importable from a future Expo app without dragging in Drizzle, and
-`db` must sit outside `api` or `auth → api → auth` becomes a cycle. The full
-reasoning is in [`docs/architecture.md`](docs/architecture.md).
+`db` must sit outside `api` or `auth → api → auth` becomes a cycle. `storage`
+is split for a softer reason with the same teeth: it holds the Supabase
+dependency, so `api` cannot resolve one. The full reasoning is in
+[`docs/architecture.md`](docs/architecture.md).
+
+## What it ships
+
+Structure, and as little product as possible — a fork inherits everything here
+permanently, so anything a project could add later is deliberately absent.
+
+**Sign-in, sign-up, password reset and an optional "Continue with Google"**,
+wired to Better Auth. The Google button is not rendered until both credentials
+are set, so a fresh clone never shows a door that cannot open.
+
+**A user side and an admin side**, separated by one column — `profile.role` —
+and by three route groups under `app/(app)/`, each with a layout that guards
+what sits inside it. Nothing in the app grants the role; an endpoint that hands
+out admin is a bigger risk than a one-off SQL statement.
+
+**"Report a problem"**, in the account menu on every page. It captures the URL
+and the user agent from the request rather than the form, takes up to three
+screenshots straight into private object storage, and shows the result to
+admins at `/admin/reports` behind signed URLs. This one is meant to stay —
+every project needs a way for its users to say something is wrong. It is also
+the worked example of a domain that touches every package and a bucket.
+
+**A `post` domain that is meant to go**, kept only so `tsc` and Vitest have a
+live end-to-end example to keep honest when oRPC or Drizzle changes an API.
+Copy it as a pattern, then delete it — there is a skill that does the deleting.
 
 ## Getting started
 
-Requires **Node 24+**, **pnpm 10**, and a Postgres database (Supabase is what
-this is built against).
+Requires **Node 24+**, **pnpm 10**, and **Docker Desktop**. No accounts, and
+nothing to create anywhere — Postgres and object storage run locally.
 
 ```bash
 pnpm install
-```
-
-Then work through [`docs/setup.md`](docs/setup.md) — the database, the two
-`.env` files, the schema, and the branch rules, in that order. It is short, and
-none of it is optional.
-
-```bash
+pnpm supabase:start
+cp apps/web/.env.example apps/web/.env
+cp packages/db/.env.example packages/db/.env
+pnpm db:migrate
+pnpm seed
 pnpm dev
 ```
 
-The app runs at `http://localhost:3000`. `/posts` is a worked example — sign up
-at `/signup` first. Interactive API docs are at `/api/docs`.
+Nothing to fill in: every local value is a fixed one that Supabase's local stack
+uses on every machine, so the two `.env` files are copies rather than forms.
+
+The app runs at `http://localhost:3000` — `/posts` is a worked example, and the
+interactive API docs are at `/api/docs`. `pnpm seed` creates
+`user@example.com` and `admin@example.com`, both with the password `12345678`,
+so the admin half of the app is visible without any setup.
+
+[`docs/getting-started.md`](docs/getting-started.md) has the detail. What a
+real deployment needs instead — a Supabase project of its own — is
+[`docs/provisioning.md`](docs/provisioning.md).
 
 When it is time to put it on the internet, [`docs/deploy.md`](docs/deploy.md)
 covers that separately — including how each pull request gets a preview running
@@ -66,14 +102,18 @@ pnpm verify          # typecheck + lint + test + format:check — the full gate
 pnpm dev
 pnpm build
 pnpm format
+pnpm supabase:stop   # frees the memory; the data survives
+pnpm supabase:reset  # wipes it and re-applies the migrations — needs it running
+pnpm seed            # the two development accounts, safe to run twice
 ```
 
-Tests run against **PGlite** — Postgres compiled to WASM, in-process — so there
-is no Docker daemon to start and no shared database to reset:
+Tests run against **PGlite** — Postgres compiled to WASM, in-process — so they
+need no running database at all, and `pnpm verify` passes with Docker shut
+down:
 
 ```bash
 pnpm --filter @packages/api test
-pnpm --filter @packages/db db:studio
+pnpm db:studio
 ```
 
 To add a shadcn component (it lands in `packages/ui`, not in the app):
@@ -88,21 +128,25 @@ Use GitHub's **"Use this template"** button. The histories are unrelated, so a
 fork receives no later template updates — which is the main reason this repo
 stays small.
 
-Then run through [`docs/setup.md`](docs/setup.md), and S13 of
-[`docs/architecture.md`](docs/architecture.md) for stripping the template out of
-itself: the rename, deleting the `post` example domain (S14), and the passages
-in `CLAUDE.md` that are only true while this is a template.
+Then run through [`docs/provisioning.md`](docs/provisioning.md). Stripping the
+template out of itself — the rename, the placeholder landing page, the passages
+in `CLAUDE.md` — is what the `setup-project` skill does, and
+`remove-example-domain` deletes the `post` example once a real domain replaces
+it.
 
 ## Documentation
 
-- [`docs/setup.md`](docs/setup.md) — what to do, once per project, to get this
-  running against a database of your own.
+- [`docs/getting-started.md`](docs/getting-started.md) — clone to running app,
+  on your own machine. No accounts, nothing to create.
+- [`docs/provisioning.md`](docs/provisioning.md) — what to do once per project
+  to get this running against a database of your own.
 - [`docs/deploy.md`](docs/deploy.md) — the same, for getting it hosted: the
   production deployment, and the preview-per-pull-request setup that gives each
   one its own database. Written down because most of it is not guessable.
+- [`docs/template.md`](docs/template.md) — the parts that are only true while this repo is a template. A real project deletes the file.
 - [`docs/architecture.md`](docs/architecture.md) — the single design document.
   Why the repo is shaped this way, the boundaries and how each is enforced, the
-  security model, and S10, the library traps (`C1`…`C18`) that shaped it. Read
+  security model, and S10, the library traps (`C1`…`C19`) that shaped it. Read
   the relevant section before changing a structural rule.
 - [`CLAUDE.md`](CLAUDE.md) and `.claude/rules/` — instructions for AI coding
   agents: what is true everywhere, and what is true only in one package.

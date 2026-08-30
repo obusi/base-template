@@ -3,7 +3,8 @@
 Getting the app onto the internet, and giving every pull request a preview that
 runs against a database of its own.
 
-This assumes [`setup.md`](setup.md) is done: a Supabase project exists, the
+This assumes [`provisioning.md`](provisioning.md) is done: a Supabase project
+exists, the
 schema is applied, `db:check` passes, and the branch rules are in place. Steps 1
 and 2 here are enough to serve production. Steps 3 to 5 are what add previews,
 and they are the half that costs money.
@@ -46,9 +47,13 @@ Three, all scoped to **Production** only.
 
 | Key | Type | Value |
 |---|---|---|
-| `DATABASE_URL` | **Secret** | the pooler string from `packages/db/.env` |
-| `BETTER_AUTH_SECRET` | **Secret** | a fresh one — never the development value |
+| `DATABASE_URL` | **Secret** | the pooler string from the Supabase dashboard |
+| `BETTER_AUTH_SECRET` | **Secret** | a fresh one — never the string in `.env.example` |
 | `BETTER_AUTH_URL` | Config | the origin the browser will use |
+
+The development value is committed, deliberately and legibly — every clone of
+this repository signs its local sessions with the same string. It is a session
+forgery key anywhere it is reachable from the internet.
 
 `Secret` cannot be read back after saving, which is right for a database
 password and a signing key. `BETTER_AUTH_URL` is deliberately `Config`: it is a
@@ -61,13 +66,12 @@ them, minus the file picker:
 |---|---|---|
 | `SUPABASE_URL` | Config | the project URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | **Secret** | the `service_role` key, never `anon` |
-| `SUPABASE_REPORT_BUCKET` | Config | only if the bucket is not named `report-attachments` |
 
-The first two are a pair: `packages/api` treats storage as configured only when
-both are present, so half of them is the same as neither. The third has a
-default and is usually left unset — it exists because a bucket belongs to one
-domain, and a project adding a second one adds a variable beside it rather than
-sharing this bucket. `architecture.md` S4 says why.
+They are a pair: storage counts as configured only when both are present, so
+half of them is the same as neither. There is no third variable for the bucket
+name — `supabase/config.toml` declares it and the code names the same string as
+a constant. `architecture.md` S4 says why a bucket belongs to one domain, and
+what a project adding a second one does instead.
 
 And two more only if the app should offer Google sign-in:
 
@@ -118,12 +122,17 @@ The two that must be off are the two that arrive on:
 **Deploy to production** lets Supabase apply changes to the production database
 when a pull request merges. This repo's schema is managed by Drizzle, and a
 second thing writing to production is a second source of truth for what the
-schema is. It also syncs `config.toml`, whose default has the Data API on —
-which step 2 of `setup.md` deliberately turned off.
+schema is. It also syncs `supabase/config.toml` — which in this repo describes a
+development machine, not this project: it switches services off, sets a Postgres
+major version, and declares a bucket. None of that is a statement about how the
+hosted project should be configured, and pushing it as one is a category error
+regardless of whether any individual line would be harmful.
 
 **Supabase changes only** limits branch creation to pull requests that touch
 `supabase/`. Migrations here live in `packages/db/drizzle/`, so with it on the
-pull requests that change the schema are exactly the ones that get no database.
+pull requests that change the schema are exactly the ones that get no database —
+while a pull request editing only the local dev config would get one it has no
+use for.
 
 ## 4. Connect Supabase to Vercel
 
@@ -197,7 +206,8 @@ where user_id = (select id from "user" where email = 'you@example.com');
 ```
 
 It lasts as long as the branch does, which is until the pull request closes.
-`setup.md` step 6 is the same statement for a development database.
+`provisioning.md`'s "Make yourself an admin" is the same statement for a hosted
+database; locally, `pnpm seed` creates an admin account instead.
 
 ## What a normal deployment looks like
 
@@ -267,7 +277,7 @@ S17; the consequence is this paragraph.
 Point `packages/db/.env` at production and run it yourself:
 
 ```bash
-pnpm --filter @packages/db db:migrate
+pnpm db:migrate
 ```
 
 **How bad the gap is depends on the migration, and it is easy to

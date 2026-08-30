@@ -32,7 +32,8 @@ already ran.
 `git diff` and one `git checkout .` away from undone.
 
 **Confirm they mean it.** This deletes working code — a whole vertical slice
-through five packages, plus the page that renders it.
+through `contract`, `db` and `api`, plus the two folders in `apps/web` that
+render it.
 
 The auth pages are **not** part of that. `app/signin/`, `app/signup/` and
 `features/auth/` are real pages wired to Better Auth and they stay. What the
@@ -54,8 +55,9 @@ compiler would catch (`contract/src/index.ts`, `api/src/index.ts`,
 the five it would not — comments in `lib/orpc-query.ts`, `lib/orpc.server.ts`
 and `api/src/testing/index.ts`, the note `setup-project` leaves in `CLAUDE.md`,
 and `DEFAULT_DESTINATION` in `features/auth/redirect.ts`. It also cuts S14 from
-`docs/architecture.md`, and takes the appendix divider with it if S14 was the
-last one standing.
+`docs/template.md` — and if `setup-project` has already taken S13, S15 and S16,
+that leaves nothing, so the file is deleted and the two list items linking to it
+go with it.
 
 `packages/api/src/testing/index.ts` **stays** — `signUpTestUser`, `contextFor`,
 and `anonymousContext` belong to no domain, and every real domain's router tests
@@ -68,7 +70,7 @@ need them.
 is right depends on something only the person knows:
 
 - **Nothing deployed yet** — delete both migration folders and run
-  `pnpm --filter @packages/db db:generate` once. That produces a single initial
+  `pnpm db:generate` once. That produces a single initial
   migration from the schema that is left, and is the cleanest possible history.
 - **Already deployed anywhere** — leave the existing migrations alone and run
   `db:generate` to produce a normal drop migration. Rewriting applied migrations
@@ -77,7 +79,8 @@ is right depends on something only the person knows:
 Ask which it is. Do not guess: the first option silently destroys the record of
 what a deployed database already ran.
 
-**The landing page.** `apps/web/app/page.tsx` may still link to `/posts`, which
+**The landing page.** `apps/web/app/(app)/(user)/page.tsx` may still link to
+`/posts`, which
 is now a 404. What belongs there instead is a product decision — ask rather than
 invent, and if they have no answer, remove the dead link rather than replacing
 it with filler.
@@ -102,7 +105,7 @@ whole process — it proves the two halves are checked against each other.
 under `app/`, and the ones for the deleted pages linger:
 
 ```
-error TS2307: Cannot find module '../../../app/posts/page.js'
+error TS2307: Cannot find module '../../../app/(app)/(user)/posts/page.js'
 ```
 
 `rm -rf apps/web/.next` fixes it. Nothing regenerates those types until a dev

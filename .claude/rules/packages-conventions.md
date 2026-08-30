@@ -5,12 +5,17 @@ paths:
 
 # Shared conventions for every `packages/*`
 
-Five packages, split along hard technical constraints rather than taste —
-`CLAUDE.md` has the table of why each one cannot be merged into another. This
+Seven packages. Six are split along hard technical constraints rather than
+taste — `CLAUDE.md` has the table of why each one cannot be merged into
+another — and `scripts` is a runner rather than a library. This
 file covers what they all share: the files each package carries, how they
 import from each other and from themselves, and what adding a new domain
-touches. Rules specific to one package live in `packages-api.md`,
-`packages-db.md`, and `packages-contract.md`.
+touches.
+
+Every package also has a file of its own, which loads when work touches it:
+`packages-api.md`, `packages-auth.md`, `packages-contract.md`, `packages-db.md`,
+`packages-scripts.md`, `packages-storage.md`, `packages-ui.md`. Anything true of
+exactly one package belongs there rather than here.
 
 ## What every package carries
 
@@ -54,9 +59,11 @@ Two consequences worth internalising:
 the map to make an import work, stop and ask whether the import belongs — most
 of the time the answer is that the caller should be going through `"."`.
 
-**A file that nothing exports and nothing tests should not exist.** The one
-sanctioned exception is `packages/db/scripts/`, which sits outside `src/`
-precisely because it is only ever run by hand, never imported.
+**A file that nothing exports and nothing tests should not exist.** Two places
+are exempt, and both for the same reason — they are run by hand and never
+imported: `packages/db/scripts/`, which sits outside `src/` to say so, and
+`packages/scripts`, which has no `exports` map at all. A package with no
+`exports` map is a runner; every other package must have one.
 
 ## Import style
 
@@ -89,6 +96,12 @@ package has its own reason:
 
 Relative imports have none of these problems in any of the three, so there is
 no case where the alias is worth reaching for.
+
+**`ui` is the exception, and the only one.** Its `exports` map really does list
+`./lib/*` and `./components/*`, so the alias resolves — and shadcn writes those
+imports itself from `components.json`, so rewriting them to relative paths just
+means the next regenerated component arrives with the alias again. See
+`packages-ui.md`.
 
 ## Grouping: `domains/` versus named folders
 
@@ -144,6 +157,10 @@ The single place allowed to name the real `db` is a composition root:
 `packages/api/src/connection/live.ts`. It carries `import "server-only"` and
 nothing inside the package imports it.
 
+`packages/scripts` is the one other place, and it is not a counter-example: it
+is a process rather than a library, so there is nothing to hand it a database
+from.
+
 ## Environment variables
 
 Each package validates what it reads in its own `env.ts`, with t3-env + zod, so
@@ -158,7 +175,18 @@ whatever program starts in that folder:
 | `apps/web` | yes | yes | `next dev` / `next build` |
 | `packages/db` | `src/connection/env.ts` | yes | the `drizzle-kit` commands |
 | `packages/auth` | yes | **no** | nothing runs here — it is imported into `apps/web` |
-| `packages/api` | yes | **no** | same — the storage switch, read in `connection/live.ts` |
+| `packages/api` | **no** | **no** | it reads none — the bucket name is a constant, not a variable |
+| `packages/storage` | yes | **no** | same as `auth` — how to reach Supabase, read in `connection/live.ts` |
+| `packages/scripts` | no | **no** | it runs, but reads `apps/web/.env` — see below |
+
+`packages/scripts` is the odd one: it *is* a process, so it could own a `.env`,
+and deliberately does not. `pnpm seed` needs `DATABASE_URL`,
+`BETTER_AUTH_SECRET` and `BETTER_AUTH_URL` together, and only `apps/web/.env`
+has all three — a fourth copy would be a fourth thing to keep in sync, and
+drift there is silent in both directions: a different `DATABASE_URL` seeds a
+database the app never reads, and a different `BETTER_AUTH_SECRET` creates
+users whose sessions the app cannot verify. So its `seed` script points at
+`apps/web/.env` explicitly.
 
 So `packages/auth/.env.example` documents what the package requires while the
 values live in `apps/web/.env`. `DATABASE_URL` is knowingly duplicated across
@@ -190,7 +218,7 @@ The folder name is the same in every package, and singular (`post`, not
 
 1. **`packages/db/src/schema/<x>.ts`** — the table, via `pgTable.withRLS()`.
    Export it from `schema/index.ts`, then
-   `pnpm --filter @packages/db db:generate`. Add the new table name to the
+   `pnpm db:generate`. Add the new table name to the
    pinned list in `schema/rls-guard.test.ts`, which is meant to go red here.
 2. **`packages/contract/src/domains/<x>/schema.ts`** — the zod schemas. These
    are the source of truth for the shape; nothing derives them from Drizzle,
@@ -214,23 +242,29 @@ this description — prose goes stale, a compiled example does not.
 A bucket belongs to one domain — the file-size limit and the MIME allowlist are
 properties of a bucket, and a folder inside one cannot carry its own. So a
 domain that stores files gets a bucket of its own rather than a folder in
-`report`'s, and wiring it is five edits and no new abstraction:
+`report`'s, and wiring it is four edits and no new abstraction:
 
-1. **Create the bucket by hand**, private, with its own size limit and MIME
-   allowlist. `docs/setup.md` does this for `report-attachments` and says which
-   settings are not cosmetic.
-2. **`packages/api/src/env.ts`** — `SUPABASE_<X>_BUCKET`, optional with a
-   default. `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are already there and
-   are the same for every bucket in the project.
-3. **`turbo.json`** — add the variable to `globalEnv`, or turbo drops it with a
-   warning that is easy to miss.
-4. **`packages/api/src/shared/context.ts`** — `<x>Storage: Storage | null`,
+1. **Declare the bucket** in `supabase/config.toml`, private, with its own size
+   limit and MIME allowlist — `supabase start` then creates it locally, and
+   `supabase seed buckets` creates it on a hosted project.
+   `report-attachments` is the worked example, and `docs/provisioning.md` says
+   which
+   of its settings are not cosmetic.
+2. **`packages/api/src/domains/<x>/service.ts`** — `export const <X>_BUCKET`,
+   the same string as step 1. A constant rather than an env var: step 1 is what
+   creates the bucket, so a variable naming anything else would only point at
+   one nobody made. `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are in
+   `@packages/storage/env` already and are the same for every bucket in the
+   project — nothing new is needed there, and nothing in `turbo.json`.
+3. **`packages/api/src/shared/context.ts`** — `<x>Storage: Storage | null`,
    named after the domain so a handler can only reach its own bucket.
-5. **`packages/api/src/connection/live.ts`** — one line:
-   `const <x>Storage = storageFromEnv(env, env.SUPABASE_<X>_BUCKET)`, then
-   return it in the context.
+4. **`packages/api/src/connection/live.ts`** — one line:
+   `const <x>Storage = storageFromEnv(storageEnv, <X>_BUCKET)`, then return it
+   in the context.
 
-Nothing else. `contextFor` and `anonymousContext` take `Partial<ApiContext>`
+Nothing else — and in particular, nothing inside `packages/storage`. It takes
+the bucket as an argument precisely so that a second one costs a line rather
+than a function. `contextFor` and `anonymousContext` take `Partial<ApiContext>`
 overrides, so existing tests keep compiling and a new one says
 `{ <x>Storage: null }` when it wants the unconfigured deployment. Add a default
 stand-in in `testing/index.ts` beside `reportStorage`'s if the new field should

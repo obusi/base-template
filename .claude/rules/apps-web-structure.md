@@ -34,7 +34,7 @@ than a bare re-export — that leaves room for `generateMetadata`, a prefetch,
 or a `<Suspense>` boundary later without another restructure:
 
 ```tsx
-// app/posts/page.tsx
+// app/(app)/(user)/posts/page.tsx
 import { PostsPage } from "@/features/post"
 
 export default function Page() {

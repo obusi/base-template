@@ -15,6 +15,7 @@
     "./env": "./src/env.ts"
   },
   "dependencies": {
+    "@better-auth/core": "catalog:",
     "@better-auth/drizzle-adapter": "catalog:",
     "@packages/db": "workspace:*",
     "@t3-oss/env-core": "catalog:",

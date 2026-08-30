@@ -17,15 +17,12 @@
 > **The ids are names, not positions.** They are assigned once and never
 > reused or reordered: deleting S4 leaves S5 as S5, and a section added later
 > takes the next free number even if it belongs in the middle. So the ids may
-> eventually run out of order, and that is the point — a citation written today
-> cannot rot. `C1`…`C18` inside S10 already work this way, and `C2` is missing
-> for exactly that reason.
+> run out of order and some may be missing entirely, and that is the point — a
+> citation written today cannot rot. S11 was retired; S13 to S16 were about this
+> repo being a template and moved out with it; `C1`…`C19` inside S10 work the
+> same way, and `C2` is missing for exactly that reason.
 >
-> S13 onward are the appendices: the part a real project deletes. They are
-> numbered on the same scheme, so removing them leaves every section before
-> S13 untouched.
->
-> Last updated: 2026-08-17
+> Last updated: 2026-08-30
 
 Three principles every decision below follows from:
 
@@ -95,12 +92,14 @@ list. Two rules about it:
 │   ├── db/                  Drizzle schema + client + migrations
 │   ├── auth/                Better Auth (server + client entry points)
 │   ├── api/                 oRPC router — implements the contract
-│   └── ui/                  shadcn components
+│   ├── storage/             the Storage port + its Supabase implementation
+│   ├── ui/                  shadcn components
+│   └── scripts/             commands run by hand — today just `seed`
 ├── tooling/                 eslint-config, typescript-config, vitest-config
 └── docs/
 ```
 
-### Why five packages
+### Why six packages, and a seventh folder
 
 The split follows hard technical constraints, not aesthetics. Merging any two
 breaks something specific:
@@ -111,7 +110,37 @@ breaks something specific:
 | `db` | Both `auth` and `api` depend on it. Putting `db` inside `api` creates the cycle `auth → api → auth` |
 | `auth` | The browser-side login page calls it directly, bypassing oRPC |
 | `api` | The layer that composes everything else |
+| `storage` | Holding the only dependency `api` must not be able to resolve |
 | `ui` | DOM-only (Tailwind + Base UI); unusable from React Native |
+
+`storage` is the softest of the six, and worth being honest about: it would
+compile perfectly well inside `api`, and it lived there until it did not. What
+the split buys is enforcement. `@supabase/storage-js` is declared by
+`packages/storage` and by nothing else, so pnpm strict layout makes it
+unresolvable from `api` — "the API layer does not know which provider it is
+talking to" stops being a convention a reviewer has to catch and becomes the
+same kind of build failure that keeps `apps/web` away from `db`. Swapping
+Supabase for S3 is then one new function behind the same two-method port, and
+nothing in `api` changes. It also gives `fakeStorage` a home beside the
+interface it fakes, rather than in the test helpers of the package that
+consumes it.
+
+`scripts` is the seventh folder and the one real exception. It could be merged into
+any of the five without breaking a thing, and it is separate for a weaker
+reason: it is a **runner, not a library**. Nothing imports it, it has no
+`exports` map, and what it holds are commands a person types — today only
+`seed`, which needs the real database and the real auth instance at once and
+therefore fits inside none of the five without turning one of them into two
+kinds of thing.
+
+It also cannot run under bare `node`, which is the more interesting constraint.
+Node resolves ESM specifiers without adding extensions, so importing
+`@packages/auth/server` fails on that package's own extensionless `./config`
+import, and `server-only` throws outside a framework by design. `tsx` fixes the
+first and `--conditions=react-server` the second, which is why this package
+carries a runner dependency that no other package needs. The alternative —
+adding `.ts` to every relative import across `auth` and `db` — was measured at
+around twenty edits and rejected as the larger change.
 
 ### Dependency graph
 
@@ -124,6 +153,7 @@ apps/web ──┬─► ui              ┐
                  │
                  ├─► contract
                  ├─► auth/server
+                 ├─► storage
                  └─► db
 ```
 
@@ -371,12 +401,31 @@ exactly as an absent `sendResetPassword` is. A deployment with no bucket runs:
 the form hides its file picker and `report.createUploadUrls` answers
 `ATTACHMENTS_UNAVAILABLE`.
 
-The field names a domain rather than a capability, and so does
-`SUPABASE_REPORT_BUCKET`, for the reason two subsections down: a bucket belongs
-to one domain, so the second domain to store files adds a field beside this one.
-`storageFromEnv(env, bucket)` takes the bucket separately so that stays a line
-in `connection/live.ts` — the project's URL and service key are the same for
-every bucket it will ever hold, and only the bucket name is per-domain.
+The field names a domain rather than a capability, and so does `REPORT_BUCKET`,
+for the reason two subsections down: a bucket belongs to one domain, so the
+second domain to store files adds a field beside this one.
+`storageFromEnv(config, bucket)` takes the bucket separately so that stays a
+line in `connection/live.ts` — the project's URL and service key are the same
+for every bucket it will ever hold, and only the bucket name is per-domain.
+
+**The port lives in `packages/storage`, the bucket name does not.** That
+package holds the two-method `Storage` type, the Supabase implementation, and
+the two variables that describe how to reach the project at all —
+`SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`, in `@packages/storage/env`. A
+package that must serve every domain cannot carry one domain's name, so the
+bucket is named in the report domain instead. `live.ts` is where the two meet,
+which is what a composition root is for — and `packages/api` has no `env.ts` at
+all as a result.
+
+**The bucket name is a constant, not an environment variable**, which is the
+one place this repo stops short of making something configurable. It could not
+actually vary: `supabase/config.toml` declares
+`[storage.buckets.report-attachments]`, and that declaration is what creates
+the bucket — locally through `supabase start`, on a hosted project through
+`supabase seed buckets`. A variable set to any other name would aim the app at
+a bucket nobody made, so the setting looked adjustable while only ever having
+one correct value. As a constant the name has to agree in two places instead of
+six, and a fork that wants a different one edits both.
 
 **The bytes never pass through this API.** `createUploadUrls` mints a path,
 signs a URL for it, and the browser PUTs straight to Supabase. Sending images
@@ -385,7 +434,8 @@ request-body limit in production rather than in review.
 
 **The browser holds no Supabase key of any kind.** Both directions are signed
 on the server with the `service_role` key, so switching storage on does not
-reopen the anon-key surface `setup.md` step 2 goes out of its way to close.
+reopen the anon-key surface `provisioning.md` step 1 goes out of its way to
+close.
 Checked rather than assumed: that key appears zero times in `.next/static`
 after a build. The bucket is private with no policies, for the same reason
 tables have RLS with no policies: the server holds a key that bypasses them and
@@ -421,7 +471,8 @@ shortened: `createSignedUploadUrl` takes no expiry.
 reach a handler, so `createUploadUrls` validating its `size` and `contentType`
 inputs constrains a claim, not a file. The bucket's own file-size limit and MIME
 allowlist are what hold — a 7 MB body declared as 1 KB is refused with `413`,
-and a PDF declared as `application/pdf` with `415`. `setup.md` treats setting
+and a PDF declared as `application/pdf` with `415`. `provisioning.md` treats
+setting
 them as part of creating the bucket, and says why `image/*` is the wrong value.
 
 **Which is why a second domain gets a second bucket.** The limit, the allowlist
@@ -430,9 +481,9 @@ none of them. `report/<userId>/` is enforced by this API, and it separates
 users, not features. A shared bucket would mean the first feature that needs a
 PDF, a 20 MB file, or a public URL widens all three for reports at the same
 time — including back to `image/*`, which is what keeps the paragraph above
-from being a hole. So the variable is `SUPABASE_REPORT_BUCKET` rather than
-`SUPABASE_STORAGE_BUCKET`: the name says the bucket belongs to a domain, and
-the next domain adds its own beside it.
+from being a hole. So the constant is `REPORT_BUCKET`, declared in the report
+domain, rather than a general `STORAGE_BUCKET` somewhere central: the name says
+the bucket belongs to a domain, and the next domain declares its own beside it.
 
 **Two gaps a project inherits.** Supabase checks the declared content type and
 not the bytes, so HTML stored as `image/png` is stored — it comes back as
@@ -441,8 +492,9 @@ hole. And nothing in this repo rate-limits anything, so a signed-in caller can
 call `createUploadUrls` in a loop and fill the bucket. The second is the one
 worth fixing first in a real project.
 
-**This is the one place a test gets a stand-in.** `testing/index.ts` has a
-`fakeStorage`, and `testing.md`'s rule against mocks still holds everywhere
+**This is the one place a test gets a stand-in.** `@packages/storage/testing`
+exports `fakeStorage` — beside the interface it fakes rather than in the tests
+of the package that consumes it — and `testing.md`'s rule against mocks still holds everywhere
 else: a database is Postgres compiled to WASM that boots in 1.4 seconds, while
 storage is an HTTP service on somebody else's machine. What is worth testing is
 this repo's own logic — which paths are minted, whose prefix they carry, that a
@@ -591,7 +643,7 @@ verification   owner=postgres  rls=true  policies=0
 ```
 
 Both conditions hold at once. Worth re-running per project — which is what
-`pnpm --filter @packages/db db:check` is for. If neither holds, deny-all locks
+`pnpm db:check` is for. If neither holds, deny-all locks
 out the application itself, and the symptom is empty result sets rather than an
 error.
 
@@ -820,6 +872,8 @@ looking for it.
 | `apps/web` | `env.ts` | yes | `next dev` / `next build` |
 | `packages/db` | `src/connection/env.ts` | yes | the `drizzle-kit` commands |
 | `packages/auth` | `src/env.ts` | **no** | nothing runs here — it is imported into `apps/web` |
+| `packages/storage` | `src/env.ts` | **no** | same — how to reach Supabase, read in `connection/live.ts` |
+| `packages/scripts` | — | **no** | it runs, but points at `apps/web/.env` rather than owning one |
 
 So `packages/auth/.env.example` documents what the package requires, while the
 values themselves go in `apps/web/.env`. Putting a real `.env` beside
@@ -1076,6 +1130,34 @@ still named `experimental_ZodSmartCoercionPlugin`; the unprefixed name exists
 only on the root. Without it, `?limit=20` arrives as the string `"20"` and fails
 the contract's `z.number()`.
 
+### C19 — an unrelated dependency can break `packages/auth`'s typecheck 🔴
+
+`packages/auth` exports `createAuth` and `auth`, whose types Better Auth infers
+rather than declares. Under pnpm those inferred types can only be named through
+a path inside `.pnpm/`, and TypeScript refuses:
+
+```
+TS2742: The inferred type of 'auth' cannot be named without a reference to
+'.pnpm/@better-auth+core@1.6.27_@b_2c02c54f.../node_modules/@better-auth/core'
+```
+
+The fix is to make the package nameable from where it is used: `@better-auth/core`
+is an explicit dependency of `packages/auth`, even though no line imports it.
+
+**What makes this worth a section is how it arrived.** Nothing in `packages/auth`
+changed. Adding the Supabase CLI as a root devDependency reshuffled pnpm's peer
+resolution, and the path TypeScript had been able to name stopped existing. Any
+dependency change anywhere can do this.
+
+**And `pnpm verify` did not notice.** Turbo hashes a task's own inputs and its
+package's declared dependencies — not the shape of `node_modules`. `packages/auth`
+had not changed, so its `typecheck` was served from cache and reported green for
+five commits while `turbo typecheck --force` was red the whole time.
+
+So: **after any change to dependencies, run the gate with `--force` once.** A
+cached green says the inputs turbo knows about are unchanged, which is a weaker
+claim than the tree being sound, and this is the gap between the two.
+
 ---
 
 ## S12. Sources
@@ -1170,187 +1252,3 @@ stamped onto the deployment by the platform, so unlike a `Host` header a caller
 cannot choose what they say — which is what `packages/auth/src/env.ts` insists
 on. `BETTER_AUTH_ALLOWED_HOSTS` remains for hosts the platform cannot report.
 
----
----
-
-# Appendices — delete these in a real project
-
-Everything past this line is about *this repo being a template*, not about the
-stack. Nothing above cites any of it except by name, and no numbering shifts
-when it goes, so each appendix can be removed on its own.
-
-## S13. Why this repo is a template
-
-A base template that lets multiple projects start quickly on the same stack and
-conventions.
-
-Two more principles apply while that is true, on top of the three at the top of
-this file:
-
-| Principle | What it means in practice |
-|---|---|
-| **No business logic** | Structure and conventions only, with one deliberate exception — see below. |
-| **Lean** | Nothing is included until it is needed. Everything omitted can be added later without a rewrite. |
-
-**The exception is the `report` domain.** Every project forked from here needs
-a way for the people using it to say something is wrong, so that one feature is
-built in rather than left to each fork to rediscover. Unlike `post` it is not
-an example and is not on the list of things to delete: a fork keeps it, and
-extends it. What it deliberately does not carry is anything that would drag a
-dependency in with it — no attachments, no outbox, no rate limiting — each of
-which is described where it is missing.
-
-These two are under constant pressure here, because every dependency added is
-inherited by every project started from this one and those get no update path
-(see S15), so a bad addition is permanent. **A
-real project built on this stack should add the business logic and the
-dependencies it needs** — only the three principles at the top survive the
-fork.
-
-### Turning this repo into a real project
-
-Beyond the setup every deployment needs, a fork has to strip the
-template out of itself. Leaving it in means every future session is told to
-keep a real product "lean" and free of business logic.
-
-1. **Rename.** `base-template` is the project's own name in six places, three
-   of which a user can see:
-
-   | File | What it is |
-   |---|---|
-   | `package.json` | the workspace root's `name` |
-   | `README.md` | the heading |
-   | this file, S2 | the tree diagram |
-   | `apps/web/app/layout.tsx` | **the browser tab title**, and the `%s · …` template every route inherits |
-   | `apps/web/app/api/spec/route.ts` | **the title in the published OpenAPI document** |
-   | `apps/web/app/api/docs/route.ts` | **the tab title at `/api/docs`** |
-
-   The version in `api/spec/route.ts` is hard-coded separately from
-   `package.json`; set it or wire the two together.
-2. **Rewrite `apps/web/app/page.tsx`.** It is a placeholder that describes the
-   template and links to the example domain.
-3. **Delete every appendix in this file**, including this one.
-4. **Delete the "While this repo is still the template" section of
-   `CLAUDE.md`.**
-5. **Rewrite `README.md`** for the project.
-6. **Delete the example domain** when a real one replaces it — see S14.
-
-Everything else in `CLAUDE.md` and all of `.claude/rules/` applies unchanged;
-they describe the stack, not the template.
-
-## S14. The example domain
-
-The template ships a `post` domain wired through every layer (contract → db →
-api → web) as a pattern to copy.
-
-**Why keep a live example instead of only documenting the pattern:** the example
-is checked by `tsc` and Vitest on every run, so when oRPC or Drizzle changes an
-API it goes red. Prose documentation and generator templates keep describing the
-old way with nothing to catch them.
-
-`.claude/rules/packages-conventions.md` has the six-step checklist for adding
-the domain that replaces it.
-
-### Deleting it
-
-Delete these paths:
-
-```
-packages/contract/src/domains/post/
-packages/db/src/schema/post.ts
-packages/api/src/domains/post/
-apps/web/app/posts/
-apps/web/features/post/
-```
-
-`apps/web/app/signin/`, `apps/web/app/signup/` and `apps/web/features/auth/`
-**stay.** They are real sign-in and sign-up pages wired to Better Auth, not
-scaffolding for the example — every project needs them. The one thing to
-change is where they send someone who did not ask for anywhere in particular:
-`DEFAULT_DESTINATION` in `features/auth/redirect.ts` holds `/posts`, which is
-about to stop existing.
-
-`packages/api/src/testing/index.ts` **stays** — `signUpTestUser`, `contextFor`,
-and `anonymousContext` belong to no domain, and every real domain's router
-tests need them.
-
-Then edit what still refers to the deleted domain. `tsc` catches the first
-four; the rest are comments, links and a pinned list, which it does not:
-
-| File | Change |
-|---|---|
-| `packages/contract/src/index.ts` | drop the `post` schema re-exports and the `post:` entry |
-| `packages/api/src/index.ts` | drop `post: postRouter` |
-| `packages/db/src/schema/index.ts` | drop `export * from "./post"` |
-| `packages/db/src/schema/rls-guard.test.ts` | remove `"post"` from the pinned table list |
-| `apps/web/app/page.tsx` | replace the placeholder landing page |
-| `apps/web/features/auth/redirect.ts` | `DEFAULT_DESTINATION` — send them somewhere that exists |
-| `apps/web/lib/orpc-query.ts` | comments use `orpc.post.*` as examples |
-| `apps/web/lib/orpc.server.ts` | comment uses `client.post.list()` |
-| `packages/api/src/testing/index.ts` | comment refers to `post` |
-
-`DEFAULT_DESTINATION` is the one to watch: nothing fails when it is missed. It
-compiles whatever it holds, sign-in still succeeds, and the person lands on a
-404 a second later.
-
-Finally, the **migrations**: `packages/db/drizzle/` already contains a
-`CREATE TABLE "post"`. Deleting the schema file does not undo it. For a project
-with no data yet, delete both migration folders and run
-`pnpm --filter @packages/db db:generate` once to produce a single initial
-migration from the schema that is left. For one that has already deployed,
-generate a normal drop migration instead.
-
-`pnpm verify` green means the deletion is complete.
-
-## S15. Consuming the template
-
-Use GitHub's **"Use this template"** button.
-
-**Accepted limitation:** projects created this way do not receive later template
-updates, since the git histories are unrelated. Propagating an improvement means
-copying files manually.
-
-That is a further reason to keep the template **small and stable**, and the
-reason C1 weighs "unmaintained but stable" so heavily against "release
-candidate".
-
-## S16. Decisions already settled
-
-Recorded so they are not reopened by accident:
-
-- **The quality gate** is `pnpm verify` plus a `Stop` hook
-  (`.claude/settings.json`), so a session cannot end on a broken tree.
-- **Tests receive a database rather than importing one** (boundary 4). The
-  alternative — fabricating sessions — would have covered every ownership check
-  but not `requireAuth` itself, nor any auth rule a project adds later (blocked
-  email domains, lockout, a profile row created on signup). A template should
-  not hand its users a corner they have to refactor out of.
-- **`user` fields belong either to Better Auth or to the project, never both**
-  (see S4).
-- **Drizzle stays on its pinned release candidate** until v1 GA (C1). When GA
-  lands, C1 and the `peerDependencyRules` entry in `pnpm-workspace.yaml` are
-  the two places to revisit.
-- **`README.md` is written for a human arriving from GitHub** — what the stack
-  is, and the path from clone to running app. `CLAUDE.md` is the agent-facing
-  equivalent and they are allowed to overlap; the README is not a redirect.
-- **Sections carry stable `S` ids, assigned once and never reordered.** Two
-  earlier attempts failed. Plain ordinals (`§1`, `§2`) read well but renumbered
-  every time a section moved, and the references that broke were in source
-  comments, where no tooling notices — one renumbering silently invalidated six
-  of them. Citing by quoted title survived that, but a citation then had to
-  carry a whole phrase, and long titles read badly in a one-line comment. An
-  `S` id is short enough to cite and stable enough to trust, which is what
-  `C1`…`C18` had been doing correctly all along. The cost is that ids drift out
-  of reading order as sections are added; that is the price of never rotting.
-- **Where agent-facing rules live.** Three surfaces that do not overlap:
-
-  | | Holds | Loaded |
-  |---|---|---|
-  | `CLAUDE.md` | What is true everywhere — purpose, commands, the package graph, the enforced boundaries, framework versions that differ from training data | every session |
-  | `.claude/rules/*.md` | What is true in one surface, scoped by `paths:` frontmatter — one file each for `apps/web`, all packages, `api`, `db`, `contract`, and tests | when work touches the matching directory |
-  | Code comments | Why *this line* is the way it is | when the file is read |
-
-  A rule that only makes sense next to the code it constrains stays a comment;
-  moving it into a rule file would strip the reasoning from the place it
-  applies. There is no `AGENTS.md` — Claude Code reads `CLAUDE.md`, and this
-  repo is Claude-Code-first in practice already.

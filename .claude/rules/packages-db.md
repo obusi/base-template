@@ -90,9 +90,12 @@ the three edits above every time.
 ## Migrations
 
 ```bash
-pnpm --filter @packages/db db:generate   # write a migration from schema changes
-pnpm --filter @packages/db db:migrate    # apply it
+pnpm db:generate   # write a migration from schema changes
+pnpm db:migrate    # apply it
 ```
+
+Both are passthroughs declared in the root `package.json`; the `--filter` form
+still works and means the same thing.
 
 Never hand-edit anything under `drizzle/` and never rename a migration folder —
 the ledger of what has been applied is keyed on those names, and the test
@@ -132,10 +135,18 @@ still matches.
 
 ## Two exported entry points, and no more
 
-`"."` gives `db`, `Database`, and the `schema` namespace. `"./testing"` gives
-the helpers — exported rather than kept private because `packages/api` imports
-them too. Nothing else is public: `@packages/db/connection/client` and
-`@packages/db/schema/post` do not resolve, deliberately.
+`"."` gives `db`, `closeDb`, `Database`, and the `schema` namespace.
+`"./testing"` gives the helpers — exported rather than kept private because
+`packages/api` imports them too. Nothing else is public:
+`@packages/db/connection/client` and `@packages/db/schema/post` do not resolve,
+deliberately.
+
+`closeDb` exists for `packages/scripts`. `client` is deliberately not exported,
+so a script holding the shared `db` has no other way to release the pool — and
+without releasing it the process finishes its work and then hangs on an idle
+connection, which reads as a script that failed rather than one that is done.
+The two scripts under `scripts/` do not need it: they open connections of their
+own and close those.
 
 `Database` is the shared `PgAsyncDatabase` base rather than `typeof db`, so
 that a PGlite instance from `createTestDb()` satisfies it. The two drivers are
