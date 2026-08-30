@@ -141,8 +141,9 @@ The type is `Database` — the shared `PgAsyncDatabase` base — deliberately, n
 types, so `typeof db` would reject exactly the instance a test supplies.
 
 The single place allowed to name the real `db` is a composition root:
-`packages/api/src/connection/live.ts`. It carries `import "server-only"` and
-nothing inside the package imports it.
+`packages/api/src/connection/`. Both files there — `live.ts`, which builds the
+request context, and `seed.ts`, which creates the two development accounts —
+carry `import "server-only"`, and nothing inside the package imports either.
 
 ## Environment variables
 

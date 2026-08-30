@@ -32,3 +32,8 @@ const reportStorage = storageFromEnv(env, env.SUPABASE_REPORT_BUCKET)
 export function liveContext(headers: Headers): ApiContext {
   return { db, auth, headers, reportStorage }
 }
+
+// Re-exported rather than given an entry point of its own: the `exports` map
+// lists two paths and `surface.test.ts` pins that number, so a development
+// convenience is not the thing that widens a package's public surface.
+export { seedDevUsers, DEV_PASSWORD, DEV_USERS } from "./seed"
