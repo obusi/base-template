@@ -65,13 +65,12 @@ them, minus the file picker:
 |---|---|---|
 | `SUPABASE_URL` | Config | the project URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | **Secret** | the `service_role` key, never `anon` |
-| `SUPABASE_REPORT_BUCKET` | Config | only if the bucket is not named `report-attachments` |
 
-The first two are a pair: `packages/api` treats storage as configured only when
-both are present, so half of them is the same as neither. The third has a
-default and is usually left unset — it exists because a bucket belongs to one
-domain, and a project adding a second one adds a variable beside it rather than
-sharing this bucket. `architecture.md` S4 says why.
+They are a pair: storage counts as configured only when both are present, so
+half of them is the same as neither. There is no third variable for the bucket
+name — `supabase/config.toml` declares it and the code names the same string as
+a constant. `architecture.md` S4 says why a bucket belongs to one domain, and
+what a project adding a second one does instead.
 
 And two more only if the app should offer Google sign-in:
 

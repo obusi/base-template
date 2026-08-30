@@ -20,7 +20,6 @@ src/
 │   ├── context.ts          ApiContext — what a handler receives
 │   └── builder.ts          os = implement(contract).$context<ApiContext>()
 ├── middleware/auth.ts    requireAuth, requireAdmin
-├── env.ts                the report bucket's name, validated
 ├── connection/live.ts    the real context, for production requests
 └── testing/index.ts      the throwaway context, for tests
 ```
@@ -156,12 +155,16 @@ second way of building storage.
 
 **The `Storage` port itself is not in this package** — it is `@packages/storage`,
 along with its Supabase implementation, its `fakeStorage`, and the two variables
-that say how to reach the project (`SUPABASE_URL`,
-`SUPABASE_SERVICE_ROLE_KEY`, in `@packages/storage/env`). This package declares
-only `SUPABASE_REPORT_BUCKET`, because that is the one part with a domain in its
-name. `@supabase/storage-js` is deliberately absent from this package's
-`package.json`, so an import of it does not resolve: handlers see two functions
-and cannot reach past them to the provider.
+that say how to reach the project (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
+in `@packages/storage/env`). `@supabase/storage-js` is deliberately absent from
+this package's `package.json`, so an import of it does not resolve: handlers
+see two functions and cannot reach past them to the provider.
+
+**This package has no `env.ts`.** The only thing it used to declare was the
+bucket name, and that is now `REPORT_BUCKET` in `domains/report/service.ts` — a
+constant, because `supabase/config.toml` declares the bucket and a variable set
+to any other name would point at one nobody created. A new domain that stores
+files declares its own constant beside its own service, not a variable.
 
 `connection/live.ts` is the one file that names the real `db` and the real
 `auth`. It carries `import "server-only"`, and **nothing inside this package

@@ -156,7 +156,6 @@ none of them is right for a deployment.
 | `GOOGLE_CLIENT_SECRET` | web | no | Google Cloud console |
 | `SUPABASE_URL` | web | no | the Supabase dashboard |
 | `SUPABASE_SERVICE_ROLE_KEY` | web | no | the Supabase dashboard |
-| `SUPABASE_REPORT_BUCKET` | web | no | defaults to `report-attachments` |
 | `BETTER_AUTH_ALLOWED_HOSTS` | web | no | nothing — see below |
 
 Most of the optional ones are feature switches rather than settings, and each
@@ -241,10 +240,16 @@ enough for real users. For those: **Domains → Add Domain**, publish the DNS
 records Resend lists, then set `RESEND_FROM` to an address on that domain.
 Resend rejects a `from` on a domain it has not verified.
 
-### `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_REPORT_BUCKET` — optional
+### `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` — optional
 
-The switch for attaching screenshots to a report. Leave all three empty and the
-form simply has no file picker; nothing else changes.
+The switch for attaching screenshots to a report. Leave both empty and the form
+simply has no file picker; nothing else changes.
+
+There is no third variable for the bucket's name. `supabase/config.toml`
+declares `report-attachments`, and that declaration is what creates the bucket;
+the code names the same string as `REPORT_BUCKET` in
+`packages/api/src/domains/report/service.ts`. A variable pointing anywhere else
+would only aim the app at a bucket nobody made.
 
 The bucket has to be **created by hand** on a deployment — `config.toml`
 declares it for the local stack only. Three of its settings are not cosmetic.
@@ -252,13 +257,14 @@ Supabase → **Storage → New bucket**:
 
 | Setting | Value | What it is |
 |---|---|---|
-| Name | `report-attachments` | must match `SUPABASE_REPORT_BUCKET` |
+| Name | `report-attachments` | must match `REPORT_BUCKET` in the code |
 | Public bucket | **off** | nothing is readable without a URL this server signed |
 | Restrict file size | **on**, `5` MB | the only place a size is actually enforced |
 | Restrict MIME types | **on** | the only place a type is actually enforced |
 | Allowed MIME types | `image/jpeg,image/png,image/webp` | must match `AttachmentContentType` |
 
-Then Supabase → **Project Settings → API** for the two values. `SUPABASE_URL`
+Then Supabase → **Project Settings → API** for the two values above.
+`SUPABASE_URL`
 is the project URL; the key is the one labelled **`service_role`**, not `anon`.
 
 **Why the last three are not optional.** The bytes go from the browser straight

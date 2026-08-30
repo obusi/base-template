@@ -138,8 +138,11 @@ constraints, not taste — merging any two of the six breaks something specific:
 layout makes it unresolvable from `api`. The API layer sees two functions and
 cannot see the provider behind them — the same mechanism that keeps `apps/web`
 away from `db`. `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` live in
-`@packages/storage/env`; `SUPABASE_REPORT_BUCKET` does not, because a package
-that serves every domain must not carry one domain's name.
+`@packages/storage/env`; the bucket name does not, because a package that serves
+every domain must not carry one domain's name. It is a constant —
+`REPORT_BUCKET` in the report domain — rather than an environment variable,
+since `supabase/config.toml` is what actually creates the bucket and a variable
+naming anything else would point at one that does not exist.
 
 `packages/scripts` sits outside that table on purpose. It is a **runner, not a
 library** — nothing imports it, it has no `exports` map, and it holds the

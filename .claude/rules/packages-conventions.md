@@ -165,8 +165,8 @@ whatever program starts in that folder:
 | `apps/web` | yes | yes | `next dev` / `next build` |
 | `packages/db` | `src/connection/env.ts` | yes | the `drizzle-kit` commands |
 | `packages/auth` | yes | **no** | nothing runs here — it is imported into `apps/web` |
-| `packages/api` | yes | **no** | same — the report bucket's name, read in `connection/live.ts` |
-| `packages/storage` | yes | **no** | same — how to reach Supabase, read in the same place |
+| `packages/api` | **no** | **no** | it reads none — the bucket name is a constant, not a variable |
+| `packages/storage` | yes | **no** | same as `auth` — how to reach Supabase, read in `connection/live.ts` |
 | `packages/scripts` | no | **no** | it runs, but reads `apps/web/.env` — see below |
 
 `packages/scripts` is the odd one: it *is* a process, so it could own a `.env`,
@@ -232,24 +232,24 @@ this description — prose goes stale, a compiled example does not.
 A bucket belongs to one domain — the file-size limit and the MIME allowlist are
 properties of a bucket, and a folder inside one cannot carry its own. So a
 domain that stores files gets a bucket of its own rather than a folder in
-`report`'s, and wiring it is five edits and no new abstraction:
+`report`'s, and wiring it is four edits and no new abstraction:
 
 1. **Declare the bucket** in `supabase/config.toml`, private, with its own size
    limit and MIME allowlist — `supabase start` then creates it locally, and
    `supabase seed buckets` creates it on a hosted project.
    `report-attachments` is the worked example, and `docs/setup.md` says which
    of its settings are not cosmetic.
-2. **`packages/api/src/env.ts`** — `SUPABASE_<X>_BUCKET`, optional with a
-   default. Only the bucket name goes here; `SUPABASE_URL` and
-   `SUPABASE_SERVICE_ROLE_KEY` are in `@packages/storage/env` already and are
-   the same for every bucket in the project.
-3. **`turbo.json`** — add the variable to `globalEnv`, or turbo drops it with a
-   warning that is easy to miss.
-4. **`packages/api/src/shared/context.ts`** — `<x>Storage: Storage | null`,
+2. **`packages/api/src/domains/<x>/service.ts`** — `export const <X>_BUCKET`,
+   the same string as step 1. A constant rather than an env var: step 1 is what
+   creates the bucket, so a variable naming anything else would only point at
+   one nobody made. `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are in
+   `@packages/storage/env` already and are the same for every bucket in the
+   project — nothing new is needed there, and nothing in `turbo.json`.
+3. **`packages/api/src/shared/context.ts`** — `<x>Storage: Storage | null`,
    named after the domain so a handler can only reach its own bucket.
-5. **`packages/api/src/connection/live.ts`** — one line:
-   `const <x>Storage = storageFromEnv(storageEnv, env.SUPABASE_<X>_BUCKET)`,
-   then return it in the context.
+4. **`packages/api/src/connection/live.ts`** — one line:
+   `const <x>Storage = storageFromEnv(storageEnv, <X>_BUCKET)`, then return it
+   in the context.
 
 Nothing else — and in particular, nothing inside `packages/storage`. It takes
 the bucket as an argument precisely so that a second one costs a line rather

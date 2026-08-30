@@ -17,7 +17,7 @@ import { db } from "@packages/db"
 import { storageFromEnv } from "@packages/storage"
 import { env as storageEnv } from "@packages/storage/env"
 
-import { env } from "../env"
+import { REPORT_BUCKET } from "../domains/report/service"
 import type { ApiContext } from "../shared/context"
 
 /**
@@ -28,7 +28,7 @@ import type { ApiContext } from "../shared/context"
  * storage adds a line here with its own variable, not a second way of building
  * one.
  */
-const reportStorage = storageFromEnv(storageEnv, env.SUPABASE_REPORT_BUCKET)
+const reportStorage = storageFromEnv(storageEnv, REPORT_BUCKET)
 
 export function liveContext(headers: Headers): ApiContext {
   return { db, auth, headers, reportStorage }

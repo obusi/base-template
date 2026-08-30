@@ -19,7 +19,6 @@
     "@packages/contract": "workspace:*",
     "@packages/db": "workspace:*",
     "@packages/storage": "workspace:*",
-    "@t3-oss/env-core": "catalog:",
     "drizzle-orm": "catalog:",
     "server-only": "catalog:",
     "zod": "catalog:"

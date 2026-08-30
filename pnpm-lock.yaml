@@ -231,9 +231,6 @@ importers:
       '@packages/storage':
         specifier: workspace:*
         version: link:../storage
-      '@t3-oss/env-core':
-        specifier: 'catalog:'
-        version: 0.13.11(typescript@5.9.3)(zod@4.4.3)
       drizzle-orm:
         specifier: 'catalog:'
         version: 1.0.0-rc.4(@electric-sql/pglite@0.5.4)(postgres@3.4.9)(zod@4.4.3)

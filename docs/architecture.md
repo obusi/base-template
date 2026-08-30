@@ -404,9 +404,9 @@ exactly as an absent `sendResetPassword` is. A deployment with no bucket runs:
 the form hides its file picker and `report.createUploadUrls` answers
 `ATTACHMENTS_UNAVAILABLE`.
 
-The field names a domain rather than a capability, and so does
-`SUPABASE_REPORT_BUCKET`, for the reason two subsections down: a bucket belongs
-to one domain, so the second domain to store files adds a field beside this one.
+The field names a domain rather than a capability, and so does `REPORT_BUCKET`,
+for the reason two subsections down: a bucket belongs to one domain, so the
+second domain to store files adds a field beside this one.
 `storageFromEnv(config, bucket)` takes the bucket separately so that stays a
 line in `connection/live.ts` — the project's URL and service key are the same
 for every bucket it will ever hold, and only the bucket name is per-domain.
@@ -414,10 +414,21 @@ for every bucket it will ever hold, and only the bucket name is per-domain.
 **The port lives in `packages/storage`, the bucket name does not.** That
 package holds the two-method `Storage` type, the Supabase implementation, and
 the two variables that describe how to reach the project at all —
-`SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`, in `@packages/storage/env`.
-`SUPABASE_REPORT_BUCKET` stays in `packages/api/src/env.ts`, because a package
-that must serve every domain cannot carry one domain's name. `live.ts` is where
-the two meet, which is what a composition root is for.
+`SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`, in `@packages/storage/env`. A
+package that must serve every domain cannot carry one domain's name, so the
+bucket is named in the report domain instead. `live.ts` is where the two meet,
+which is what a composition root is for — and `packages/api` has no `env.ts` at
+all as a result.
+
+**The bucket name is a constant, not an environment variable**, which is the
+one place this repo stops short of making something configurable. It could not
+actually vary: `supabase/config.toml` declares
+`[storage.buckets.report-attachments]`, and that declaration is what creates
+the bucket — locally through `supabase start`, on a hosted project through
+`supabase seed buckets`. A variable set to any other name would aim the app at
+a bucket nobody made, so the setting looked adjustable while only ever having
+one correct value. As a constant the name has to agree in two places instead of
+six, and a fork that wants a different one edits both.
 
 **The bytes never pass through this API.** `createUploadUrls` mints a path,
 signs a URL for it, and the browser PUTs straight to Supabase. Sending images
@@ -471,9 +482,9 @@ none of them. `report/<userId>/` is enforced by this API, and it separates
 users, not features. A shared bucket would mean the first feature that needs a
 PDF, a 20 MB file, or a public URL widens all three for reports at the same
 time — including back to `image/*`, which is what keeps the paragraph above
-from being a hole. So the variable is `SUPABASE_REPORT_BUCKET` rather than
-`SUPABASE_STORAGE_BUCKET`: the name says the bucket belongs to a domain, and
-the next domain adds its own beside it.
+from being a hole. So the constant is `REPORT_BUCKET`, declared in the report
+domain, rather than a general `STORAGE_BUCKET` somewhere central: the name says
+the bucket belongs to a domain, and the next domain declares its own beside it.
 
 **Two gaps a project inherits.** Supabase checks the declared content type and
 not the bytes, so HTML stored as `image/png` is stored — it comes back as
@@ -862,8 +873,7 @@ looking for it.
 | `apps/web` | `env.ts` | yes | `next dev` / `next build` |
 | `packages/db` | `src/connection/env.ts` | yes | the `drizzle-kit` commands |
 | `packages/auth` | `src/env.ts` | **no** | nothing runs here — it is imported into `apps/web` |
-| `packages/api` | `src/env.ts` | **no** | same — the report bucket's name, read in `connection/live.ts` |
-| `packages/storage` | `src/env.ts` | **no** | same — how to reach Supabase, read in the same place |
+| `packages/storage` | `src/env.ts` | **no** | same — how to reach Supabase, read in `connection/live.ts` |
 | `packages/scripts` | — | **no** | it runs, but points at `apps/web/.env` rather than owning one |
 
 So `packages/auth/.env.example` documents what the package requires, while the

@@ -4,8 +4,8 @@ import { z } from "zod"
 /**
  * How to reach the Supabase project — and nothing about what is kept there.
  * A bucket name belongs to the domain that owns the bucket, so it is declared
- * beside that domain (`SUPABASE_REPORT_BUCKET` lives in `packages/api`) and
- * arrives here as an argument to `storageFromEnv`.
+ * beside that domain (`REPORT_BUCKET` in `packages/api`, a constant rather
+ * than a variable) and arrives here as an argument to `storageFromEnv`.
  *
  * Both are optional, and both absent is the normal state: the app runs, the
  * report form hides its file picker, and `report.createUploadUrls` answers
