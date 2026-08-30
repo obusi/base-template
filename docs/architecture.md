@@ -19,7 +19,7 @@
 > takes the next free number even if it belongs in the middle. So the ids may
 > run out of order and some may be missing entirely, and that is the point — a
 > citation written today cannot rot. S11 was retired; S13 to S16 were about this
-> repo being a template and moved out with it; `C1`…`C18` inside S10 work the
+> repo being a template and moved out with it; `C1`…`C19` inside S10 work the
 > same way, and `C2` is missing for exactly that reason.
 >
 > Last updated: 2026-08-30

@@ -146,7 +146,7 @@ it.
 - [`docs/template.md`](docs/template.md) — the parts that are only true while this repo is a template. A real project deletes the file.
 - [`docs/architecture.md`](docs/architecture.md) — the single design document.
   Why the repo is shaped this way, the boundaries and how each is enforced, the
-  security model, and S10, the library traps (`C1`…`C18`) that shaped it. Read
+  security model, and S10, the library traps (`C1`…`C19`) that shaped it. Read
   the relevant section before changing a structural rule.
 - [`CLAUDE.md`](CLAUDE.md) and `.claude/rules/` — instructions for AI coding
   agents: what is true everywhere, and what is true only in one package.

@@ -72,9 +72,9 @@ pnpm --filter @packages/api exec vitest run -t "refuses a caller with no session
 ```
 
 **Local Supabase.** Postgres and object storage run in Docker, configured by
-`supabase/config.toml` — which switches off the nine services this repo does not
-use and declares the `report-attachments` bucket so it is created rather than
-clicked. Nothing here talks to a hosted project; `docs/getting-started.md` is
+`supabase/config.toml` — which switches off every Supabase service this repo
+does not use, and declares the `report-attachments` bucket so it is created
+rather than clicked. Nothing here talks to a hosted project; `docs/getting-started.md` is
 the local procedure and `docs/provisioning.md` the hosted one.
 
 ```bash
@@ -234,7 +234,7 @@ what to re-check when any of them moves.
 ## Where the rest lives
 
 - `docs/architecture.md` — the one design document: the reasoning behind every
-  decision above, plus S10, the library traps (`C1`…`C18`) that shaped the
+  decision above, plus S10, the library traps (`C1`…`C19`) that shaped the
   repo and are cited by number from several source comments. Read the relevant
   section before changing a structural rule.
 - `docs/getting-started.md` — clone to running app on one machine: install,

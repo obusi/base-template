@@ -18,7 +18,8 @@ src/
 │   └── router.test.ts
 ├── shared/
 │   ├── context.ts          ApiContext — what a handler receives
-│   └── builder.ts          os = implement(contract).$context<ApiContext>()
+│   ├── builder.ts          os = implement(contract).$context<ApiContext>()
+│   └── surface.test.ts     pins the exports map — see the last section
 ├── middleware/auth.ts    requireAuth, requireAdmin
 ├── connection/live.ts    the real context, for production requests
 └── testing/index.ts      the throwaway context, for tests

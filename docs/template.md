@@ -53,7 +53,7 @@ Beyond the setup every deployment needs, a fork has to strip the
 template out of itself. Leaving it in means every future session is told to
 keep a real product "lean" and free of business logic.
 
-1. **Rename.** `base-template` is the project's own name in six places, three
+1. **Rename.** `base-template` is the project's own name in seven places, four
    of which a user can see:
 
    | File | What it is |
@@ -64,6 +64,7 @@ keep a real product "lean" and free of business logic.
    | `apps/web/app/layout.tsx` | **the browser tab title**, and the `%s · …` template every route inherits |
    | `apps/web/app/api/spec/route.ts` | **the title in the published OpenAPI document** |
    | `apps/web/app/api/docs/route.ts` | **the tab title at `/api/docs`** |
+   | `apps/web/features/auth/components/auth-header.tsx` | **the "Welcome to …" heading** on sign-in and sign-up, plus the screen-reader label beside the logo |
 
    The version in `api/spec/route.ts` is hard-coded separately from
    `package.json`; set it or wire the two together.
@@ -180,7 +181,7 @@ Recorded so they are not reopened by accident:
   of them. Citing by quoted title survived that, but a citation then had to
   carry a whole phrase, and long titles read badly in a one-line comment. An
   `S` id is short enough to cite and stable enough to trust, which is what
-  `C1`…`C18` had been doing correctly all along. The cost is that ids drift out
+  the `C` ids inside S10 had been doing correctly all along. The cost is that ids drift out
   of reading order as sections are added; that is the price of never rotting.
 - **Where agent-facing rules live.** Three surfaces that do not overlap:
 
