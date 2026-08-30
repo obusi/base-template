@@ -52,17 +52,6 @@ public = false
 file_size_limit = "5MiB"
 allowed_mime_types = ["image/jpeg", "image/png", "image/webp"]
 
-# TEMPORARY — a fourth bucket, and the last one. Production answered its half:
-# a bucket removed from this file stays on the hosted project. A preview branch
-# could not answer the same question, because it is built from scratch on every
-# pull request and so has nothing to keep. This one arrives first and leaves in
-# a later commit on the same branch, which is the only way to ask a preview
-# branch whether it deletes.
-[storage.buckets.scratch-attachments]
-public = false
-file_size_limit = "2MiB"
-allowed_mime_types = ["text/plain"]
-
 # S3-compatible access to the same objects. The app signs URLs through
 # `@supabase/storage-js`, so this is a second door to the same room.
 [storage.s3_protocol]
