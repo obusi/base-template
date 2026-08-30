@@ -71,7 +71,33 @@ same on every machine and in every project that runs Supabase locally, and
 pnpm --filter @packages/db db:migrate
 ```
 
-## 5. Run it
+## 5. Create the two development accounts
+
+```bash
+pnpm seed
+```
+
+The app is two apps either side of one column, so developing with only one role
+means never seeing the other half:
+
+| Email | Password | Sees |
+|---|---|---|
+| `user@example.com` | `12345678` | the ordinary app |
+| `admin@example.com` | `12345678` | that, plus `/admin` |
+
+Running it twice is safe — an account that already exists is skipped. Running
+it against a database with no tables exits non-zero, on purpose: this is a
+command someone typed, so it should fail where it can be seen rather than warn
+and leave the accounts it promised missing.
+
+The code is `packages/scripts/src/seed.ts`. It signs both accounts up through
+Better Auth rather than inserting rows, because the password has to be hashed
+the way sign-in will verify it — a SQL insert produces a row nobody can log in
+as, which is also why `[db.seed]` is switched off in `supabase/config.toml`.
+
+Sign up normally at `/signup` for a third account whenever you want one.
+
+## 6. Run it
 
 ```bash
 pnpm dev
@@ -80,30 +106,17 @@ pnpm dev
 The app is at `http://localhost:3000`, `/posts` is a worked example, and the
 interactive API docs are at `/api/docs`.
 
-**Two accounts already exist.** The dev server seeds them the first time it
-starts against an empty database, because the app is two apps either side of one
-column and developing with only one role means never seeing the other half:
-
-| Email | Password | Sees |
-|---|---|---|
-| `user@example.com` | `dev-password` | the ordinary app |
-| `admin@example.com` | `dev-password` | that, plus `/admin` |
-
-The code is `packages/api/src/connection/seed.ts`, and it runs only when
-`NODE_ENV` is `development` — a preview deployment builds as production like any
-other, which is what keeps a known password off a public URL. Sign up normally
-at `/signup` for a third account whenever you want one.
-
 ## Everyday
 
 ```bash
 pnpm supabase:stop     # frees the memory; the data survives
 pnpm supabase:reset    # wipes it and re-applies the migrations
+pnpm seed              # the two accounts again, on the empty database
 ```
 
-`supabase:reset` recreates the bucket from `config.toml` and empties it, and the
-next `pnpm dev` re-seeds the two accounts — an empty database with a working
-login, in two commands.
+`supabase:reset` also recreates the bucket from `config.toml` and empties it.
+`pnpm seed` works while `pnpm dev` is running, so an empty database with a
+working login is two commands and no restart.
 
 ---
 

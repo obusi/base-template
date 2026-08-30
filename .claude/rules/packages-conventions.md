@@ -5,8 +5,9 @@ paths:
 
 # Shared conventions for every `packages/*`
 
-Five packages, split along hard technical constraints rather than taste —
-`CLAUDE.md` has the table of why each one cannot be merged into another. This
+Six packages. Five are split along hard technical constraints rather than
+taste — `CLAUDE.md` has the table of why each one cannot be merged into
+another — and `scripts` is a runner rather than a library. This
 file covers what they all share: the files each package carries, how they
 import from each other and from themselves, and what adding a new domain
 touches. Rules specific to one package live in `packages-api.md`,
@@ -54,9 +55,11 @@ Two consequences worth internalising:
 the map to make an import work, stop and ask whether the import belongs — most
 of the time the answer is that the caller should be going through `"."`.
 
-**A file that nothing exports and nothing tests should not exist.** The one
-sanctioned exception is `packages/db/scripts/`, which sits outside `src/`
-precisely because it is only ever run by hand, never imported.
+**A file that nothing exports and nothing tests should not exist.** Two places
+are exempt, and both for the same reason — they are run by hand and never
+imported: `packages/db/scripts/`, which sits outside `src/` to say so, and
+`packages/scripts`, which has no `exports` map at all. A package with no
+`exports` map is a runner; every other package must have one.
 
 ## Import style
 
@@ -141,9 +144,12 @@ The type is `Database` — the shared `PgAsyncDatabase` base — deliberately, n
 types, so `typeof db` would reject exactly the instance a test supplies.
 
 The single place allowed to name the real `db` is a composition root:
-`packages/api/src/connection/`. Both files there — `live.ts`, which builds the
-request context, and `seed.ts`, which creates the two development accounts —
-carry `import "server-only"`, and nothing inside the package imports either.
+`packages/api/src/connection/live.ts`. It carries `import "server-only"` and
+nothing inside the package imports it.
+
+`packages/scripts` is the one other place, and it is not a counter-example: it
+is a process rather than a library, so there is nothing to hand it a database
+from.
 
 ## Environment variables
 
@@ -160,6 +166,16 @@ whatever program starts in that folder:
 | `packages/db` | `src/connection/env.ts` | yes | the `drizzle-kit` commands |
 | `packages/auth` | yes | **no** | nothing runs here — it is imported into `apps/web` |
 | `packages/api` | yes | **no** | same — the storage switch, read in `connection/live.ts` |
+| `packages/scripts` | no | **no** | it runs, but reads `apps/web/.env` — see below |
+
+`packages/scripts` is the odd one: it *is* a process, so it could own a `.env`,
+and deliberately does not. `pnpm seed` needs `DATABASE_URL`,
+`BETTER_AUTH_SECRET` and `BETTER_AUTH_URL` together, and only `apps/web/.env`
+has all three — a fourth copy would be a fourth thing to keep in sync, and
+drift there is silent in both directions: a different `DATABASE_URL` seeds a
+database the app never reads, and a different `BETTER_AUTH_SECRET` creates
+users whose sessions the app cannot verify. So its `seed` script points at
+`apps/web/.env` explicitly.
 
 So `packages/auth/.env.example` documents what the package requires while the
 values live in `apps/web/.env`. `DATABASE_URL` is knowingly duplicated across

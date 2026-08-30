@@ -50,6 +50,18 @@ pnpm format          # prettier --write .
 so a session does not end on a broken tree. Run it by hand when you want the
 result sooner.
 
+**After changing any dependency, run the gate once with the cache off:**
+
+```bash
+pnpm exec turbo typecheck lint test --force
+```
+
+Turbo hashes a task's inputs and its package's declared dependencies, not the
+shape of `node_modules` — so a package whose own files did not change is served
+from cache even when a reshuffled dependency tree has broken it. That is not
+hypothetical here: see `docs/architecture.md` S10 (C19), where adding a root
+devDependency broke `packages/auth` and `pnpm verify` reported green anyway.
+
 **One package, one test file, one test** (`<domain>` is a folder under
 `packages/api/src/domains/`):
 
@@ -68,12 +80,16 @@ halves.
 ```bash
 pnpm supabase:start   # Postgres on 54322, storage on 54321, studio on 54323
 pnpm supabase:stop
-pnpm supabase:reset   # wipe, re-apply migrations; next `dev` re-seeds
+pnpm supabase:reset   # wipe, then re-apply the migrations
+pnpm seed             # user@example.com + admin@example.com, password 12345678
 ```
 
-The dev server seeds `user@example.com` and `admin@example.com` (password
-`dev-password`) the first time it starts against an empty database —
-`packages/api/src/connection/seed.ts`, guarded on `NODE_ENV`.
+`pnpm seed` runs `packages/scripts/src/seed.ts`. It signs both accounts up
+through Better Auth rather than inserting rows, because the password has to be
+hashed the way sign-in will verify it — which is also why `[db.seed]` is off in
+`config.toml` and why the script needs `tsx --conditions=react-server` to run
+at all. Running it twice is safe; running it against a database with no tables
+exits non-zero rather than warning.
 
 **Database** (needs `packages/db/.env` — see `docs/architecture.md` S9 for why
 there are two env files; both are copies of their `.env.example` for local work):
@@ -99,8 +115,8 @@ start it with `preview_start` rather than running a server through Bash.
 
 ## Architecture
 
-Five packages, one app. The split follows hard technical constraints, not
-taste — merging any two breaks something specific:
+Five packages and a runner, one app. The split follows hard technical
+constraints, not taste — merging any two of the five breaks something specific:
 
 | Package | Holds | Why it cannot be merged |
 |---|---|---|
@@ -109,6 +125,13 @@ taste — merging any two breaks something specific:
 | `auth` | Better Auth server + client entries | The browser login page calls it directly, bypassing oRPC |
 | `api` | The oRPC router — implements the contract | The layer that composes everything else |
 | `ui` | shadcn components | DOM-only; unusable from React Native |
+
+`packages/scripts` sits outside that table on purpose. It is a **runner, not a
+library** — nothing imports it, it has no `exports` map, and it holds the
+commands that need the real database and the real auth instance at once (today
+just `seed`). It could be merged into any of the five without breaking
+anything; it is separate so that "what does this package export?" has an
+answer for every other package in the repo.
 
 ```
 apps/web ──┬─► ui              ┐

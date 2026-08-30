@@ -71,6 +71,7 @@ pnpm supabase:start
 cp apps/web/.env.example apps/web/.env
 cp packages/db/.env.example packages/db/.env
 pnpm --filter @packages/db db:migrate
+pnpm seed
 pnpm dev
 ```
 
@@ -78,9 +79,9 @@ Nothing to fill in: every local value is a fixed one that Supabase's local stack
 uses on every machine, so the two `.env` files are copies rather than forms.
 
 The app runs at `http://localhost:3000` — `/posts` is a worked example, and the
-interactive API docs are at `/api/docs`. Two accounts are seeded on first start,
-`user@example.com` and `admin@example.com`, both with the password
-`dev-password`, so the admin half of the app is visible without any setup.
+interactive API docs are at `/api/docs`. `pnpm seed` creates
+`user@example.com` and `admin@example.com`, both with the password `12345678`,
+so the admin half of the app is visible without any setup.
 
 [`docs/setup.md`](docs/setup.md) has the detail, plus the other half of the
 file: what a real deployment needs, which is a Supabase project of its own.
@@ -97,7 +98,8 @@ pnpm dev
 pnpm build
 pnpm format
 pnpm supabase:stop   # frees the memory; the data survives
-pnpm supabase:reset  # wipes it, re-applies the migrations, re-seeds on next dev
+pnpm supabase:reset  # wipes it and re-applies the migrations
+pnpm seed            # the two development accounts, safe to run twice
 ```
 
 Tests run against **PGlite** — Postgres compiled to WASM, in-process — so they

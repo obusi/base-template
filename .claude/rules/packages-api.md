@@ -22,9 +22,7 @@ src/
 ├── middleware/auth.ts    requireAuth, requireAdmin
 ├── storage/index.ts      the Storage port + its Supabase implementation
 ├── env.ts                the storage switch, validated
-├── connection/
-│   ├── live.ts             the real context, for production requests
-│   └── seed.ts             two development accounts, re-exported through live
+├── connection/live.ts    the real context, for production requests
 └── testing/index.ts      the throwaway context, for tests
 ```
 
@@ -156,26 +154,12 @@ beside this one. `storageFromEnv(env, bucket)` takes the bucket as an argument
 precisely so that costs a line in `connection/live.ts` rather than a second way
 of building storage.
 
-`connection/` is where the real `db` and the real `auth` are named, and the only
-place. Both files carry `import "server-only"`, and **nothing inside this
-package imports either** — they exist for the process that serves real requests.
-They live here rather than in `apps/web` because reaching a database over there
-would mean adding `@packages/db` to `apps/web/package.json`, and that omission
-is the boundary.
-
-- **`live.ts`** builds the context.
-- **`seed.ts`** creates `user@example.com` and `admin@example.com` when the
-  database has no rows, and is re-exported through `live.ts` rather than given
-  an entry point of its own — the `exports` map lists two paths and
-  `surface.test.ts` pins that number. `apps/web/instrumentation.ts` calls it
-  behind `NODE_ENV === "development"`, so a preview deployment, which builds as
-  production, never creates an account with a published password.
-
-Sign-up runs through Better Auth rather than an `insert`, because the password
-has to be hashed the way sign-in will verify it. That is also why this is not a
-`scripts/seed.ts` next to `packages/db`'s: bare Node resolves ESM specifiers
-without adding extensions, so a standalone script importing
-`@packages/auth/server` fails on that package's own `./config` import.
+`connection/live.ts` is the one file that names the real `db` and the real
+`auth`. It carries `import "server-only"`, and **nothing inside this package
+imports it** — it exists to supply a context to the process serving real
+requests. It lives here rather than in `apps/web` because building the context
+over there would mean adding `@packages/db` to `apps/web/package.json`, and
+that omission is the boundary.
 
 ## Two rules about this package's surface
 

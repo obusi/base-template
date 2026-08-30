@@ -207,7 +207,7 @@ where user_id = (select id from "user" where email = 'you@example.com');
 
 It lasts as long as the branch does, which is until the pull request closes.
 `setup.md`'s "Make yourself an admin" is the same statement for a hosted
-database; a local one seeds an admin account on first run instead.
+database; locally, `pnpm seed` creates an admin account instead.
 
 ## What a normal deployment looks like
 

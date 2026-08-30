@@ -95,12 +95,13 @@ list. Two rules about it:
 │   ├── db/                  Drizzle schema + client + migrations
 │   ├── auth/                Better Auth (server + client entry points)
 │   ├── api/                 oRPC router — implements the contract
-│   └── ui/                  shadcn components
+│   ├── ui/                  shadcn components
+│   └── scripts/             commands run by hand — today just `seed`
 ├── tooling/                 eslint-config, typescript-config, vitest-config
 └── docs/
 ```
 
-### Why five packages
+### Why five packages, and a sixth folder
 
 The split follows hard technical constraints, not aesthetics. Merging any two
 breaks something specific:
@@ -112,6 +113,23 @@ breaks something specific:
 | `auth` | The browser-side login page calls it directly, bypassing oRPC |
 | `api` | The layer that composes everything else |
 | `ui` | DOM-only (Tailwind + Base UI); unusable from React Native |
+
+`scripts` is the sixth folder and the one exception. It could be merged into
+any of the five without breaking a thing, and it is separate for a weaker
+reason: it is a **runner, not a library**. Nothing imports it, it has no
+`exports` map, and what it holds are commands a person types — today only
+`seed`, which needs the real database and the real auth instance at once and
+therefore fits inside none of the five without turning one of them into two
+kinds of thing.
+
+It also cannot run under bare `node`, which is the more interesting constraint.
+Node resolves ESM specifiers without adding extensions, so importing
+`@packages/auth/server` fails on that package's own extensionless `./config`
+import, and `server-only` throws outside a framework by design. `tsx` fixes the
+first and `--conditions=react-server` the second, which is why this package
+carries a runner dependency that no other package needs. The alternative —
+adding `.ts` to every relative import across `auth` and `db` — was measured at
+around twenty edits and rejected as the larger change.
 
 ### Dependency graph
 
@@ -1075,6 +1093,34 @@ Import from `@orpc/zod/zod4`. On that path the query-string coercion plugin is
 still named `experimental_ZodSmartCoercionPlugin`; the unprefixed name exists
 only on the root. Without it, `?limit=20` arrives as the string `"20"` and fails
 the contract's `z.number()`.
+
+### C19 — an unrelated dependency can break `packages/auth`'s typecheck 🔴
+
+`packages/auth` exports `createAuth` and `auth`, whose types Better Auth infers
+rather than declares. Under pnpm those inferred types can only be named through
+a path inside `.pnpm/`, and TypeScript refuses:
+
+```
+TS2742: The inferred type of 'auth' cannot be named without a reference to
+'.pnpm/@better-auth+core@1.6.27_@b_2c02c54f.../node_modules/@better-auth/core'
+```
+
+The fix is to make the package nameable from where it is used: `@better-auth/core`
+is an explicit dependency of `packages/auth`, even though no line imports it.
+
+**What makes this worth a section is how it arrived.** Nothing in `packages/auth`
+changed. Adding the Supabase CLI as a root devDependency reshuffled pnpm's peer
+resolution, and the path TypeScript had been able to name stopped existing. Any
+dependency change anywhere can do this.
+
+**And `pnpm verify` did not notice.** Turbo hashes a task's own inputs and its
+package's declared dependencies — not the shape of `node_modules`. `packages/auth`
+had not changed, so its `typecheck` was served from cache and reported green for
+five commits while `turbo typecheck --force` was red the whole time.
+
+So: **after any change to dependencies, run the gate with `--force` once.** A
+cached green says the inputs turbo knows about are unchanged, which is a weaker
+claim than the tree being sound, and this is the gap between the two.
 
 ---
 
