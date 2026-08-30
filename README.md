@@ -74,7 +74,7 @@ pnpm install
 pnpm supabase:start
 cp apps/web/.env.example apps/web/.env
 cp packages/db/.env.example packages/db/.env
-pnpm --filter @packages/db db:migrate
+pnpm db:migrate
 pnpm seed
 pnpm dev
 ```
@@ -112,7 +112,7 @@ down:
 
 ```bash
 pnpm --filter @packages/api test
-pnpm --filter @packages/db db:studio
+pnpm db:studio
 ```
 
 To add a shadcn component (it lands in `packages/ui`, not in the app):

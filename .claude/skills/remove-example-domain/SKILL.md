@@ -68,7 +68,7 @@ need them.
 is right depends on something only the person knows:
 
 - **Nothing deployed yet** — delete both migration folders and run
-  `pnpm --filter @packages/db db:generate` once. That produces a single initial
+  `pnpm db:generate` once. That produces a single initial
   migration from the schema that is left, and is the cleanest possible history.
 - **Already deployed anywhere** — leave the existing migrations alone and run
   `db:generate` to produce a normal drop migration. Rewriting applied migrations

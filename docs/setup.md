@@ -68,7 +68,7 @@ same on every machine and in every project that runs Supabase locally, and
 ## 4. Apply the schema
 
 ```bash
-pnpm --filter @packages/db db:migrate
+pnpm db:migrate
 ```
 
 ## 5. Create the two development accounts
@@ -327,8 +327,8 @@ that, not the credentials.
 ## 3. Apply the schema, then check it
 
 ```bash
-pnpm --filter @packages/db db:migrate
-pnpm --filter @packages/db db:check
+pnpm db:migrate
+pnpm db:check
 ```
 
 `db:check` proves the deployment's roles are what RLS deny-all assumes: that the
@@ -362,7 +362,7 @@ the app grants it, on purpose: an endpoint that hands out admin is a bigger
 risk than a one-off SQL statement. (The seeded `admin@example.com` exists only
 in development, where the dev server creates it.)
 
-Open `pnpm --filter @packages/db db:studio` and run it against your own account:
+Open `pnpm db:studio` and run it against your own account:
 
 ```sql
 update profile set role = 'admin'

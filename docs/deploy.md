@@ -277,7 +277,7 @@ S17; the consequence is this paragraph.
 Point `packages/db/.env` at production and run it yourself:
 
 ```bash
-pnpm --filter @packages/db db:migrate
+pnpm db:migrate
 ```
 
 **How bad the gap is depends on the migration, and it is easy to

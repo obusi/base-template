@@ -208,7 +208,7 @@ The folder name is the same in every package, and singular (`post`, not
 
 1. **`packages/db/src/schema/<x>.ts`** — the table, via `pgTable.withRLS()`.
    Export it from `schema/index.ts`, then
-   `pnpm --filter @packages/db db:generate`. Add the new table name to the
+   `pnpm db:generate`. Add the new table name to the
    pinned list in `schema/rls-guard.test.ts`, which is meant to go red here.
 2. **`packages/contract/src/domains/<x>/schema.ts`** — the zod schemas. These
    are the source of truth for the shape; nothing derives them from Drizzle,

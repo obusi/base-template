@@ -90,9 +90,12 @@ the three edits above every time.
 ## Migrations
 
 ```bash
-pnpm --filter @packages/db db:generate   # write a migration from schema changes
-pnpm --filter @packages/db db:migrate    # apply it
+pnpm db:generate   # write a migration from schema changes
+pnpm db:migrate    # apply it
 ```
+
+Both are passthroughs declared in the root `package.json`; the `--filter` form
+still works and means the same thing.
 
 Never hand-edit anything under `drizzle/` and never rename a migration folder —
 the ledger of what has been applied is keyed on those names, and the test

@@ -1,4 +1,4 @@
-// `pnpm --filter @packages/db db:check` — run this against every project's own
+// `pnpm db:check` — run this against every project's own
 // database, once, after the first migration.
 //
 // RLS deny-all works because two different things are true at the same time:

@@ -95,11 +95,17 @@ exits non-zero rather than warning.
 there are two env files; both are copies of their `.env.example` for local work):
 
 ```bash
-pnpm --filter @packages/db db:generate   # write a migration from schema changes
-pnpm --filter @packages/db db:migrate
-pnpm --filter @packages/db db:studio
-pnpm --filter @packages/db db:check      # once per project — proves RLS roles
+pnpm db:generate   # write a migration from schema changes
+pnpm db:migrate
+pnpm db:studio
+pnpm db:check      # once per project — proves RLS roles
 ```
+
+Those four are passthroughs to `@packages/db`, added so that the six commands
+a fresh clone runs read as one list rather than five short ones and a long
+one. The package's other two get none on purpose: `db:push` is for throwaway
+local iteration and should stay awkward enough to think about, and `db:deploy`
+is run by `apps/web/vercel.json` rather than by a person.
 
 **Auth schema regeneration** — see `.claude/rules/packages-db.md` before running,
 it undoes three hand edits:

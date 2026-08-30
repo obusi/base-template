@@ -633,7 +633,7 @@ verification   owner=postgres  rls=true  policies=0
 ```
 
 Both conditions hold at once. Worth re-running per project — which is what
-`pnpm --filter @packages/db db:check` is for. If neither holds, deny-all locks
+`pnpm db:check` is for. If neither holds, deny-all locks
 out the application itself, and the symptom is empty result sets rather than an
 error.
 
@@ -1369,7 +1369,7 @@ compiles whatever it holds, sign-in still succeeds, and the person lands on a
 Finally, the **migrations**: `packages/db/drizzle/` already contains a
 `CREATE TABLE "post"`. Deleting the schema file does not undo it. For a project
 with no data yet, delete both migration folders and run
-`pnpm --filter @packages/db db:generate` once to produce a single initial
+`pnpm db:generate` once to produce a single initial
 migration from the schema that is left. For one that has already deployed,
 generate a normal drop migration instead.
 
