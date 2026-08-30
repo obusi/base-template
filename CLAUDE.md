@@ -158,6 +158,10 @@ failure, and that is deliberate — do not work around it.
    every handler untestable.
 4. **Authorization lives in oRPC middleware and each handler's `where`
    clause**, nowhere else. No Supabase RLS policies, no Server Actions.
+   The role guards in `apps/web/app/(app)/(admin)/layout.tsx` and its
+   siblings are not a second copy of that rule — they decide what a person
+   is shown, and the procedure behind every page refuses them again anyway.
+   See `.claude/rules/apps-web-structure.md`.
 
 ## Framework notes
 

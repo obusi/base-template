@@ -35,6 +35,31 @@ must stay importable from a future Expo app without dragging in Drizzle, and
 `db` must sit outside `api` or `auth → api → auth` becomes a cycle. The full
 reasoning is in [`docs/architecture.md`](docs/architecture.md).
 
+## What it ships
+
+Structure, and as little product as possible — a fork inherits everything here
+permanently, so anything a project could add later is deliberately absent.
+
+**Sign-in, sign-up, password reset and an optional "Continue with Google"**,
+wired to Better Auth. The Google button is not rendered until both credentials
+are set, so a fresh clone never shows a door that cannot open.
+
+**A user side and an admin side**, separated by one column — `profile.role` —
+and by three route groups under `app/(app)/`, each with a layout that guards
+what sits inside it. Nothing in the app grants the role; an endpoint that hands
+out admin is a bigger risk than a one-off SQL statement.
+
+**"Report a problem"**, in the account menu on every page. It captures the URL
+and the user agent from the request rather than the form, takes up to three
+screenshots straight into private object storage, and shows the result to
+admins at `/admin/reports` behind signed URLs. This one is meant to stay —
+every project needs a way for its users to say something is wrong. It is also
+the worked example of a domain that touches all five packages and a bucket.
+
+**A `post` domain that is meant to go**, kept only so `tsc` and Vitest have a
+live end-to-end example to keep honest when oRPC or Drizzle changes an API.
+Copy it as a pattern, then delete it — there is a skill that does the deleting.
+
 ## Getting started
 
 Requires **Node 24+**, **pnpm 10**, and **Docker Desktop**. No accounts, and
