@@ -128,10 +128,11 @@ Use GitHub's **"Use this template"** button. The histories are unrelated, so a
 fork receives no later template updates — which is the main reason this repo
 stays small.
 
-Then run through [`docs/provisioning.md`](docs/provisioning.md), and S13 of
-[`docs/architecture.md`](docs/architecture.md) for stripping the template out of
-itself: the rename, deleting the `post` example domain (S14), and the passages
-in `CLAUDE.md` that are only true while this is a template.
+Then run through [`docs/provisioning.md`](docs/provisioning.md). Stripping the
+template out of itself — the rename, the placeholder landing page, the passages
+in `CLAUDE.md` — is what the `setup-project` skill does, and
+`remove-example-domain` deletes the `post` example once a real domain replaces
+it.
 
 ## Documentation
 
@@ -142,6 +143,7 @@ in `CLAUDE.md` that are only true while this is a template.
 - [`docs/deploy.md`](docs/deploy.md) — the same, for getting it hosted: the
   production deployment, and the preview-per-pull-request setup that gives each
   one its own database. Written down because most of it is not guessable.
+- [`docs/template.md`](docs/template.md) — the parts that are only true while this repo is a template. A real project deletes the file.
 - [`docs/architecture.md`](docs/architecture.md) — the single design document.
   Why the repo is shaped this way, the boundaries and how each is enforced, the
   security model, and S10, the library traps (`C1`…`C18`) that shaped it. Read

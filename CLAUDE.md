@@ -14,9 +14,9 @@ The section below is the exception.
 ### While this repo is still the template
 
 > **Delete this whole section once this repo is a real project.** It is one
-> item on a short list — `docs/architecture.md` S13 has the rest, and S14
-> beside it lists every file of the `post` example. Everything else in this
-> file and all of `.claude/rules/` applies unchanged.
+> item on a short list — `docs/template.md` S13 has the rest, and S14 beside it
+> lists every file of the `post` example. Everything else in this file and all
+> of `.claude/rules/` applies unchanged.
 
 This repo is a **base template**, not a product. Several projects start from
 it, and forks get no update path, so what goes in is permanent:
@@ -247,6 +247,7 @@ what to re-check when any of them moves.
   integrations that give each pull request a preview with a database of its
   own. Several of its settings have to be *off*, and the file says why. S17
   holds the reasoning.
+- `docs/template.md` — the parts that are only true while this repo is a template. A real project deletes the file; the two skills below do it between them.
 - `.claude/rules/` — path-scoped conventions that load when you work in the
   matching directory: `apps/web` structure, shared package conventions, and
   one file each for `api`, `db`, `contract`, and tests.

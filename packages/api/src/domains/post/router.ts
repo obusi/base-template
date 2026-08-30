@@ -1,5 +1,5 @@
 // Example domain — the pattern every real router should copy. Delete when
-// starting a real project; see docs/architecture.md S14.
+// starting a real project; see docs/template.md S14.
 //
 // This file only translates between oRPC (context, errors, middleware) and
 // ./service, which holds the actual logic. Keeping them apart means service

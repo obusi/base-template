@@ -55,8 +55,9 @@ compiler would catch (`contract/src/index.ts`, `api/src/index.ts`,
 the five it would not — comments in `lib/orpc-query.ts`, `lib/orpc.server.ts`
 and `api/src/testing/index.ts`, the note `setup-project` leaves in `CLAUDE.md`,
 and `DEFAULT_DESTINATION` in `features/auth/redirect.ts`. It also cuts S14 from
-`docs/architecture.md`, and takes the appendix divider with it if S14 was the
-last one standing.
+`docs/template.md` — and if `setup-project` has already taken S13, S15 and S16,
+that leaves nothing, so the file is deleted and the two list items linking to it
+go with it.
 
 `packages/api/src/testing/index.ts` **stays** — `signUpTestUser`, `contextFor`,
 and `anonymousContext` belong to no domain, and every real domain's router tests
