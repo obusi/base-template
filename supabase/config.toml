@@ -1,0 +1,87 @@
+# Supabase, running on this machine — `pnpm supabase:start`.
+#
+# Reference: https://supabase.com/docs/guides/local-development/cli/config
+#
+# `supabase init` writes a 400-line file with every service switched on. This
+# is that file with almost everything switched off, because this repo uses two
+# things from Supabase and nothing else: Postgres, and Storage. Studio is on as
+# well, to look at them.
+#
+# Sessions are Better Auth's, in tables of our own. The Data API is off in
+# production too (docs/setup.md), and `packages/db/scripts/check.ts` exists to
+# prove `anon` and `authenticated` can reach nothing. Realtime, Edge Functions
+# and the mail catcher have no caller anywhere in the repo.
+#
+# Every `enabled = false` below is a container that does not start. Keep it that
+# way: turning one on is a decision, not a default.
+
+project_id = "base-template"
+
+# PostgREST. Off in production as well — nothing here speaks to it.
+[api]
+enabled = false
+
+[db]
+port = 54322
+# Must match the remote database, or a migration can pass here and fail there.
+# `show server_version;` on the Supabase project says which.
+major_version = 17
+
+# Drizzle owns the schema. `supabase/migrations/` stays empty forever, and
+# `supabase db reset` is followed by `drizzle-kit migrate` — see the
+# `db:reset` script.
+[db.migrations]
+enabled = false
+
+# Seeding is a TypeScript script, not `seed.sql`: users are created through
+# Better Auth's sign-up so their passwords are hashed the way sign-in expects.
+# A plain SQL INSERT produces a row nobody can log in as.
+[db.seed]
+enabled = false
+
+[storage]
+enabled = true
+
+# The bucket, declared rather than clicked. These three settings are the whole
+# reason a bucket belongs to one domain: they cannot be set per folder, and the
+# browser uploads straight to Supabase, which does not read the bytes it is
+# handed. They must match `packages/contract/src/domains/report/attachment.ts`.
+[storage.buckets.report-attachments]
+public = false
+file_size_limit = "5MiB"
+allowed_mime_types = ["image/jpeg", "image/png", "image/webp"]
+
+# S3-compatible access to the same objects. The app signs URLs through
+# `@supabase/storage-js`, so this is a second door to the same room.
+[storage.s3_protocol]
+enabled = false
+
+[storage.vector]
+enabled = false
+
+# GoTrue. Better Auth does this, in `packages/auth`.
+[auth]
+enabled = false
+
+[realtime]
+enabled = false
+
+# Kept on for one thing `pnpm --filter @packages/db db:studio` cannot do: browse
+# the bucket. Tables are visible in both, files in only this one.
+#
+# It costs a second container (`pg_meta`), which is how it reads the schema —
+# not through PostgREST, so it works with the Data API off.
+[studio]
+enabled = true
+port = 54323
+
+# The mail catcher. Password-reset links are written to the server log when
+# RESEND_API_KEY is unset, which is the development case.
+[local_smtp]
+enabled = false
+
+[edge_runtime]
+enabled = false
+
+[analytics]
+enabled = false
