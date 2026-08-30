@@ -74,8 +74,10 @@ pnpm --filter @packages/api exec vitest run -t "refuses a caller with no session
 **Local Supabase.** Postgres and object storage run in Docker, configured by
 `supabase/config.toml` — which switches off every Supabase service this repo
 does not use, and declares the `report-attachments` bucket so it is created
-rather than clicked. Nothing here talks to a hosted project; `docs/getting-started.md` is
-the local procedure and `docs/provisioning.md` the hosted one.
+rather than clicked. The same file is synced to the hosted project on every
+merge into `main`, so a line changed here is also a production change —
+`docs/deploy.md` S3 has the rules that follow from that. `docs/getting-started.md`
+is the local procedure and `docs/provisioning.md` the hosted one.
 
 ```bash
 pnpm supabase:start   # Postgres on 54322, storage on 54321, studio on 54323

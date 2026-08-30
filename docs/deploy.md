@@ -112,23 +112,48 @@ the repository.
 | Setting | Value | Why |
 |---|---|---|
 | Working directory | `.` | |
-| **Deploy to production** | **off** | |
+| **Deploy to production** | **on** | the only one that has to be changed |
+| Production branch name | `main` | appears once the switch above is on |
 | Automatic branching | on | this is the feature |
 | Branch limit | 3 | the real cost control |
 | **Supabase changes only** | **off** | |
 
-The two that must be off are the two that arrive on:
+**Deploy to production** is what makes `supabase/config.toml` a statement about
+the hosted project and not only about a laptop. With it on, merging into `main`
+pushes that file to production: `report-attachments` is created there with the
+size limit and MIME list it was declared with, and a Supabase feature added to
+the file a year from now arrives the same way, with nobody writing a deploy step
+for it.
 
-**Deploy to production** lets Supabase apply changes to the production database
-when a pull request merges. This repo's schema is managed by Drizzle, and a
-second thing writing to production is a second source of truth for what the
-schema is. It also syncs `supabase/config.toml` — which in this repo describes a
-development machine, not this project: it switches services off, sets a Postgres
-major version, and declares a bucket. None of that is a statement about how the
-hosted project should be configured, and pushing it as one is a category error
-regardless of whether any individual line would be harmful.
+Schema is not part of that. `supabase/migrations/` is empty and
+`[db.migrations]` is disabled, so Drizzle remains the only thing that writes
+tables.
 
-**Supabase changes only** limits branch creation to pull requests that touch
+Three things about the sync were measured on this project rather than assumed,
+and each one matters:
+
+- **It syncs the file, not the diff.** A merge pushes every line of
+  `config.toml`, including lines no pull request has touched in months. A
+  bucket that sat in `main` unnoticed appears on production at the next merge
+  of something unrelated.
+- **It creates; it never deletes.** Dropping a bucket's declaration leaves the
+  bucket standing — on production and on preview branches alike. Deleting one
+  is a dashboard job, always. A preview branch can look as though it deleted,
+  but a branch built after the removal simply never held the bucket; ask it with
+  two commits on one branch and it keeps the bucket too. Whether editing a
+  declaration updates the live bucket was not tested — assume it does not, and
+  check the dashboard.
+- Therefore **production holds a superset of what the file declares**, and the
+  gap only widens. `config.toml` does not tell you what is on the project. The
+  dashboard does.
+
+The file still describes a development machine, and that is the thing to watch:
+a line edited to make local work nicer is now a production change, reviewed as
+though it were not one. Anything that must differ between the two belongs in a
+`[remotes.production]` block — that is what those blocks are for — rather than
+in the top-level one.
+
+**Supabase changes only** is the setting that must stay off. It limits branch creation to pull requests that touch
 `supabase/`. Migrations here live in `packages/db/drizzle/`, so with it on the
 pull requests that change the schema are exactly the ones that get no database —
 while a pull request editing only the local dev config would get one it has no

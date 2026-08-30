@@ -145,31 +145,32 @@ the code names the same string as `REPORT_BUCKET` in
 `packages/api/src/domains/report/service.ts`. A variable pointing anywhere else
 would only aim the app at a bucket nobody made.
 
-`supabase/config.toml` declares the bucket, which is what creates it locally.
-A hosted project does not read that file on its own, so the bucket is **created
-by hand** there — Supabase → **Storage → New bucket**. Three of its settings
-are not cosmetic, and each has to match what the config file already says:
+`supabase/config.toml` declares the bucket, and that declaration is what creates
+it: locally on `pnpm supabase:start`, on every preview branch, and on production
+at the first merge into `main` — see [`deploy.md`](deploy.md) S3 for the switch
+that makes the last one true. Nothing here is clicked, and the settings below
+arrive with the bucket rather than being typed into a form. They are listed
+because three of them are not cosmetic:
 
-| Setting | Value | What it is |
+| Key | Value | What it is |
 |---|---|---|
-| Name | `report-attachments` | must match `REPORT_BUCKET` in the code |
-| Public bucket | **off** | nothing is readable without a URL this server signed |
-| Restrict file size | **on**, `5` MB | the only place a size is actually enforced |
-| Restrict MIME types | **on** | the only place a type is actually enforced |
-| Allowed MIME types | `image/jpeg,image/png,image/webp` | must match `AttachmentContentType` |
+| the section name | `report-attachments` | must match `REPORT_BUCKET` in the code |
+| `public` | `false` | nothing is readable without a URL this server signed |
+| `file_size_limit` | `"5MiB"` | the only place a size is actually enforced |
+| `allowed_mime_types` | the three image types | the only place a type is actually enforced, and must match `AttachmentContentType` |
 
 Then Supabase → **Project Settings → API** for the two values above.
 `SUPABASE_URL`
 is the project URL; the key is the one labelled **`service_role`**, not `anon`.
 
-**Why the last three are not optional.** The bytes go from the browser straight
+**Why the last two are not optional.** The bytes go from the browser straight
 to the bucket, so what a caller told this API about its own file was never more
 than a claim — a request can declare "1 KB, image/png" and then PUT 40 MB of
 something else. Measured against a live bucket with these settings on: a 7 MB
 body declared as 1 KB is refused with `413 EntityTooLarge`, and a PDF declared
 as `application/pdf` with `415 InvalidMimeType`. With them off, both are stored.
 
-**Do not use `image/*`,** even though the field accepts wildcards. It matches
+**Do not use `image/*`,** even though the setting accepts wildcards. It matches
 `image/svg+xml`, and an SVG is a document that can carry script. The three
 types listed above cannot.
 
