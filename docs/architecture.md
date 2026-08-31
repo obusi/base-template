@@ -598,7 +598,7 @@ is who is asking, and that lives in a second middleware:
 ```ts
 // packages/api/src/middleware/auth.ts
 export const requireAdmin = requireAuth.concat(async ({ context, next }) => {
-  if ((await getRole(context.db, context.user.id)) !== "admin") {
+  if ((await profileService.getRole(context.db, context.user.id)) !== "admin") {
     throw new ORPCError("FORBIDDEN")
   }
   return next()
@@ -615,7 +615,7 @@ learn which ids are real from the error it gets back; this procedure takes no
 id, so there is nothing to leak and the honest answer is the useful one.
 
 The role is a column on `profile` — S4 has why it did not go to Better Auth.
-`getRole` reads it without creating a row: `requireAdmin` runs on every admin
+`profileService.getRole` reads it without creating a row: `requireAdmin` runs on every admin
 request, and a read should not write.
 
 This is the exception, not a second pattern to reach for. A handler that

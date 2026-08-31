@@ -7,7 +7,7 @@ export const ProfileSchema = z.object({
 
   // Read-only from the caller's side, and it has to stay that way: this is
   // what `requireAdmin` reads. It is deliberately absent from
-  // UpdateProfileInput below — `updateProfile` passes validated input straight
+  // UpdateProfileInput below — `profileService.update` passes validated input straight
   // to `.set()`, so declaring `role` there would let anyone promote
   // themselves.
   role: z.string(),

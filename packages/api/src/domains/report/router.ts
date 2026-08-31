@@ -3,7 +3,7 @@
 import { requireAdminRole, requireAuth } from "../../middleware/auth"
 import { requireFeature } from "../../middleware/features"
 import { os } from "../../shared/builder"
-import * as service from "./service"
+import * as reportService from "./service"
 
 export const createUploadUrls = os.report.createUploadUrls
   .use(requireAuth)
@@ -15,7 +15,7 @@ export const createUploadUrls = os.report.createUploadUrls
     }
 
     return {
-      targets: await service.createUploadTargets(
+      targets: await reportService.createUploadTargets(
         context.reportStorage,
         context.user.id,
         input.files
@@ -30,13 +30,13 @@ export const create = os.report.create
     // through the browser, so they are input like any other. Every object this
     // caller was given lives under its own prefix; anything else is a caller
     // naming somebody else's file.
-    const prefix = service.attachmentPrefix(context.user.id)
+    const prefix = reportService.attachmentPrefix(context.user.id)
 
     if (input.attachments.some(({ path }) => !path.startsWith(prefix))) {
       throw errors.FORBIDDEN()
     }
 
-    return service.createReport(context.db, context.user.id, {
+    return reportService.create(context.db, context.user.id, {
       ...input,
 
       // Read from the request rather than accepted as input. The caller can
@@ -51,7 +51,7 @@ export const create = os.report.create
 export const list = os.report.list
   .use(requireAdminRole)
   .handler(({ context, input }) =>
-    service.listReports(context.db, context.reportStorage, input)
+    reportService.list(context.db, context.reportStorage, input)
   )
 
 // Behind a release toggle: the work is merged and the column has always been
@@ -67,7 +67,7 @@ export const updateStatus = os.report.updateStatus
   .use(requireFeature("report-status"))
   .use(requireAdminRole)
   .handler(async ({ context, input, errors }) => {
-    const row = await service.updateReportStatus(
+    const row = await reportService.updateStatus(
       context.db,
       input.id,
       input.status

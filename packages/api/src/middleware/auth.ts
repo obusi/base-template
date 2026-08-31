@@ -1,6 +1,6 @@
 import { ORPCError } from "@orpc/server"
 
-import { getRole } from "../domains/profile/service"
+import * as profileService from "../domains/profile/service"
 import { os } from "../shared/builder"
 
 /**
@@ -52,7 +52,9 @@ export const requireAuth = os.middleware(async ({ context, next }) => {
  */
 export const requireAdminRole = requireAuth.concat(
   async ({ context, next }) => {
-    if ((await getRole(context.db, context.user.id)) !== "admin") {
+    if (
+      (await profileService.getRole(context.db, context.user.id)) !== "admin"
+    ) {
       throw new ORPCError("FORBIDDEN")
     }
 
@@ -68,7 +70,7 @@ export const requireAdminRole = requireAuth.concat(
  * answer the column's default would have given.
  */
 export const requireUserRole = requireAuth.concat(async ({ context, next }) => {
-  if ((await getRole(context.db, context.user.id)) === "admin") {
+  if ((await profileService.getRole(context.db, context.user.id)) === "admin") {
     throw new ORPCError("FORBIDDEN")
   }
 

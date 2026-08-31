@@ -34,8 +34,10 @@ a service function, turn its result into either a value or a declared error.
 
 ```ts
 // router.ts
+import * as postService from "./service"
+
 export const byId = os.post.byId.handler(async ({ context, input, errors }) => {
-  const row = await service.getPostById(context.db, input.id)
+  const row = await postService.byId(context.db, input.id)
 
   if (!row) {
     throw errors.NOT_FOUND()
@@ -54,13 +56,91 @@ it is easy to destroy by accident:
   service.** "Not found" is a plain `undefined` that the router turns into
   `NOT_FOUND()`.
 - **When a failure needs to carry data**, return a discriminated result rather
-  than throwing. `createPost` returns `{ ok: false, limit }` and the router
+  than throwing. `postService.create` returns `{ ok: false, limit }` and the router
   raises `QUOTA_EXCEEDED({ data: { limit } })` from it — throwing an oRPC error
   in the service would leak the one dependency the file is avoiding.
 
 A domain small enough that its handler is two lines still gets a `service.ts`.
 The consistency is worth more than the saved file, and the alternative is a
 judgement call at every new domain.
+
+### Import it as `<domain>Service`, never as `service`
+
+```ts
+import * as postService from "./service"                       // ✅ own domain
+import * as profileService from "../domains/profile/service"   // ✅ another domain
+import { REPORT_BUCKET } from "../domains/report/service"      // ✅ a constant
+import { list, create } from "./service"                       // ❌
+```
+
+Two things fall out of the namespace, and both are the reason for it.
+
+**Every crossing into the service layer is visible at the call site.** A router
+is supposed to be a thin adapter, and that rule fails quietly — one `db.select()`
+in a handler because it was "only a line". With named imports a service call and
+a query look identical; with the namespace, `postService.` is a marker you have
+to type.
+
+**Two domains can use the same short name.** `postService.update` and
+`profileService.update` coexist, which is what makes the naming rule below
+possible at all. Named imports would collide the moment a file touched two
+services.
+
+One namespace per import — the domain's name, not the generic `service`, so a
+file that reaches two of them reads without ambiguity. Constants are the
+exception: `reportService.REPORT_BUCKET` stutters, and a constant is not a
+crossing worth marking, so those stay named imports.
+
+### Naming: a service function is named after the procedure it backs
+
+The namespace already says which domain, so the function name must not repeat it.
+What is left is the procedure's own name:
+
+```ts
+post.list         →  postService.list
+post.byId         →  postService.byId
+post.create       →  postService.create
+post.update       →  postService.update
+post.delete       →  postService.remove
+report.updateStatus  →  reportService.updateStatus
+```
+
+**The vocabulary is closed.** `list`, `all`, `byId`, `get`, `create`, `update`,
+`remove` — and a new verb needs a reason, not a preference. Never `getAll`,
+`findAll`, `fetch`, `retrieve`, `save`, or `getById`.
+
+| Verb | For | Answers |
+|---|---|---|
+| `list` | many rows, paged | `{ items, nextCursor }` |
+| `all` | every row, unpaged — only where the count is bounded | an array |
+| `byId` | one row by primary key | the row, or `undefined` |
+| `get` | one row or value found by something other than an id | the value, or `undefined` |
+| `create` | an insert | the row it wrote |
+| `update` | a write to an existing row | the row, or `undefined` when nothing matched |
+| `remove` | a delete | the id, or `undefined` when nothing matched |
+
+**`all` is the narrow one, and the bound has to come from somewhere other than
+how much the users have made.** Categories, statuses, one caller's addresses —
+sets whose size a person cannot grow without limit. Posts, reports and orders
+are `list` even while the table holds twenty rows, because the alternative is a
+query that is fast on launch, slower every month, and nobody's job to notice.
+Two tells that a supposed `all` is really a `list`: it takes a filter, or its
+result is fed straight to a UI that scrolls.
+
+Three exceptions, each with a reason rather than a taste:
+
+1. **`remove`, not `delete`.** `delete` is a reserved word — `export function
+   delete()` does not parse. `export { remove as delete }` would make the call
+   site match the procedure, at the cost of two names for one function.
+2. **When the procedure's name hides what happens, the service says it.**
+   `profile.me` also *writes* — it creates the row if none exists — so the
+   service is `getOrCreate`, not `me`. A caller that cannot see the write from
+   the name will put it somewhere a read belongs. This rule beats the one above
+   it.
+3. **A function that backs no procedure is named for what it returns.**
+   `attachmentPrefix(userId)` builds a string and touches nothing;
+   `createUploadTargets` returns targets rather than the URLs its procedure is
+   named for. Neither needs a verb it has not earned.
 
 ## Authentication is `requireAuth`, and only `requireAuth`
 
@@ -83,7 +163,7 @@ redundant:
 ```ts
 export const list = os.report.list
   .use(requireAdmin)
-  .handler(({ context, input }) => service.listReports(context.db, input))
+  .handler(({ context, input }) => reportService.list(context.db, input))
 ```
 
 Reach for it only where ownership cannot be written as a `where` clause. Today
