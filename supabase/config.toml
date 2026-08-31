@@ -53,7 +53,7 @@ enabled = true
 # on production. These three settings are the whole reason a bucket belongs to
 # one domain: they cannot be set per folder, and the browser uploads straight to
 # Supabase, which does not read the bytes it is handed. They must match
-# `packages/contract/src/domains/report/attachment.ts`.
+# `packages/shared/src/contract/domains/report/attachment.ts`.
 #
 # Deleting this block would not delete the bucket anywhere it has already been
 # created. That is a job for the dashboard, every time.

@@ -121,7 +121,7 @@ connection is neither. Anything a handler throws that the contract does not
 declare becomes `INTERNAL_SERVER_ERROR`, gets logged, and the user sees
 "something went wrong".
 
-So a new error code means editing `packages/contract` first — declaring it on
+So a new error code means editing `packages/shared` first — declaring it on
 the procedure, with the data the client needs attached. `QUOTA_EXCEEDED`
 carries its limit so the UI can say "you can have 50" instead of hard-coding a
 number that drifts from the server's.

@@ -50,7 +50,7 @@ function remove(path) {
 // needs them. Only their redirect target belongs to the example — handled
 // below.
 for (const path of [
-  "packages/contract/src/domains/post",
+  "packages/shared/src/contract/domains/post",
   "packages/db/src/schema/post.ts",
   "packages/api/src/domains/post",
   "apps/web/app/(app)/(user)/posts",
@@ -61,7 +61,7 @@ for (const path of [
 
 // -------------------------------------------- the four `tsc` would catch
 
-edit("packages/contract/src/index.ts", (t) =>
+edit("packages/shared/src/index.ts", (t) =>
   t
     .replace(
       /\/\/ Re-exported so forms[\s\S]*?from "\.\/domains\/post\/schema"\n\n/,

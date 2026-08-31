@@ -175,7 +175,7 @@ as `application/pdf` with `415 InvalidMimeType`. With them off, both are stored.
 types listed above cannot.
 
 The size and the type list are declared in three places that have to agree:
-`packages/contract/src/domains/report/attachment.ts`, the bucket above, and
+`packages/shared/src/contract/domains/report/attachment.ts`, the bucket above, and
 `[storage.buckets.report-attachments]` in `supabase/config.toml`. A type the
 contract allows and the bucket refuses fails after the person has waited for the
 upload. When changing one, change all three.

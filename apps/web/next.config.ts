@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
   transpilePackages: [
     "@packages/api",
     "@packages/auth",
-    "@packages/contract",
+    "@packages/shared",
     "@packages/db",
     "@packages/ui",
   ],

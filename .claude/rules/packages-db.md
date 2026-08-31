@@ -84,7 +84,7 @@ not how user-shaped a field feels, it is whether authentication breaks without
 it. `email` sends the password-reset link and belongs to Better Auth; `bio` and
 preferences belong to the project, in their own table with their own contract.
 Putting business fields in the auth config moves their validation out of
-`packages/contract`, costs `.output()` as a guard, and adds another round of
+`packages/shared`, costs `.output()` as a guard, and adds another round of
 the three edits above every time.
 
 ## Migrations

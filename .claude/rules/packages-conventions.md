@@ -13,8 +13,8 @@ import from each other and from themselves, and what adding a new domain
 touches.
 
 Every package also has a file of its own, which loads when work touches it:
-`packages-api.md`, `packages-auth.md`, `packages-contract.md`, `packages-db.md`,
-`packages-scripts.md`, `packages-storage.md`, `packages-ui.md`. Anything true of
+`packages-api.md`, `packages-auth.md`, `packages-db.md`, `packages-scripts.md`,
+`packages-shared.md`, `packages-storage.md`, `packages-ui.md`. Anything true of
 exactly one package belongs there rather than here.
 
 ## What every package carries
@@ -90,7 +90,7 @@ package has its own reason:
 - **`db`** — drizzle-kit's loader reads `@packages/db/schema` as a string
   prefix and fails to find the sibling file. See `docs/architecture.md` S10
   (C15).
-- **`contract`** — this is the package a future Expo app compiles through
+- **`shared`** — this is the package a future Expo app compiles through
   Metro, whose handling of `exports` maps and self-references has produced
   enough bundler bugs to be worth never testing.
 
@@ -105,7 +105,7 @@ means the next regenerated component arrives with the alias again. See
 
 ## Grouping: `domains/` versus named folders
 
-`contract` and `api` both group the same way, so that adding a domain means
+`shared` and `api` both group the same way, so that adding a domain means
 adding the same folder name in each with nothing to rename or guess:
 
 ```
@@ -114,6 +114,11 @@ src/
 ├── domains/<x>/    everything specific to one domain
 └── <named>/        cross-cutting concerns, one folder per well-defined job
 ```
+
+In `shared` that block sits one level down, at `src/contract/`. The package is
+named for who reaches it rather than for what is in it, so what is in it gets a
+folder — and a domain folder at the root would claim every future occupant has
+domains too.
 
 Cross-cutting folders get real names — `shared/`, `middleware/`, `connection/`,
 `testing/` — rather than one generic bucket. `connection/` and `testing/` mean
@@ -220,10 +225,10 @@ The folder name is the same in every package, and singular (`post`, not
    Export it from `schema/index.ts`, then
    `pnpm db:generate`. Add the new table name to the
    pinned list in `schema/rls-guard.test.ts`, which is meant to go red here.
-2. **`packages/contract/src/domains/<x>/schema.ts`** — the zod schemas. These
+2. **`packages/shared/src/contract/domains/<x>/schema.ts`** — the zod schemas. These
    are the source of truth for the shape; nothing derives them from Drizzle,
-   and `packages-contract.md` explains why.
-3. **`packages/contract/src/domains/<x>/contract.ts`** — the procedures, then
+   and `packages-shared.md` explains why.
+3. **`packages/shared/src/contract/domains/<x>/contract.ts`** — the procedures, then
    add the domain to the `contract` object in `src/index.ts`.
 4. **`packages/api/src/domains/<x>/`** — `service.ts` then `router.ts`, and
    register the router in `src/index.ts`. See `packages-api.md`.

@@ -1,7 +1,7 @@
 import { createRouterClient } from "@orpc/server"
 import { beforeAll, beforeEach, describe, expect, it } from "vitest"
 
-import { MAX_ATTACHMENTS, MAX_ATTACHMENT_BYTES } from "@packages/contract"
+import { MAX_ATTACHMENTS, MAX_ATTACHMENT_BYTES } from "@packages/shared"
 import { createTestDb, resetDb, type TestDb } from "@packages/db/testing"
 
 import { router } from "../../index"

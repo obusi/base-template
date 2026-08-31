@@ -20,7 +20,7 @@
     "@orpc/zod": "catalog:",
     "@packages/api": "workspace:*",
     "@packages/auth": "workspace:*",
-    "@packages/contract": "workspace:*",
+    "@packages/shared": "workspace:*",
     "@packages/ui": "workspace:*",
     "@scalar/nextjs-api-reference": "^0.11.14",
     "@t3-oss/env-nextjs": "^0.13.11",

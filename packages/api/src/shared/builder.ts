@@ -1,6 +1,6 @@
 import { implement } from "@orpc/server"
 
-import { contract } from "@packages/contract"
+import { contract } from "@packages/shared"
 
 import type { ApiContext } from "./context"
 

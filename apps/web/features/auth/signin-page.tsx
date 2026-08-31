@@ -4,7 +4,7 @@
 // the same calls work from Expo later with only the storage swapped. See
 // docs/architecture.md S4.
 //
-// No schema for this in packages/contract: there is no contract for auth (see
+// No schema for this in packages/shared: there is no contract for auth (see
 // docs/architecture.md S4), so the schema is local to the one form that needs
 // it.
 

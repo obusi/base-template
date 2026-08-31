@@ -97,7 +97,7 @@ the domain that replaces it.
 Delete these paths:
 
 ```
-packages/contract/src/domains/post/
+packages/shared/src/contract/domains/post/
 packages/db/src/schema/post.ts
 packages/api/src/domains/post/
 apps/web/app/(app)/(user)/posts/
@@ -120,7 +120,7 @@ four; the rest are comments, links and a pinned list, which it does not:
 
 | File | Change |
 |---|---|
-| `packages/contract/src/index.ts` | drop the `post` schema re-exports and the `post:` entry |
+| `packages/shared/src/index.ts` | drop the `post` schema re-exports and the `post:` entry |
 | `packages/api/src/index.ts` | drop `post: postRouter` |
 | `packages/db/src/schema/index.ts` | drop `export * from "./post"` |
 | `packages/db/src/schema/rls-guard.test.ts` | remove `"post"` from the pinned table list |
@@ -188,7 +188,7 @@ Recorded so they are not reopened by accident:
   | | Holds | Loaded |
   |---|---|---|
   | `CLAUDE.md` | What is true everywhere — purpose, commands, the package graph, the enforced boundaries, framework versions that differ from training data | every session |
-  | `.claude/rules/*.md` | What is true in one surface, scoped by `paths:` frontmatter — one file each for `apps/web`, all packages, `api`, `db`, `contract`, and tests | when work touches the matching directory |
+  | `.claude/rules/*.md` | What is true in one surface, scoped by `paths:` frontmatter — one file each for `apps/web`, all packages, `api`, `db`, `shared`, and tests | when work touches the matching directory |
   | Code comments | Why *this line* is the way it is | when the file is read |
 
   A rule that only makes sense next to the code it constrains stays a comment;

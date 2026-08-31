@@ -15,7 +15,7 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import type { z } from "zod"
 
-import { UpdatePostInput, type Post } from "@packages/contract"
+import { UpdatePostInput, type Post } from "@packages/shared"
 import { Button } from "@packages/ui/components/button"
 import { Input } from "@packages/ui/components/input"
 import { Textarea } from "@packages/ui/components/textarea"
@@ -47,7 +47,7 @@ export function PostItem({ post, isOwner }: { post: Post; isOwner: boolean }) {
   // `unknown` would narrow to `never` — the codes are only known per procedure.
   //
   // NOT_FOUND here means the row is gone or was never the caller's. The two are
-  // deliberately indistinguishable — see packages/contract/src/errors.ts. It
+  // deliberately indistinguishable — see packages/shared/src/errors.ts. It
   // is a toast rather than an inline error because it is not about any one
   // field in the form.
   const update = useMutation(

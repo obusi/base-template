@@ -67,7 +67,7 @@ purpose, and adding one should be a deliberate decision rather than a reflex:
 | **Supabase Auth / RLS policies** | Authorization lives in oRPC only (see S5) |
 | **Playwright / Storybook / Testing Library** | Not yet. All three can be added later without restructuring |
 | **Sentry / pino** | `console.error` for now, behind a single interceptor that can be swapped |
-| **`apps/mobile`** | Readiness for Expo comes from splitting out `contract` and `auth/client`, not from an empty folder |
+| **`apps/mobile`** | Readiness for Expo comes from splitting out `shared` and `auth/client`, not from an empty folder |
 
 ### Versions are pinned, and two of them exactly
 
@@ -106,7 +106,7 @@ breaks something specific:
 
 | Package | Why it cannot be merged |
 |---|---|
-| `contract` | Expo must import it without dragging in Drizzle or Better Auth |
+| `shared` | Expo must import it without dragging in Drizzle or Better Auth |
 | `db` | Both `auth` and `api` depend on it. Putting `db` inside `api` creates the cycle `auth → api → auth` |
 | `auth` | The browser-side login page calls it directly, bypassing oRPC |
 | `api` | The layer that composes everything else |
@@ -159,11 +159,17 @@ apps/web ──┬─► ui              ┐
 
 ### How the folders are organised
 
-`contract` and `api` group by domain — `src/domains/<name>/` — with
-cross-cutting concerns in named sibling folders (`shared/`, `middleware/`,
-`connection/`, `testing/`) rather than one generic bucket. Adding a domain
-means adding the same folder name in each package, so there is nothing to
-rename and nothing to guess.
+`shared` and `api` group by domain — `domains/<name>/` — with cross-cutting
+concerns in named sibling folders (`shared/`, `middleware/`, `connection/`,
+`testing/`) rather than one generic bucket. Adding a domain means adding the
+same folder name in each package, so there is nothing to rename and nothing to
+guess.
+
+The one asymmetry is where that folder sits. `api` has it at `src/domains/`,
+while `shared` nests it at `src/contract/domains/`. That package is named for
+who reaches it rather than for what is in it, so what is in it gets a folder —
+and a domain folder at the root would claim every future occupant has domains
+too.
 
 `db` groups by domain too, but a domain is one *file* (`src/schema/<name>.ts`),
 because a db domain has never needed more than a single schema and a folder
@@ -180,7 +186,7 @@ organise by type.
 (infrastructure).
 
 **The per-file detail lives in `.claude/rules/`** — `apps-web-structure.md`,
-`packages-conventions.md`, and one file each for `api`, `db`, and `contract`.
+`packages-conventions.md`, and one file each for `api`, `db`, and `shared`.
 They load automatically when work touches the matching directory, and they hold
 the file trees, the import rules, and the checklist for adding a domain.
 
@@ -193,7 +199,7 @@ the user's machine in full while Server Component code never leaves the server.
 
 | | web (server) | web (browser) | mobile (future) |
 |---|:---:|:---:|:---:|
-| `@packages/contract` | ✅ | ✅ | ✅ |
+| `@packages/shared` | ✅ | ✅ | ✅ |
 | `@packages/auth/client` | ✅ | ✅ | ✅ |
 | `@packages/ui` | ✅ | ✅ | ❌ |
 | `@packages/api` | ✅ | ❌ | ❌ |
@@ -246,8 +252,8 @@ export default async function Page() {
    `Database` is deliberately the shared `PgAsyncDatabase` base rather than
    `typeof db`, because the postgres-js and PGlite databases are separate
    classes assignable to neither, and only their common base accepts both.
-5. **`packages/contract` may depend on `@orpc/contract` and `zod`, and nothing
-   else** — checked by `packages/contract/src/shared/dependencies.test.ts`,
+5. **`packages/shared` may depend on `@orpc/contract` and `zod`, and nothing
+   else** — checked by `packages/shared/src/dependencies.test.ts`,
    which reads the package's own `package.json`. Verified to fail: adding
    `@packages/db` to its dependencies turns the test red with `+ "@packages/db"`.
 
@@ -335,7 +341,7 @@ everything else           →  /rpc        (oRPC)
 There is no contract for auth, and writing one would be a mistake. Better Auth
 already ships a typed client, and its Expo integration talks to the same
 `/api/auth` endpoints with `expo-secure-store` swapped in for browser cookies —
-so the portability problem `packages/contract` exists to solve does not apply
+so the portability problem `packages/shared` exists to solve does not apply
 here. Wrapping it would mean redeclaring schemas Better Auth owns,
 reimplementing its cookie and session handling, and falling silently behind
 every time a plugin (2FA, social login, magic links) adds endpoints of its own.
@@ -527,7 +533,7 @@ not it wanted an admin console. Nothing signs in differently because of `role`,
 so by the test above it is the project's, and it is a column on `profile`.
 
 Putting business fields in `additionalFields` costs four things: their
-validation rules move out of `packages/contract` into the auth config, so there
+validation rules move out of `packages/shared` into the auth config, so there
 are two places to look; forms lose the single schema source described in
 S6; `.output()` no longer constrains what goes back to the
 client; and every new field means regenerating `schema/auth.ts`, a file with
@@ -693,7 +699,7 @@ Every procedure declares `.output()`. If a handler returns an object carrying
 Separate the *spec* (what goes in and out) from the *implementation* (how).
 
 ```ts
-// packages/contract/src/domains/<name>/contract.ts
+// packages/shared/src/contract/domains/<name>/contract.ts
 export const invoiceContract = {
   create: oc
     .input(CreateInvoiceInput)
@@ -741,17 +747,17 @@ Never redeclare a schema that already exists in the contract.
 
 ### Why the contract's schemas are not derived from Drizzle
 
-A domain's zod schemas in `packages/contract` and its Drizzle table in
+A domain's zod schemas in `packages/shared` and its Drizzle table in
 `packages/db/src/schema/` describe the same shape in two places, and the
 obvious improvement is to derive one from the other. It is not available:
-`drizzle-zod`, or importing the table into `packages/contract`, pulls
+`drizzle-zod`, or importing the table into `packages/shared`, pulls
 `drizzle-orm` into that package's dependency graph and breaks boundary 5.
 
 A single source of truth for field shapes is worth less than the portability
 the five-package split exists to protect. If the duplication needs a guard, it
 belongs on the `packages/db` side — the one allowed to depend on both — or in a
 codegen step emitting plain zod, mirroring how `auth:generate` writes into
-`packages/db`. Never by making `contract` import `db`.
+`packages/db`. Never by making `shared` import `db`.
 
 ---
 
@@ -797,7 +803,7 @@ undeclared errors only. Swapping in Sentry later is a one-file change.
 |---|---|---|---|
 | Unit | Pure functions with no external dependencies | Vitest | Few |
 | Integration | A full oRPC handler: zod → auth middleware → Drizzle → real Postgres | Vitest + PGlite | **The bulk of the suite** |
-| Structural | Rules no runtime check would notice: every table has RLS, `packages/contract` depends on nothing else | Vitest | One per rule |
+| Structural | Rules no runtime check would notice: every table has RLS, `packages/shared` depends on nothing else | Vitest | One per rule |
 | Deployment | Whether *this* database is configured the way the design assumes | `db:check`, by hand | Once per project |
 
 Nearly all logic lives in handlers that talk to the database, so **tests that

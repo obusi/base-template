@@ -8,7 +8,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useForm } from "react-hook-form"
 import type { z } from "zod"
 
-import { UpdateProfileInput, type Profile } from "@packages/contract"
+import { UpdateProfileInput, type Profile } from "@packages/shared"
 import { Button } from "@packages/ui/components/button"
 import { Input } from "@packages/ui/components/input"
 import { Label } from "@packages/ui/components/label"

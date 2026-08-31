@@ -17,7 +17,7 @@ nothing to test stays green, including after the example domain is deleted.
 |---|---|---|
 | Unit | Pure functions with no external dependencies | few |
 | **Integration** | A full oRPC handler: zod → middleware → Drizzle → real Postgres | **the bulk** |
-| Structural | Rules no runtime check notices — every table has RLS, `contract` depends on nothing else | one per rule |
+| Structural | Rules no runtime check notices — every table has RLS, `shared` depends on nothing else | one per rule |
 | Deployment | Whether *this* database matches the design's assumptions (`db:check`) | by hand, once per project |
 
 Nearly all logic lives in handlers that talk to the database, so **a test that
@@ -110,13 +110,13 @@ rule's own machinery breaks.
 
 ```ts
 it("are limited to what a React Native bundler can follow", () => {
-  expect(runtimeDependencies("../../package.json")).toEqual(ALLOWED)
+  expect(runtimeDependencies("../package.json")).toEqual(ALLOWED)
 })
 
 // Without this, a runtimeDependencies() that silently returned [] would make
 // the check above pass on any package at all.
 it("are actually read from the file", () => {
-  expect(runtimeDependencies("../../../db/package.json")).toContain("drizzle-orm")
+  expect(runtimeDependencies("../../db/package.json")).toContain("drizzle-orm")
 })
 ```
 

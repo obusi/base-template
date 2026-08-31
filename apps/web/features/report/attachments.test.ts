@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { MAX_ATTACHMENTS, MAX_ATTACHMENT_BYTES } from "@packages/contract"
+import { MAX_ATTACHMENTS, MAX_ATTACHMENT_BYTES } from "@packages/shared"
 
 import { formatBytes, validateAttachments } from "./attachments"
 

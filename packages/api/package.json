@@ -16,7 +16,7 @@
     "@orpc/client": "catalog:",
     "@orpc/server": "catalog:",
     "@packages/auth": "workspace:*",
-    "@packages/contract": "workspace:*",
+    "@packages/shared": "workspace:*",
     "@packages/db": "workspace:*",
     "@packages/storage": "workspace:*",
     "drizzle-orm": "catalog:",

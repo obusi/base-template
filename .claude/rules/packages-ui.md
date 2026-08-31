@@ -7,7 +7,7 @@ paths:
 
 shadcn components on Base UI and Tailwind v4, plus the one stylesheet the app
 imports. DOM-only, which is the reason it is a package: a future Expo app can
-import `contract` and `auth/client` and none of this.
+import `shared` and `auth/client` and none of this.
 
 ```
 packages/ui/src/
@@ -55,7 +55,7 @@ writes these imports itself from `components.json`. Rewriting them to relative
 paths means every regenerated component comes back with the alias and the diff
 is noise.
 
-**The exception is this package and no other.** `api`, `db` and `contract` each
+**The exception is this package and no other.** `api`, `db` and `shared` each
 have a specific way the alias breaks at runtime — conventions has the list.
 
 ## Nothing here knows about a domain

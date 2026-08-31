@@ -104,7 +104,7 @@ features/<name>/
 └── components/      # used only inside this feature
 ```
 
-**Naming.** Match `packages/contract`, `packages/db/schema`, or
+**Naming.** Match `packages/shared`, `packages/db/schema`, or
 `packages/api/router` when the domain already has a name there — singular
 (`post`, not `posts`). Otherwise name the folder after the domain, not the
 route (`auth`, not `login`): the URL can change without the code needing to.
@@ -241,7 +241,7 @@ Client Component concern.
 4. **`useInfiniteQuery` / `useSuspenseInfiniteQuery`
    `(orpc.xxx.infiniteOptions())`** — "load more" or infinite scroll driven
    from the client. Any list procedure that returns a `nextCursor` is ready
-   for this without a contract change; see `packages-contract.md` for the
+   for this without a contract change; see `packages-shared.md` for the
    keyset-paging shape that makes it work.
 
 ## Deciding where a new file goes
