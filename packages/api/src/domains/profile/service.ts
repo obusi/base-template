@@ -4,7 +4,7 @@
 // Every caller owns exactly one profile, created either by the auth hook at
 // signup (packages/auth/src/config.ts) or, if that failed or the user
 // predates this domain, lazily here. So unlike post, there is no "not
-// found" case for a caller's own profile to report — `getOrCreateProfile`
+// found" case for a caller's own profile to report — `getOrCreate`
 // always returns one.
 
 import { eq } from "drizzle-orm"
@@ -15,7 +15,7 @@ const { profile } = schema
 
 type Profile = typeof profile.$inferSelect
 
-export async function getOrCreateProfile(
+export async function getOrCreate(
   db: Database,
   userId: string
 ): Promise<Profile> {
@@ -50,12 +50,12 @@ export async function getOrCreateProfile(
   return row
 }
 
-export async function updateProfile(
+export async function update(
   db: Database,
   userId: string,
   changes: { bio?: string | null; phone?: string | null }
 ): Promise<Profile> {
-  const existing = await getOrCreateProfile(db, userId)
+  const existing = await getOrCreate(db, userId)
 
   // Every field of UpdateProfileInput is optional, so "change nothing" is a
   // request the contract accepts. Drizzle throws "No values to set" on
@@ -81,7 +81,7 @@ export async function updateProfile(
 /**
  * The caller's role, or `undefined` when no profile row exists yet.
  *
- * Deliberately not built on `getOrCreateProfile`: `requireAdmin` runs on every
+ * Deliberately not built on `getOrCreate`: `requireAdmin` runs on every
  * admin request, and a read should not write. A caller with no row is not an
  * admin, which is the same answer the column's default would have given.
  */

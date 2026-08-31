@@ -21,7 +21,7 @@ export const profile = pgTable.withRLS("profile", {
   // /api/auth for every project forked from here. See docs/architecture.md S5.
   //
   // Nothing a caller sends can reach this column: `UpdateProfileInput` does
-  // not declare it, and `updateProfile` only ever `.set()`s validated input.
+  // not declare it, and `profileService.update` only ever `.set()`s validated input.
   role: text("role").notNull().default("user"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")

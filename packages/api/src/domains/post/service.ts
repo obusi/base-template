@@ -4,7 +4,7 @@
 // docs/architecture.md S2.
 //
 // "Not found" is a plain `undefined`; a router turns that into NOT_FOUND.
-// `createPost` can't use the same trick for the quota check because it needs
+// `create` can't use the same trick for the quota check because it needs
 // to hand back the limit too, so it returns a discriminated result instead
 // of throwing — an oRPC error thrown here would leak the one thing this file
 // is trying not to depend on.
@@ -20,7 +20,19 @@ const POST_LIMIT = 50
 
 type Post = typeof post.$inferSelect
 
-export async function listPosts(
+/**
+ * Every row, in one answer.
+ *
+ * No `limit`, no cursor, and nothing to stop this growing — which is exactly
+ * why `all` belongs to bounded collections and posts are not one. It is here
+ * as the worked shape of the verb, in the domain that gets deleted. See the
+ * note on `post.all` in the contract.
+ */
+export async function all(db: Database): Promise<Post[]> {
+  return db.select().from(post).orderBy(desc(post.createdAt), desc(post.id))
+}
+
+export async function list(
   db: Database,
   input: { cursor?: string; limit: number }
 ): Promise<{ items: Post[]; nextCursor: string | null }> {
@@ -62,7 +74,7 @@ export async function listPosts(
   }
 }
 
-export async function getPostById(
+export async function byId(
   db: Database,
   id: string
 ): Promise<Post | undefined> {
@@ -78,7 +90,7 @@ export type CreatePostResult =
   | { ok: true; post: Post }
   | { ok: false; limit: number }
 
-export async function createPost(
+export async function create(
   db: Database,
   authorId: string,
   input: { title: string; content: string }
@@ -104,7 +116,7 @@ export async function createPost(
   return { ok: true, post: row }
 }
 
-export async function updatePost(
+export async function update(
   db: Database,
   authorId: string,
   id: string,
@@ -123,7 +135,7 @@ export async function updatePost(
   return row
 }
 
-export async function deletePost(
+export async function remove(
   db: Database,
   authorId: string,
   id: string

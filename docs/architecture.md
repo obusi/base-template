@@ -598,7 +598,7 @@ is who is asking, and that lives in a second middleware:
 ```ts
 // packages/api/src/middleware/auth.ts
 export const requireAdmin = requireAuth.concat(async ({ context, next }) => {
-  if ((await getRole(context.db, context.user.id)) !== "admin") {
+  if ((await profileService.getRole(context.db, context.user.id)) !== "admin") {
     throw new ORPCError("FORBIDDEN")
   }
   return next()
@@ -615,7 +615,7 @@ learn which ids are real from the error it gets back; this procedure takes no
 id, so there is nothing to leak and the honest answer is the useful one.
 
 The role is a column on `profile` — S4 has why it did not go to Better Auth.
-`getRole` reads it without creating a row: `requireAdmin` runs on every admin
+`profileService.getRole` reads it without creating a row: `requireAdmin` runs on every admin
 request, and a read should not write.
 
 This is the exception, not a second pattern to reach for. A handler that
@@ -1164,6 +1164,41 @@ five commits while `turbo typecheck --force` was red the whole time.
 So: **after any change to dependencies, run the gate with `--force` once.** A
 cached green says the inputs turbo knows about are unchanged, which is a weaker
 claim than the tree being sound, and this is the gap between the two.
+
+### C20 — a constant exported from a `"use client"` file arrives on the server as a function 🔴
+
+Every export of a `"use client"` module becomes a client *reference* when a
+Server Component imports it — a stand-in for something the browser will resolve,
+not the value itself. A number comes back as a function:
+
+```ts
+// features/post/components/post-list.tsx  ("use client")
+export const PAGE_SIZE = 20
+
+// features/post/posts-page.tsx  (Server Component)
+import { PAGE_SIZE } from "./components/post-list"
+
+await client.post.list({ limit: PAGE_SIZE })
+```
+
+```
+Error: Input validation failed
+data: { limit: [Function (anonymous)] }
+```
+
+Components are the case the directive exists for and they work as intended; the
+trap is everything else a client module happens to export.
+
+**`tsc` cannot see it.** The types come from the source file — `PAGE_SIZE` is a
+`number` there and stays one to the compiler — while what crosses the boundary
+at build time is something else entirely. Nothing in the gate goes red.
+
+**And the error names the wrong layer.** "Input validation failed" points at the
+procedure, so the search starts in the zod schema, then the handler, then the
+contract, while the cause is a `const` two files away that looked fine.
+
+So: **a constant shared between the two halves lives in a plain module.**
+`apps/web/lib/pagination.ts` is the one this cost, and it carries the note.
 
 ---
 

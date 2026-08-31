@@ -24,6 +24,7 @@ export {
   ReportStatus,
   UpdateReportStatusInput,
   type Report,
+  type ReportWithAttachments,
 } from "./contract/domains/report/schema"
 
 // The browser enforces the same limits the server does, from the same

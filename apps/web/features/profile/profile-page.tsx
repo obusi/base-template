@@ -11,7 +11,7 @@ export async function ProfilePage() {
 
   if (!session) {
     return (
-      <main className="mx-auto flex max-w-2xl flex-col gap-8 p-6">
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6">
         <p className="text-sm text-muted-foreground">
           Sign in to view your profile.
         </p>
@@ -22,7 +22,7 @@ export async function ProfilePage() {
   const profile = await client.profile.me()
 
   return (
-    <main className="mx-auto flex max-w-2xl flex-col gap-8 p-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6">
       <h1 className="text-xl font-medium">Profile</h1>
       <ProfileForm profile={profile} />
     </main>

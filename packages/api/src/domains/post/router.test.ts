@@ -108,6 +108,25 @@ describe("post.byId", () => {
   })
 })
 
+describe("post.all", () => {
+  // The whole point of the verb: no limit was asked for and none was applied.
+  // Three rows rather than two, so a handler that quietly capped at the
+  // default page size would still be caught.
+  it("returns every row, in the same order as list", async () => {
+    for (const title of ["one", "two", "three"]) {
+      await as(alice).post.create({ title, content: "..." })
+    }
+
+    const rows = await anonymous().post.all()
+
+    expect(rows.map((p) => p.title)).toEqual(["three", "two", "one"])
+  })
+
+  it("is an empty array when there is nothing, not an error", async () => {
+    expect(await anonymous().post.all()).toEqual([])
+  })
+})
+
 describe("post.list", () => {
   it("returns newest first and pages with the cursor", async () => {
     for (const title of ["one", "two", "three"]) {

@@ -84,7 +84,7 @@ export async function createUploadTargets(
   )
 }
 
-export async function createReport(
+export async function create(
   db: Database,
   reporterId: string,
   input: {
@@ -135,7 +135,7 @@ export async function createReport(
  * scoping by `reporterId` here would let a reporter close their own report and
  * stop an admin from touching it.
  */
-export async function updateReportStatus(
+export async function updateStatus(
   db: Database,
   id: string,
   status: string
@@ -149,14 +149,14 @@ export async function updateReportStatus(
   return row
 }
 
-export async function listReports(
+export async function list(
   db: Database,
   storage: Storage | null,
   input: { cursor?: string; limit: number }
 ): Promise<{ items: ReportWithAttachments[]; nextCursor: string | null }> {
   // Keyset paging, not `offset`: a report arriving while an admin reads page 1
   // shifts everything down, and with `offset` they would see one row twice.
-  // Same shape as listPosts.
+  // Same shape as postService.list.
   const after = input.cursor
     ? await db
         .select({ createdAt: report.createdAt, id: report.id })

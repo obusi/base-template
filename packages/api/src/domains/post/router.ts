@@ -9,14 +9,18 @@
 
 import { requireUserRole } from "../../middleware/auth"
 import { os } from "../../shared/builder"
-import * as service from "./service"
+import * as postService from "./service"
+
+export const all = os.post.all.handler(({ context }) =>
+  postService.all(context.db)
+)
 
 export const list = os.post.list.handler(({ context, input }) =>
-  service.listPosts(context.db, input)
+  postService.list(context.db, input)
 )
 
 export const byId = os.post.byId.handler(async ({ context, input, errors }) => {
-  const row = await service.getPostById(context.db, input.id)
+  const row = await postService.byId(context.db, input.id)
 
   if (!row) {
     throw errors.NOT_FOUND()
@@ -28,7 +32,7 @@ export const byId = os.post.byId.handler(async ({ context, input, errors }) => {
 export const create = os.post.create
   .use(requireUserRole)
   .handler(async ({ context, input, errors }) => {
-    const result = await service.createPost(context.db, context.user.id, input)
+    const result = await postService.create(context.db, context.user.id, input)
 
     if (!result.ok) {
       // Declared in the contract with its limit attached, so the client can
@@ -43,7 +47,7 @@ export const update = os.post.update
   .use(requireUserRole)
   .handler(async ({ context, input, errors }) => {
     const { id, ...changes } = input
-    const row = await service.updatePost(
+    const row = await postService.update(
       context.db,
       context.user.id,
       id,
@@ -62,7 +66,7 @@ export const update = os.post.update
 export const remove = os.post.delete
   .use(requireUserRole)
   .handler(async ({ context, input, errors }) => {
-    const row = await service.deletePost(context.db, context.user.id, input.id)
+    const row = await postService.remove(context.db, context.user.id, input.id)
 
     if (!row) {
       throw errors.NOT_FOUND()
@@ -71,4 +75,4 @@ export const remove = os.post.delete
     return row
   })
 
-export const postRouter = { list, byId, create, update, delete: remove }
+export const postRouter = { all, list, byId, create, update, delete: remove }
