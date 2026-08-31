@@ -21,6 +21,8 @@ export {
 export {
   CreateReportInput,
   ReportCategory,
+  ReportStatus,
+  UpdateReportStatusInput,
   type Report,
 } from "./contract/domains/report/schema"
 

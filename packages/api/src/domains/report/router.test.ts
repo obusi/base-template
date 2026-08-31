@@ -1,7 +1,12 @@
 import { createRouterClient } from "@orpc/server"
 import { beforeAll, beforeEach, describe, expect, it } from "vitest"
 
-import { MAX_ATTACHMENTS, MAX_ATTACHMENT_BYTES } from "@packages/shared"
+import {
+  FEATURES,
+  MAX_ATTACHMENTS,
+  MAX_ATTACHMENT_BYTES,
+  parseFeatures,
+} from "@packages/shared"
 import { createTestDb, resetDb, type TestDb } from "@packages/db/testing"
 
 import { router } from "../../index"
@@ -50,6 +55,26 @@ const anonymous = () =>
 const withoutStorage = (user: TestUser) =>
   createRouterClient(router, {
     context: () => contextFor(db, user, { reportStorage: null }),
+  })
+
+/**
+ * A deployment with no flags set, which is production until a release.
+ *
+ * `contextFor` hands every test every flag on, so this is the one place that
+ * says otherwise — and it takes no user, because a flag decides whether the
+ * procedure is there at all rather than who may call it.
+ */
+const withNoFlags = () =>
+  createRouterClient(router, {
+    context: () =>
+      anonymousContext(db, { features: parseFeatures("", FEATURES) }),
+  })
+
+/** The same deployment, with an admin's cookie. */
+const asAdminWithNoFlags = (user: TestUser) =>
+  createRouterClient(router, {
+    context: () =>
+      contextFor(db, user, { features: parseFeatures("", FEATURES) }),
   })
 
 /**
@@ -141,6 +166,124 @@ describe("report.list", () => {
     })
     expect(page2.items.map((r) => r.message)).toEqual(["first"])
     expect(page2.nextCursor).toBeNull()
+  })
+})
+
+describe("report.updateStatus", () => {
+  /** A report raised by alice, with bob promoted so he can act on it. */
+  const aReportAndAnAdmin = async () => {
+    const created = await as(alice).report.create(aReport)
+    await promoteToAdmin(db, bob)
+
+    return created
+  }
+
+  it("refuses a caller with no session", async () => {
+    const created = await as(alice).report.create(aReport)
+
+    await rejectsWith(
+      anonymous().report.updateStatus({ id: created.id, status: "resolved" }),
+      "UNAUTHORIZED"
+    )
+  })
+
+  it("refuses a signed-in caller who is not an admin", async () => {
+    const created = await as(alice).report.create(aReport)
+
+    await rejectsWith(
+      as(alice).report.updateStatus({ id: created.id, status: "resolved" }),
+      "FORBIDDEN"
+    )
+  })
+
+  it("moves the report along for an admin", async () => {
+    const created = await aReportAndAnAdmin()
+    expect(created.status).toBe("new")
+
+    const updated = await as(bob).report.updateStatus({
+      id: created.id,
+      status: "investigating",
+    })
+
+    expect(updated.status).toBe("investigating")
+    expect(updated.message).toBe(created.message)
+  })
+
+  // The write is the assertion, not the return value: a handler that answered
+  // with the new status while updating nothing would pass the test above.
+  it("persists the change", async () => {
+    const created = await aReportAndAnAdmin()
+
+    await as(bob).report.updateStatus({ id: created.id, status: "resolved" })
+    const { items } = await as(bob).report.list({ limit: 20 })
+
+    expect(items.map((r) => r.status)).toEqual(["resolved"])
+  })
+
+  it("leaves what the reporter wrote alone", async () => {
+    const created = await aReportAndAnAdmin()
+
+    const updated = await as(bob).report.updateStatus({
+      id: created.id,
+      status: "dismissed",
+    })
+
+    expect(updated.reporterId).toBe(alice.id)
+    expect(updated.category).toBe(created.category)
+    expect(updated.message).toBe(created.message)
+  })
+
+  it("refuses a status the contract does not name", async () => {
+    const created = await aReportAndAnAdmin()
+
+    await rejectsWith(
+      as(bob).report.updateStatus({
+        id: created.id,
+        status: "closed" as never,
+      }),
+      "BAD_REQUEST"
+    )
+  })
+
+  it("answers NOT_FOUND for an id that matches nothing", async () => {
+    await promoteToAdmin(db, bob)
+
+    await rejectsWith(
+      as(bob).report.updateStatus({
+        id: "00000000-0000-4000-8000-000000000000",
+        status: "resolved",
+      }),
+      "NOT_FOUND"
+    )
+  })
+
+  // The release toggle, from both ends. NOT_FOUND rather than FORBIDDEN is the
+  // point of the guard: with the flag off the procedure has to look like one
+  // that was never written, to an admin and to a stranger alike.
+  it("does not exist while the flag is off", async () => {
+    const created = await aReportAndAnAdmin()
+
+    await rejectsWith(
+      asAdminWithNoFlags(bob).report.updateStatus({
+        id: created.id,
+        status: "resolved",
+      }),
+      "NOT_FOUND"
+    )
+  })
+
+  // And the flag is checked before the role, so a caller who is refused cannot
+  // tell the two refusals apart.
+  it("says the same thing to a caller with no session at all", async () => {
+    const created = await as(alice).report.create(aReport)
+
+    await rejectsWith(
+      withNoFlags().report.updateStatus({
+        id: created.id,
+        status: "resolved",
+      }),
+      "NOT_FOUND"
+    )
   })
 })
 

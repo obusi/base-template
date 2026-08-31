@@ -1,6 +1,7 @@
 // Translates between oRPC and ./service — see packages-api.md.
 
 import { requireAdminRole, requireAuth } from "../../middleware/auth"
+import { requireFeature } from "../../middleware/features"
 import { os } from "../../shared/builder"
 import * as service from "./service"
 
@@ -53,4 +54,33 @@ export const list = os.report.list
     service.listReports(context.db, context.reportStorage, input)
   )
 
-export const reportRouter = { createUploadUrls, create, list }
+// Behind a release toggle: the work is merged and the column has always been
+// there, but nobody sees this until `report-status` is set.
+//
+// `requireFeature` goes **first**, ahead of the role check, and the order is
+// the assertion. A flag decides whether the procedure exists in this
+// deployment; a role decides who may call one that does. Guarding in the other
+// order would answer FORBIDDEN to a signed-in non-admin while the flag is off,
+// which tells them there is something here — exactly what NOT_FOUND is chosen
+// to avoid.
+export const updateStatus = os.report.updateStatus
+  .use(requireFeature("report-status"))
+  .use(requireAdminRole)
+  .handler(async ({ context, input, errors }) => {
+    const row = await service.updateReportStatus(
+      context.db,
+      input.id,
+      input.status
+    )
+
+    // No row with that id. Nothing to leak here — an admin may touch every
+    // report, so NOT_FOUND means what it says rather than standing in for
+    // "not yours".
+    if (!row) {
+      throw errors.NOT_FOUND()
+    }
+
+    return row
+  })
+
+export const reportRouter = { createUploadUrls, create, list, updateStatus }

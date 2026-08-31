@@ -10,6 +10,7 @@ import {
   ListReportsInput,
   ListReportsOutput,
   ReportSchema,
+  UpdateReportStatusInput,
 } from "./schema"
 
 export const reportContract = {
@@ -49,5 +50,24 @@ export const reportContract = {
     .route({ method: "GET", path: "/reports" })
     .input(ListReportsInput)
     .output(ListReportsOutput)
+    .errors(commonErrors),
+
+  // Admins only, like `list`. PATCH on a sub-resource rather than on
+  // `/reports/{id}`, because status is the only field this API will ever
+  // change — a PATCH on the report itself would promise a general update that
+  // deliberately does not exist.
+  //
+  // Answers with the bare report rather than the one `list` returns: the caller
+  // already has the attachments and their signed URLs, and re-signing them on
+  // every status change would buy nothing.
+  //
+  // Nothing here says the procedure is behind a feature flag, and that is not
+  // an omission. `requireFeature` refuses with NOT_FOUND, which `commonErrors`
+  // already declares, so guarding and releasing cost the contract no edit at
+  // all — see packages/shared/src/features/.
+  updateStatus: oc
+    .route({ method: "PATCH", path: "/reports/{id}/status" })
+    .input(UpdateReportStatusInput)
+    .output(ReportSchema)
     .errors(commonErrors),
 }

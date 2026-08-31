@@ -9,11 +9,12 @@ import { contextFor, signUpTestUser } from "../testing"
 import type { TestUser } from "../testing"
 import { requireFeature } from "./features"
 
-// A fresh template ships no flags — the list is empty and stays that way until
-// a project starts work behind one — so this test names its own rather than
-// borrowing a real flag that would disappear the week it was released. The
-// cast is that emptiness showing through: with no flags declared, `Feature` is
-// `never`, and nothing can be written that satisfies it.
+// This test names its own flag rather than borrowing a real one, which would
+// disappear the week that work was released and take the test with it. The
+// cast is what naming your own costs: `Feature` is built from `FEATURES`, so a
+// name that is not in the list cannot be written without one. It reads as a
+// warning everywhere except here — `requireFeature("report-satus")` is a
+// compile error, and that is the whole reason the type exists.
 const UNRELEASED = "unreleased" as unknown as Feature
 
 // The guard is attached to a real procedure through the real builder, so the
