@@ -5,9 +5,12 @@ paths:
 
 # packages/scripts
 
-A runner, not a library. Nothing imports it; it holds the commands a person
-types that need the real database and the real auth instance at the same time —
-today just `seed`.
+A runner, not a library. Nothing imports it; it holds the commands that need the
+real database and the real auth instance at the same time — today just `seed`.
+
+Mostly typed by a person, but not only: `apps/web/vercel.json` runs `seed` in
+every preview build. "Where may this run?" is therefore a real question here,
+and the last section below is the answer.
 
 ```
 packages/scripts/
@@ -91,3 +94,34 @@ There is no `test` script, and `seed.ts` is untested. That is a known gap
 rather than a decision. A command that grows any logic worth getting wrong
 should arrive with a test file and the `test` script every other package
 already has.
+
+## A command a deployment runs decides for itself where it may run
+
+`apps/web/vercel.json` has one `buildCommand`, and every deployment uses it —
+preview and production alike. So a command added to that string cannot be
+"preview only" by being written there; it is preview only by refusing anywhere
+else:
+
+```ts
+if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== "preview") {
+  console.log(`seed: VERCEL_ENV is ${process.env.VERCEL_ENV} …`)
+  process.exit(0)
+}
+```
+
+Two things about that shape are the point.
+
+**It is in the script, not in the JSON.** A shell condition inside a JSON
+string is unreadable, untypecheckable and untestable, and what it is guarding
+here is an admin account whose password is written down in three docs.
+`packages/db/scripts/deploy.ts` makes the same call for the same reason.
+
+**The test is "set and not preview", not "is preview".** `VERCEL_ENV` is unset
+on a laptop, which is the case the command exists for, so unset has to keep
+meaning yes. Inverting it would make `pnpm seed` a no-op on the one machine
+that needs it, and silently — the failure would look like a database that
+seeded and then lost the rows.
+
+`db:deploy` guards the other way (unset means no, because nothing but a build
+ever runs it), which is worth noticing rather than copying: the right default
+is whichever one is safe when the platform says nothing.

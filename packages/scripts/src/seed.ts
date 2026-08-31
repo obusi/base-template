@@ -4,6 +4,13 @@
 // It is safe to run twice: an account that already exists is skipped, because
 // signing the same address up again would fail rather than be ignored.
 //
+// **Also run by every preview build.** `apps/web/vercel.json` puts it behind
+// `db:deploy`, so a pull request's database arrives migrated *and* with an
+// admin in it. Without that, every preview is a database nobody can reach the
+// admin side of — the `role` column defaults to `user`, so signing up on the
+// preview does not help, and the alternative was pasting an `update profile`
+// into Supabase's SQL editor once per pull request.
+//
 // **Why this is not `seed.sql`.** Creating a user means running Better Auth's
 // sign-up, which hashes the password the way sign-in will later verify it. A
 // plain SQL INSERT produces a row nobody can log in as, which is also why
@@ -75,6 +82,22 @@ async function seed(): Promise<void> {
 
     console.log(`seed: created ${email} (${role}) — password ${DEV_PASSWORD}`)
   }
+}
+
+// Preview deployments seed themselves; production must not. The build command
+// in `apps/web/vercel.json` is one string shared by every deployment, so the
+// decision cannot live there — a production build would run this and create an
+// admin whose password is written down in this file and in three docs.
+//
+// The test is "the platform says this is a deployment that is not a preview",
+// not "this is a preview". `VERCEL_ENV` is unset on a laptop, which is the
+// case `pnpm seed` exists for, and unset must keep meaning yes.
+if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== "preview") {
+  console.log(
+    `seed: VERCEL_ENV is ${process.env.VERCEL_ENV}, not "preview" — ` +
+      `refusing to create development accounts here.`
+  )
+  process.exit(0)
 }
 
 // Closed in a `finally` so a failure still releases the pool. Without this the
