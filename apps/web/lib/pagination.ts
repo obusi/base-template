@@ -11,8 +11,9 @@
 //     data: { limit: [Function (anonymous)] }
 //
 // It typechecks, because the types come from the source file rather than from
-// what RSC does to it at the boundary. This cost an afternoon once; the fix is
-// simply that shared constants live in a plain module like this one.
+// what RSC does to it at the boundary, and the error names the procedure rather
+// than the constant. See docs/architecture.md S10 (C20). The fix is simply that
+// shared constants live in a plain module like this one.
 //
 // It lives in `lib/` rather than in a feature because both `features/post` and
 // `features/report` page the same way, and because it means nothing about
