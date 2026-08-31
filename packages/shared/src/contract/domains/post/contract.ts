@@ -11,6 +11,7 @@ import { z } from "zod"
 
 import { commonErrors } from "../../errors"
 import {
+  AllPostsOutput,
   CreatePostInput,
   ListPostsInput,
   ListPostsOutput,
@@ -28,6 +29,23 @@ export const postContract = {
     .route({ method: "GET", path: "/posts" })
     .input(ListPostsInput)
     .output(ListPostsOutput),
+
+  // The unpaged twin of `list`, here to show the shape a bounded collection
+  // uses — a dropdown of categories, the statuses a report can hold, one
+  // caller's saved addresses. It takes no input and answers with everything.
+  //
+  // **Posts are not such a collection, and this procedure is a bad fit for
+  // them on purpose**: the example domain is the only place in the repo with
+  // enough rows to demonstrate anything, and it is deleted before a project
+  // ships. Copy the shape, then ask whether the table it points at can grow
+  // without limit. If a person can keep adding rows to it, or the answer needs
+  // a filter, it is a `list` — see `.claude/rules/packages-api.md`.
+  //
+  // The REST path is the awkward part of sharing a resource with `list`: a
+  // real bounded collection is its own resource and answers at `/categories`,
+  // not at a sub-path of something else. Declared ahead of `byId` so the
+  // literal segment is matched before `{id}` would swallow it.
+  all: oc.route({ method: "GET", path: "/posts/all" }).output(AllPostsOutput),
 
   byId: oc
     .route({ method: "GET", path: "/posts/{id}" })

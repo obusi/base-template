@@ -47,3 +47,7 @@ export const ListPostsOutput = z.object({
   // `items.length` against the requested limit to find out.
   nextCursor: z.uuid().nullable(),
 })
+
+// A bare array, not `{ items }`: there is no cursor to carry beside it, and a
+// wrapper with one field would only invite a second one later.
+export const AllPostsOutput = z.array(PostSchema)

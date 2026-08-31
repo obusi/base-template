@@ -20,6 +20,18 @@ const POST_LIMIT = 50
 
 type Post = typeof post.$inferSelect
 
+/**
+ * Every row, in one answer.
+ *
+ * No `limit`, no cursor, and nothing to stop this growing — which is exactly
+ * why `all` belongs to bounded collections and posts are not one. It is here
+ * as the worked shape of the verb, in the domain that gets deleted. See the
+ * note on `post.all` in the contract.
+ */
+export async function all(db: Database): Promise<Post[]> {
+  return db.select().from(post).orderBy(desc(post.createdAt), desc(post.id))
+}
+
 export async function list(
   db: Database,
   input: { cursor?: string; limit: number }

@@ -11,6 +11,10 @@ import { requireUserRole } from "../../middleware/auth"
 import { os } from "../../shared/builder"
 import * as postService from "./service"
 
+export const all = os.post.all.handler(({ context }) =>
+  postService.all(context.db)
+)
+
 export const list = os.post.list.handler(({ context, input }) =>
   postService.list(context.db, input)
 )
@@ -71,4 +75,4 @@ export const remove = os.post.delete
     return row
   })
 
-export const postRouter = { list, byId, create, update, delete: remove }
+export const postRouter = { all, list, byId, create, update, delete: remove }
