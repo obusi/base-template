@@ -14,6 +14,7 @@ import "server-only"
 
 import { auth } from "@packages/auth/server"
 import { db } from "@packages/db"
+import { FEATURES, parseFeatures } from "@packages/shared"
 import { storageFromEnv } from "@packages/storage"
 import { env as storageEnv } from "@packages/storage/env"
 
@@ -30,6 +31,20 @@ import type { ApiContext } from "../shared/context"
  */
 const reportStorage = storageFromEnv(storageEnv, REPORT_BUCKET)
 
+/**
+ * Read from `process.env` directly rather than through a validated `env.ts`,
+ * because this package deliberately has none: every value it needs arrives
+ * through the context, and this file is the one place allowed to know where
+ * they really come from. Nothing here to validate anyway — an empty variable
+ * and an absent one both mean "no flags on", and a name that matches no flag
+ * is `parseFeatures`'s business.
+ *
+ * Built once, beside the storage client, for the same reason: it holds no
+ * request state. Restarting the process is what picks up a changed value,
+ * which is exactly the deploy that changing it required.
+ */
+const features = parseFeatures(process.env.FEATURES, FEATURES)
+
 export function liveContext(headers: Headers): ApiContext {
-  return { db, auth, headers, reportStorage }
+  return { db, auth, headers, features, reportStorage }
 }

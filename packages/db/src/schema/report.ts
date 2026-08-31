@@ -25,7 +25,7 @@ export const report = pgTable.withRLS(
     // `text` rather than a pg enum, for both of these. Adding a value to a pg
     // enum takes a migration that ALTERs the type, and these two are exactly
     // what a project edits first. The allowed values are declared once in
-    // packages/contract and enforced by zod on the way in.
+    // packages/shared and enforced by zod on the way in.
     category: text("category").notNull(),
 
     // Nothing writes this yet: `report.list` is read-only, so today it changes

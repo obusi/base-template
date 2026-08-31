@@ -1,9 +1,9 @@
-// Relative imports, not the `@packages/contract/*` alias — see
+// Relative imports, not the `@packages/shared/*` alias — see
 // domains/post/contract.ts for why this package avoids the alias entirely.
 
 import { oc } from "@orpc/contract"
 
-import { commonErrors } from "../../shared/errors"
+import { commonErrors } from "../../errors"
 import { CreateUploadUrlsInput, CreateUploadUrlsOutput } from "./attachment"
 import {
   CreateReportInput,

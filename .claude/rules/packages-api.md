@@ -20,7 +20,9 @@ src/
 │   ├── context.ts          ApiContext — what a handler receives
 │   ├── builder.ts          os = implement(contract).$context<ApiContext>()
 │   └── surface.test.ts     pins the exports map — see the last section
-├── middleware/auth.ts    requireAuth, requireAdmin
+├── middleware/
+│   ├── auth.ts             requireAuth, requireAdmin
+│   └── features.ts         requireFeature — the release-toggle guard
 ├── connection/live.ts    the real context, for production requests
 └── testing/index.ts      the throwaway context, for tests
 ```
@@ -121,7 +123,7 @@ connection is neither. Anything a handler throws that the contract does not
 declare becomes `INTERNAL_SERVER_ERROR`, gets logged, and the user sees
 "something went wrong".
 
-So a new error code means editing `packages/contract` first — declaring it on
+So a new error code means editing `packages/shared` first — declaring it on
 the procedure, with the data the client needs attached. `QUOTA_EXCEEDED`
 carries its limit so the UI can say "you can have 50" instead of hard-coding a
 number that drifts from the server's.
@@ -131,14 +133,14 @@ it.
 
 ## The context is handed in, never assembled here
 
-`ApiContext` is `{ db, auth, headers, reportStorage }`, and all four are
-supplied by the caller. `apps/web` passes the live database, the live auth
-instance, the real request headers and storage built from the environment; a
-test passes a throwaway PGlite database, an auth instance bound to it, headers
-carrying a cookie from a real sign-in, and `fakeStorage()` from
-`@packages/storage/testing`. Neither handlers nor
-middleware can tell the difference, which is why there is no test-only branch
-anywhere in this package.
+`ApiContext` is `{ db, auth, headers, features, reportStorage }`, and all five
+are supplied by the caller. `apps/web` passes the live database, the live auth
+instance, the real request headers, storage built from the environment, and the
+flags that deployment has on; a test passes a throwaway PGlite database, an
+auth instance bound to it, headers carrying a cookie from a real sign-in,
+`fakeStorage()` from `@packages/storage/testing`, and every flag on. Neither
+handlers nor middleware can tell the difference, which is why there is no
+test-only branch anywhere in this package.
 
 `reportStorage` is `Storage | null`, and `null` is a normal state rather than a
 broken one — the same shape as an absent `sendResetPassword`. A deployment with
@@ -154,6 +156,10 @@ beside this one. `storageFromEnv(config, bucket)` takes the bucket as an
 argument precisely so that costs a line in `connection/live.ts` rather than a
 second way of building storage.
 
+**The buckets go last in the type, after `features`.** They are the only part
+of the context expected to grow one field per domain, and a list that grows
+reads better with nothing filed after it.
+
 **The `Storage` port itself is not in this package** — it is `@packages/storage`,
 along with its Supabase implementation, its `fakeStorage`, and the two variables
 that say how to reach the project (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
@@ -166,6 +172,34 @@ bucket name, and that is now `REPORT_BUCKET` in `domains/report/service.ts` — 
 constant, because `supabase/config.toml` declares the bucket and a variable set
 to any other name would point at one nobody created. A new domain that stores
 files declares its own constant beside its own service, not a variable.
+
+`connection/live.ts` reads `process.env.FEATURES` directly for the same reason
+— one variable, nothing to validate (unset and empty both mean "no flags on"),
+and a name matching no flag is `parseFeatures`'s business, not a schema's.
+Adding an `env.ts` here to hold it would put a second door on a package whose
+whole shape is "everything arrives through the context".
+
+## Feature flags are middleware, and only middleware
+
+```ts
+export const update = os.report.update
+  .use(requireAuth)
+  .use(requireFeature("report-edit"))
+  .handler(...)
+```
+
+Guarding a procedure is that line; releasing it is deleting that line. The
+handler never mentions the flag, and neither does the service.
+
+**Do not read `context.features` inside a handler.** A flag that changes what a
+procedure returns is two code paths under one `.output()`, which is the exact
+drift the contract exists to prevent. If the new behaviour has a different
+shape it is a different procedure, guarded on its own.
+
+Because `requireFeature` answers `NOT_FOUND` — already in `commonErrors` — a
+guarded procedure needs no contract change at all. See
+`packages/shared/src/features/` for what a flag here is and, more usefully,
+what it is not.
 
 `connection/live.ts` is the one file that names the real `db` and the real
 `auth`. It carries `import "server-only"`, and **nothing inside this package

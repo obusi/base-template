@@ -128,7 +128,7 @@ constraints, not taste — merging any two of the six breaks something specific:
 
 | Package | Holds | Why it cannot be merged |
 |---|---|---|
-| `contract` | zod schemas + the oRPC contract | A future Expo app imports it without dragging in Drizzle or Better Auth |
+| `shared` | the oRPC contract, its zod schemas, feature flag names | A future Expo app imports it without dragging in Drizzle or Better Auth |
 | `db` | Drizzle schema, client, migrations | Both `auth` and `api` need it; nesting it in `api` creates `auth → api → auth` |
 | `auth` | Better Auth server + client entries | The browser login page calls it directly, bypassing oRPC |
 | `api` | The oRPC router — implements the contract | The layer that composes everything else |
@@ -155,18 +155,18 @@ answer for every other package in the repo.
 
 ```
 apps/web ──┬─► ui              ┐
-           ├─► contract        │  reachable from the browser
+           ├─► shared          │  reachable from the browser
            ├─► auth/client     ┘
            ├─► auth/server     ┐
            └─► api             ┘  server-side only
                  │
-                 ├─► contract
+                 ├─► shared
                  ├─► auth/server
                  ├─► storage
                  └─► db
 ```
 
-**Contract-first.** `packages/contract` declares what goes in and out;
+**Contract-first.** `packages/shared` declares what goes in and out;
 `packages/api` implements that shape via `implement(contract)`. A handler that
 drifts from its `.output()` stops compiling, so the contract cannot become
 stale documentation.
@@ -183,6 +183,16 @@ OpenAPI spec generated from the contract at `/api/spec` and rendered at
 Better Auth at `/api/auth`. There is no contract for auth and writing one
 would be a mistake — see `docs/architecture.md` S4.
 
+**Feature flags are release toggles and nothing else.** `FEATURES` names them,
+comma-separated, in the environment; `packages/shared/src/features/` holds the
+list of flags that exist and the parser both sides use. A flag hides work that
+is merged but unfinished, so a branch never has to live longer than a day, and
+it is deleted with the code path it guarded. `.use(requireFeature("x"))` on the
+procedure, `features.isOn("x")` in a Server Component — both, since hiding a
+button leaves `/rpc` open. Kill switches and per-user gates are deliberately
+not this; `packages/shared/src/features/index.ts` says what to reach for
+instead, and `.claude/rules/packages-conventions.md` has the checklist.
+
 ## Boundaries that must not break
 
 These are enforced by tooling, not by discipline. Breaking one is a build
@@ -193,8 +203,8 @@ failure, and that is deliberate — do not work around it.
    a page could query the database directly it would skip `requireAuth`
    entirely. `packages/api` must not re-export `db` either, or the same door
    reopens.
-2. **`packages/contract` depends on `@orpc/contract` and `zod`, and nothing
-   else.** Checked by `packages/contract/src/shared/dependencies.test.ts`.
+2. **`packages/shared` depends on `@orpc/contract` and `zod`, and nothing
+   else.** Checked by `packages/shared/src/dependencies.test.ts`.
    This is the boundary a future Expo app rests on.
 3. **Nothing imports a database — it is handed one.** `packages/api` receives
    it through oRPC's context; `packages/auth` takes `createAuth(database)`. A

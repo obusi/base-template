@@ -217,6 +217,29 @@ database as `POSTGRES_URL`, and both `env.ts` files fall back to it. Setting
 **Do not set `BETTER_AUTH_ALLOWED_HOSTS`** either. It exists for a host Vercel
 cannot report — a second custom domain, or another platform.
 
+### `FEATURES`, when there is unfinished work to look at
+
+A feature flag hides work that has been merged but is not done, so the whole
+point is that the value differs between the deployment reviewing that work and
+the one serving people. Add it as a **Preview** variable **scoped to the branch**
+— Vercel's environment editor takes a specific git branch beside the Preview
+checkbox — so it reaches that pull request's deployment and no other:
+
+| Key | Type | Value | Scope |
+|---|---|---|---|
+| `FEATURES` | Config | the flag names, comma-separated | Preview → that branch |
+
+**Production never has it set.** A flag switched on there is a feature
+released, which is a decision made by deleting the flag rather than by editing
+a settings page.
+
+Two things follow from where the value lives. It is read once when the process
+starts, so changing it takes a redeploy — fine for work nobody has seen, and
+useless as an emergency switch. And a name left set after its flag is deleted
+from the code is warned about at startup and otherwise ignored, deliberately:
+it must not be able to stop a deploy. Clearing it is still part of releasing —
+`.claude/rules/packages-conventions.md` has the rest of that list.
+
 **A preview has no admin.** Each branch gets an empty database, and everyone who
 signs up on it is a `user` — the column defaults to that. So `/admin` and
 everything under it answer 404 on every preview, for everybody, including the

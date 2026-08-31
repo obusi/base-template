@@ -1,6 +1,6 @@
 import { oc } from "@orpc/contract"
 
-import { commonErrors } from "../../shared/errors"
+import { commonErrors } from "../../errors"
 import { ProfileSchema, UpdateProfileInput } from "./schema"
 
 export const profileContract = {

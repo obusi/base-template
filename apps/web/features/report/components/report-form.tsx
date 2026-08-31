@@ -18,7 +18,7 @@ import {
   CreateReportInput,
   MAX_ATTACHMENTS,
   ReportCategory,
-} from "@packages/contract"
+} from "@packages/shared"
 import { Button } from "@packages/ui/components/button"
 import { Label } from "@packages/ui/components/label"
 import {
@@ -41,7 +41,7 @@ import { readFrom, reportedPageUrl } from "../page-context"
 // part of the same contract input but are not form state: one is the file
 // picker's selection, the other is read from the URL, and both are assembled
 // at submit. `.pick()` because these shapes genuinely coincide, not to save
-// typing — see packages-contract.md.
+// typing — see packages-shared.md.
 const FormValues = CreateReportInput.pick({ category: true, message: true })
 
 type Values = z.infer<typeof FormValues>

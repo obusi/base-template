@@ -8,7 +8,7 @@
 // a page from querying the database directly and skipping `requireAuth`.
 //
 // Same failure mode `dependencies.test.ts` guards against in
-// `packages/contract`: a rule that lives only in a document is a rule the
+// `packages/shared`: a rule that lives only in a document is a rule the
 // first person in a hurry breaks. So the rule is checked instead.
 
 import { readFileSync } from "node:fs"

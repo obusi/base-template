@@ -1,6 +1,6 @@
 // Example domain — delete alongside schema.ts when starting a real project.
 //
-// Relative imports, not the `@packages/contract/*` alias. This is the one
+// Relative imports, not the `@packages/shared/*` alias. This is the one
 // package a future Expo app compiles through Metro, whose handling of package
 // `exports` maps and self-referencing imports has been the source of enough
 // bundler bugs to be worth avoiding. Nothing inside this folder needs the
@@ -9,7 +9,7 @@
 import { oc } from "@orpc/contract"
 import { z } from "zod"
 
-import { commonErrors } from "../../shared/errors"
+import { commonErrors } from "../../errors"
 import {
   CreatePostInput,
   ListPostsInput,

@@ -13,8 +13,8 @@ import from each other and from themselves, and what adding a new domain
 touches.
 
 Every package also has a file of its own, which loads when work touches it:
-`packages-api.md`, `packages-auth.md`, `packages-contract.md`, `packages-db.md`,
-`packages-scripts.md`, `packages-storage.md`, `packages-ui.md`. Anything true of
+`packages-api.md`, `packages-auth.md`, `packages-db.md`, `packages-scripts.md`,
+`packages-shared.md`, `packages-storage.md`, `packages-ui.md`. Anything true of
 exactly one package belongs there rather than here.
 
 ## What every package carries
@@ -90,7 +90,7 @@ package has its own reason:
 - **`db`** — drizzle-kit's loader reads `@packages/db/schema` as a string
   prefix and fails to find the sibling file. See `docs/architecture.md` S10
   (C15).
-- **`contract`** — this is the package a future Expo app compiles through
+- **`shared`** — this is the package a future Expo app compiles through
   Metro, whose handling of `exports` maps and self-references has produced
   enough bundler bugs to be worth never testing.
 
@@ -105,7 +105,7 @@ means the next regenerated component arrives with the alias again. See
 
 ## Grouping: `domains/` versus named folders
 
-`contract` and `api` both group the same way, so that adding a domain means
+`shared` and `api` both group the same way, so that adding a domain means
 adding the same folder name in each with nothing to rename or guess:
 
 ```
@@ -114,6 +114,11 @@ src/
 ├── domains/<x>/    everything specific to one domain
 └── <named>/        cross-cutting concerns, one folder per well-defined job
 ```
+
+In `shared` that block sits one level down, at `src/contract/`. The package is
+named for who reaches it rather than for what is in it, so what is in it gets a
+folder — and a domain folder at the root would claim every future occupant has
+domains too, which `features/` beside it does not.
 
 Cross-cutting folders get real names — `shared/`, `middleware/`, `connection/`,
 `testing/` — rather than one generic bucket. `connection/` and `testing/` mean
@@ -220,10 +225,10 @@ The folder name is the same in every package, and singular (`post`, not
    Export it from `schema/index.ts`, then
    `pnpm db:generate`. Add the new table name to the
    pinned list in `schema/rls-guard.test.ts`, which is meant to go red here.
-2. **`packages/contract/src/domains/<x>/schema.ts`** — the zod schemas. These
+2. **`packages/shared/src/contract/domains/<x>/schema.ts`** — the zod schemas. These
    are the source of truth for the shape; nothing derives them from Drizzle,
-   and `packages-contract.md` explains why.
-3. **`packages/contract/src/domains/<x>/contract.ts`** — the procedures, then
+   and `packages-shared.md` explains why.
+3. **`packages/shared/src/contract/domains/<x>/contract.ts`** — the procedures, then
    add the domain to the `contract` object in `src/index.ts`.
 4. **`packages/api/src/domains/<x>/`** — `service.ts` then `router.ts`, and
    register the router in `src/index.ts`. See `packages-api.md`.
@@ -275,3 +280,45 @@ also work without being asked for.
 `context.storage["avatr"]` would be `undefined` at runtime instead of red at
 build time, and every handler would be able to reach every bucket while holding
 the service role key. Five named lines buy both of those back.
+
+### If the work is not finished yet
+
+A flag is how a branch stays short: the work merges every day, switched off,
+and nobody sees it until it is done. It is a **release toggle** and nothing
+else — not a kill switch, not a per-user gate. `packages/shared/src/features/`
+says why, and what to build instead when the need is one of those.
+
+Adding one is two edits, and both come out again on release:
+
+1. **`packages/shared/src/features/index.ts`** — add the name to `FEATURES`.
+   Kebab case, named for the work rather than the mechanism (`report-edit`, not
+   `new-report-feature-flag`).
+2. **Guard each side.** In `packages/api`, `.use(requireFeature("<name>"))` on
+   the procedure. In `apps/web`, `features.isOn("<name>")` from
+   `@/lib/features` in a Server Component.
+
+Guard **both** sides whenever the work has a procedure. Hiding the button
+leaves `/rpc`, `/api/v1` and the published spec at `/api/spec` open, so a
+UI-only guard ships the feature to anyone willing to read the docs the app
+generates for them.
+
+A client component never sees a flag. The Server Component branches and passes
+the answer down — `canEdit={features.isOn("report-edit")}` — named for what the
+component may do rather than for the flag, so releasing costs that component no
+edit at all.
+
+Turning it on is a value in the environment, and nothing else:
+
+```
+FEATURES=report-edit
+```
+
+Set it on this machine and on the deployment reviewing the work — on Vercel
+that is a Preview variable scoped to the branch. Production stays unset. See
+`docs/deploy.md` S4.
+
+**Releasing is deleting.** Remove the name from `FEATURES`, remove the
+`.use(...)` and the `isOn(...)` branch, remove whatever the flag was replacing,
+and remove the value from the deployment that had it set. A flag left behind is
+a branch of the app nobody runs and every reader has to reason about, and there
+is no test that can catch that — which is why it is written down here.

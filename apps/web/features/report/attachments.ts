@@ -1,5 +1,5 @@
 // The limits the browser checks before anything is uploaded — the same ones
-// the server enforces, read from `@packages/contract` rather than written out
+// the server enforces, read from `@packages/shared` rather than written out
 // again here. A form that hard-codes them tells the person "up to 5 MB" while
 // the server has moved on, and they find out by watching an upload fail.
 //
@@ -12,7 +12,7 @@ import {
   AttachmentContentType,
   MAX_ATTACHMENTS,
   MAX_ATTACHMENT_BYTES,
-} from "@packages/contract"
+} from "@packages/shared"
 
 const ALLOWED = AttachmentContentType.options
 

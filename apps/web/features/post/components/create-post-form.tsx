@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import type { z } from "zod"
 
-import { CreatePostInput } from "@packages/contract"
+import { CreatePostInput } from "@packages/shared"
 import { Button } from "@packages/ui/components/button"
 import { Input } from "@packages/ui/components/input"
 import { Label } from "@packages/ui/components/label"

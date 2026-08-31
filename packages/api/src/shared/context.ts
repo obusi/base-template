@@ -1,5 +1,6 @@
 import type { Auth } from "@packages/auth/server"
 import type { Database } from "@packages/db"
+import type { FeatureSet } from "@packages/shared"
 import type { Storage } from "@packages/storage"
 
 /**
@@ -30,12 +31,27 @@ export type ApiContext = {
   headers: Headers
 
   /**
+   * The feature flags this deployment has on.
+   *
+   * Handed in for the same reason `db` is: a test needs to run a procedure
+   * with a flag off and the same procedure with it on, and reading
+   * `process.env` in here would make that a process-wide change every other
+   * test running beside it would share.
+   *
+   * `requireFeature` is what reads this. A handler should not — a flag that
+   * changes what a procedure *returns* is a second code path inside one
+   * contract, and the contract is what stops those from drifting.
+   */
+  features: FeatureSet
+
+  /**
    * The report domain's bucket, or `null` where none is configured.
    *
    * Named for its domain rather than called `storage`, because a bucket is
    * where Supabase keeps the size limit and the MIME allowlist and a folder
    * inside one cannot carry its own — so a second domain that stores files
    * gets a second bucket and a second field here, not a share of this one.
+   * The buckets stay last for that reason: they are the list that grows.
    *
    * `null` is a normal state, not a broken one — the same shape as
    * `sendResetPassword` being absent. A deployment without a bucket runs

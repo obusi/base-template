@@ -6,6 +6,7 @@
 
 import { createAuth } from "@packages/auth/server"
 import { schema, type Database } from "@packages/db"
+import { FEATURES, parseFeatures } from "@packages/shared"
 import { fakeStorage } from "@packages/storage/testing"
 
 import type { ApiContext } from "../shared/context"
@@ -67,6 +68,19 @@ export async function promoteToAdmin(
 }
 
 /**
+ * Every flag on, which is what a test wants by default.
+ *
+ * The alternative — everything off — would make guarding a procedure break
+ * that procedure's existing tests, and *un*guarding it later break them again
+ * as the overrides came back out. A test is about what a procedure does, not
+ * about whether it is switched on; the one test that cares says so with
+ * `{ features: parseFeatures("", FEATURES) }`.
+ *
+ * Deleting a flag has to be as cheap as possible or it does not get done.
+ */
+const allFeatures = parseFeatures(FEATURES.join(","), FEATURES)
+
+/**
  * A context for a signed-in caller.
  *
  * Every storage field defaults to a working stand-in, so a domain with nothing
@@ -88,6 +102,7 @@ export function contextFor(
     db,
     auth: createAuth(db),
     headers: user.headers,
+    features: allFeatures,
     reportStorage: fakeStorage(),
     ...overrides,
   }
@@ -102,6 +117,7 @@ export function anonymousContext(
     db,
     auth: createAuth(db),
     headers: new Headers(),
+    features: allFeatures,
     reportStorage: fakeStorage(),
     ...overrides,
   }

@@ -1,24 +1,45 @@
 ---
 paths:
-  - "packages/contract/**/*"
+  - "packages/shared/**/*"
 ---
 
-# packages/contract
+# packages/shared
 
-The API described and nothing more — no executable logic. `packages/api`
-implements this shape, `apps/web` calls it, and a future Expo app imports this
-and only this.
+Everything `apps/web` and `packages/api` must agree on, and nothing either of
+them could keep to itself. `packages/api` implements the contract in here,
+`apps/web` calls it, and a future Expo app imports this package and only this.
 
 ```
 src/
-├── index.ts                    public entry: the contract object + form schemas
-├── domains/<x>/
-│   ├── schema.ts                 zod schemas — the shape
-│   └── contract.ts               procedures — input, output, errors, route
-└── shared/
-    ├── errors.ts                 codes every domain reuses
-    └── dependencies.test.ts      the boundary, checked
+├── index.ts                    public entry — everything below, by name
+├── contract/
+│   ├── domains/<x>/
+│   │   ├── schema.ts             zod schemas — the shape
+│   │   └── contract.ts           procedures — input, output, errors, route
+│   └── errors.ts                 codes every domain reuses
+├── features/                   feature flag names and the env parser
+└── dependencies.test.ts        the boundary, checked
 ```
+
+## What may live here
+
+The package was called `contract` until it held more than one, and a name that
+lists one of its contents ages badly. What replaced it is broader on purpose,
+so the rule for admission is written down rather than implied by the name:
+
+1. **Both sides need it.** Something only `apps/web` uses belongs in
+   `apps/web`; something only `packages/api` uses belongs there. This package
+   is for what would otherwise be written twice and drift.
+2. **It runs anywhere.** No DOM, no `node:` API a bundler cannot follow, no
+   database. The dependency rule below is what enforces this, and it is checked.
+
+A helper that satisfies both is welcome. One that satisfies only the first is a
+sign the logic belongs to one side and is being shared out of convenience.
+
+`parseFeatures` in `features/` is the first thing in here that runs rather than
+declares, and it passes both tests: the environment says which flags are on,
+and `apps/web` and `packages/api` have to read that string the same way or the
+same deployment answers differently at the two ends.
 
 ## The dependency boundary is the reason this package exists
 
@@ -52,8 +73,8 @@ by making this package import that one.
 ## Relative imports only
 
 ```ts
-import { commonErrors } from "../../shared/errors"          // ✅
-import { commonErrors } from "@packages/contract/shared/errors"   // ❌
+import { commonErrors } from "../../errors"                   // ✅
+import { commonErrors } from "@packages/shared/contract/errors" // ❌
 ```
 
 Metro's handling of `exports` maps and self-referencing imports has produced

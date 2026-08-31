@@ -30,6 +30,19 @@ export const env = createEnv({
     // open is the thing this presence check removes.
     GOOGLE_CLIENT_ID: z.string().optional(),
     GOOGLE_CLIENT_SECRET: z.string().optional(),
+
+    // The feature flags this deployment turns on, comma-separated. Unset is
+    // the normal state, and the only correct one for production.
+    //
+    // Not validated against the list of flags that exist: this is where the
+    // value is read, not where it is understood. `parseFeatures` does that
+    // check and warns, which is deliberate — see the note there on why an
+    // unrecognised name must not be able to stop the process from starting.
+    //
+    // `server`, never `client`. The names say what is being built before it
+    // ships, and a flag read in the browser is a flag whose guarded code was
+    // sent to the browser.
+    FEATURES: z.string().optional(),
   },
 
   // Nothing here yet. Anything added becomes readable by anyone who opens
@@ -53,5 +66,6 @@ export const env = createEnv({
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+    FEATURES: process.env.FEATURES,
   },
 })
