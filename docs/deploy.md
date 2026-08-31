@@ -240,22 +240,29 @@ from the code is warned about at startup and otherwise ignored, deliberately:
 it must not be able to stop a deploy. Clearing it is still part of releasing —
 `.claude/rules/packages-conventions.md` has the rest of that list.
 
-**A preview has no admin.** Each branch gets an empty database, and everyone who
-signs up on it is a `user` — the column defaults to that. So `/admin` and
-everything under it answer 404 on every preview, for everybody, including the
-person who opened the pull request. That is the guard working, not a bug.
+**A preview signs itself in.** Each branch gets an empty database, and everyone
+who signs up on it is a `user` — the column defaults to that — so a preview
+with nothing done to it is one where `/admin` answers 404 for everybody,
+including the person who opened the pull request. The build runs `pnpm seed`
+straight after the migrations to fix that, and every preview arrives with:
 
-To review a change to the admin side, promote an account inside that branch's
-own database — Supabase → Branches → the branch → SQL Editor:
+| Email | Role | Password |
+|---|---|---|
+| `user@example.com` | `user` | `12345678` |
+| `admin@example.com` | `admin` | `12345678` |
 
-```sql
-update profile set role = 'admin'
-where user_id = (select id from "user" where email = 'you@example.com');
-```
+The same two accounts as a laptop, so a reviewer signs in with what they
+already know rather than being handed a per-branch credential.
 
-It lasts as long as the branch does, which is until the pull request closes.
-`provisioning.md`'s "Make yourself an admin" is the same statement for a hosted
-database; locally, `pnpm seed` creates an admin account instead.
+**Production is never seeded**, and the check is in `seed.ts` rather than in
+`vercel.json`: one build command serves every deployment, so a decision written
+into that string would create an admin on production whose password is printed
+above. The script exits when `VERCEL_ENV` is set to anything but `preview`, and
+runs when it is unset — a laptop, which is what `pnpm seed` is for.
+
+Which makes **Vercel's Deployment Protection the thing standing between a
+published password and an admin account.** It is on by default and covers every
+preview URL; if you turn it off for a project, turn this off too.
 
 ## What a normal deployment looks like
 
@@ -268,7 +275,8 @@ Opening a pull request sets two services off in an order neither controls:
 
 2.  Supabase creates the branch, writes the variables,
     and asks Vercel to deploy again    ✅  ~1m
-       db:deploy applies the migrations, then next build runs.
+       db:deploy applies the migrations, seed creates the two
+       accounts, then next build runs.
 ```
 
 Step 1 used to be a red build — `next.config.ts` validates its environment at
@@ -300,11 +308,14 @@ gets a preview. **`Supabase Preview` on the pull request is where that shows**,
 so it is the check to read when a preview does not appear.
 
 If Supabase gets there first, step 1 never happens and there is one deployment.
-Either way the build log is where to confirm the schema arrived:
+Either way the build log is where to confirm the schema and the accounts
+arrived:
 
 ```
 db:deploy: applying migrations to this preview's database
 db:deploy: done
+seed: created user@example.com (user) — password 12345678
+seed: created admin@example.com (admin) — password 12345678
 ```
 
 A pull request ends up with four checks, and only one of them is a gate:

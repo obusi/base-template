@@ -93,6 +93,10 @@ hashed the way sign-in will verify it — which is also why `[db.seed]` is off i
 at all. Running it twice is safe; running it against a database with no tables
 exits non-zero rather than warning.
 
+Every preview build runs it too, so a pull request gets an admin without anyone
+editing rows by hand; the script refuses when `VERCEL_ENV` says production, and
+`docs/deploy.md` S5 says what that leans on.
+
 **Database** (needs `packages/db/.env` — see `docs/architecture.md` S9 for why
 there are two env files; both are copies of their `.env.example` for local work):
 

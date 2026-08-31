@@ -1,5 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "pnpm --filter @packages/db db:deploy && turbo run build --filter=web",
+  "buildCommand": "pnpm --filter @packages/db db:deploy && pnpm --filter @packages/scripts seed && turbo run build --filter=web",
   "ignoreCommand": "sh -c '[ \"$VERCEL_ENV\" = preview ] && [ -z \"$POSTGRES_URL$DATABASE_URL\" ]'"
 }

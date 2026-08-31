@@ -261,9 +261,9 @@ non-zero.
 `/report` works for anyone signed in. `/admin/reports`, where those reports are
 read, answers 404 to everybody until somebody holds the role — and nothing in
 the app grants it, on purpose: an endpoint that hands out admin is a bigger
-risk than a one-off SQL statement. (The seeded `admin@example.com` exists only
-where somebody has run `pnpm seed`, which is a local command and points at a
-local database.)
+risk than a one-off SQL statement. (The seeded `admin@example.com` exists on a
+laptop and on preview branches, where `pnpm seed` has run. It is never created
+on production — see [`deploy.md`](deploy.md) S5.)
 
 Open `pnpm db:studio` and run it against your own account:
 
