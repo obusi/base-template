@@ -19,13 +19,20 @@
 // that this file should grow.
 
 /**
- * Every flag that exists. Empty is the correct state — a flag is added the day
+ * Every flag that exists. Empty is the resting state — a flag is added the day
  * work starts behind it and removed the day that work ships.
  *
  * Spelling is checked against this list, so a flag that is on in one place and
  * off in another cannot be caused by a typo that nothing reports.
  */
-export const FEATURES = [] as const
+export const FEATURES = [
+  // Letting an admin change a report's status. The column has existed since the
+  // table was created and nothing ever wrote it; `report.updateStatus` is the
+  // procedure that does. Releasing means deleting this line, the `.use()` in
+  // `packages/api`, the `isOn` branch in `apps/web`, and the value wherever it
+  // is set.
+  "report-status",
+] as const
 
 /** The name of a flag that exists. */
 export type Feature = (typeof FEATURES)[number]

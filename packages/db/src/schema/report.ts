@@ -28,10 +28,11 @@ export const report = pgTable.withRLS(
     // packages/shared and enforced by zod on the way in.
     category: text("category").notNull(),
 
-    // Nothing writes this yet: `report.list` is read-only, so today it changes
-    // through db:studio. It is here rather than in a later migration because
-    // adding the column costs a migration while adding the procedure that
-    // writes it does not.
+    // Written by `report.updateStatus` and by nothing else — the reporter sets
+    // every other column here, an admin sets this one. It sat unwritten for a
+    // while, and was still declared with the table rather than added later,
+    // because adding a column costs a migration while adding the procedure
+    // that writes it does not.
     status: text("status").notNull().default("new"),
 
     message: text("message").notNull(),

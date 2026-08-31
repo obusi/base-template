@@ -182,14 +182,21 @@ whole shape is "everything arrives through the context".
 ## Feature flags are middleware, and only middleware
 
 ```ts
-export const update = os.report.update
-  .use(requireAuth)
-  .use(requireFeature("report-edit"))
+export const updateStatus = os.report.updateStatus
+  .use(requireFeature("report-status"))
+  .use(requireAdminRole)
   .handler(...)
 ```
 
 Guarding a procedure is that line; releasing it is deleting that line. The
 handler never mentions the flag, and neither does the service.
+
+**The flag goes first, ahead of the auth or role check**, and the order carries
+the meaning: a flag decides whether the procedure exists in this deployment, a
+role decides who may call one that does — and existence comes first. The other
+order answers `FORBIDDEN` to a signed-in non-admin while the flag is off, which
+tells them there is something there, and telling them that is what `NOT_FOUND`
+was chosen to avoid.
 
 **Do not read `context.features` inside a handler.** A flag that changes what a
 procedure returns is two code paths under one `.output()`, which is the exact

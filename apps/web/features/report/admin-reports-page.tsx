@@ -1,13 +1,26 @@
-// The read side. There is no procedure that edits a report — `status` changes
-// through db:studio for now — so this page only ever lists.
+// What an admin reads, and the one thing they can change. A report's message,
+// category and captured context are the reporter's account of what happened
+// and stay read-only; `status` is where the admin is up to with it.
+//
+// Editing it is behind the `report-status` flag, so this page renders either a
+// dropdown or the plain text it showed before. Releasing deletes the branch —
+// and nothing below the branch, because `ReportStatusSelect` never hears about
+// the flag.
 
 import { ORPCError } from "@orpc/client"
 import { notFound } from "next/navigation"
 
 import { client } from "@/lib/orpc"
+import { features } from "@/lib/features"
+
+import { ReportStatusSelect } from "./components/report-status-select"
 
 export async function AdminReportsPage() {
   const { items } = await listReports()
+
+  // Read once for the page rather than inside the loop: the answer cannot
+  // differ per row, and asking per row would suggest it might.
+  const canSetStatus = features.isOn("report-status")
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-8 p-6">
@@ -26,9 +39,16 @@ export async function AdminReportsPage() {
                 <span className="rounded bg-muted px-2 py-0.5 capitalize">
                   {report.category}
                 </span>
-                <span className="text-muted-foreground capitalize">
-                  {report.status}
-                </span>
+                {canSetStatus ? (
+                  <ReportStatusSelect
+                    reportId={report.id}
+                    status={report.status}
+                  />
+                ) : (
+                  <span className="text-muted-foreground capitalize">
+                    {report.status}
+                  </span>
+                )}
 
                 {/* Rendered from ISO rather than toLocaleString: this runs on
                     the server, and a locale-formatted date would be the

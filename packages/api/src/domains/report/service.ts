@@ -1,8 +1,9 @@
 // Business logic for the report domain. Knows nothing about oRPC — see
 // docs/architecture.md S2 and packages-api.md.
 //
-// There is no update and no delete. `report.list` is read-only on purpose, so
-// the only writer here is the person raising the report.
+// There is no delete, and the only update is `status`. What a report says is
+// the reporter's account of what happened; an admin moves it along a workflow
+// rather than editing the record of what was said.
 
 import { and, desc, eq, inArray, lt, or } from "drizzle-orm"
 
@@ -118,6 +119,34 @@ export async function createReport(
 
     return row
   })
+}
+
+/**
+ * Move a report along, answering with the row as it now stands.
+ *
+ * `undefined` for an id that matches nothing — the router turns that into
+ * NOT_FOUND. Nothing is thrown here, and nothing from `@orpc/*` is imported;
+ * see packages-api.md.
+ *
+ * No ownership in the `where` clause, unlike every other write in this repo,
+ * and the absence is the point: a report belongs to the person who raised it,
+ * while the status belongs to whoever is dealing with it. `requireAdminRole`
+ * on the procedure is the whole rule, and there is nothing narrower to add —
+ * scoping by `reporterId` here would let a reporter close their own report and
+ * stop an admin from touching it.
+ */
+export async function updateReportStatus(
+  db: Database,
+  id: string,
+  status: string
+): Promise<Report | undefined> {
+  const [row] = await db
+    .update(report)
+    .set({ status })
+    .where(eq(report.id, id))
+    .returning()
+
+  return row
 }
 
 export async function listReports(

@@ -294,8 +294,16 @@ Adding one is two edits, and both come out again on release:
    Kebab case, named for the work rather than the mechanism (`report-edit`, not
    `new-report-feature-flag`).
 2. **Guard each side.** In `packages/api`, `.use(requireFeature("<name>"))` on
-   the procedure. In `apps/web`, `features.isOn("<name>")` from
-   `@/lib/features` in a Server Component.
+   the procedure, **ahead of** `requireAuth` or `requireAdminRole` — existence
+   is decided before permission, or a refusal announces the procedure is there.
+   In `apps/web`, `features.isOn("<name>")` from `@/lib/features` in a Server
+   Component.
+
+`report.updateStatus` is the worked example, wired end to end: the name in
+`packages/shared/src/features/`, the guard in
+`packages/api/src/domains/report/router.ts`, the branch in
+`apps/web/features/report/admin-reports-page.tsx`. Unlike `post` it is not an
+example to delete — but the flag around it is, the day it ships.
 
 Guard **both** sides whenever the work has a procedure. Hiding the button
 leaves `/rpc`, `/api/v1` and the published spec at `/api/spec` open, so a

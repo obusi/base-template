@@ -21,15 +21,28 @@ export const ReportCategory = z.enum([
   "other",
 ])
 
+// Where a report has got to, from an admin's point of view. `new` is the
+// database's default, so a report that nobody has touched already reads as one
+// of these rather than as an empty string.
+//
+// A `text` column and a zod enum for the same reason as `category`: this list
+// is the second thing a project edits, and a pg enum would charge a migration
+// that ALTERs the type for every edit.
+export const ReportStatus = z.enum([
+  "new",
+  "investigating",
+  "resolved",
+  "dismissed",
+])
+
 export const ReportSchema = z.object({
   id: z.uuid(),
   reporterId: z.string(),
   // Both are `text` columns, and both are plain strings on the way out even
-  // though `category` is an enum on the way in. Output validation runs against
-  // whatever the row actually holds: `status` is edited by hand in db:studio
-  // today, and a value written before the category list last changed should
-  // show up in the admin list as-is, not fail the schema and turn every read
-  // into a 500.
+  // though each is an enum on the way in. Output validation runs against
+  // whatever the row actually holds, and rows outlive the lists above: a value
+  // written before either list last changed should show up in the admin list
+  // as-is, not fail the schema and turn every read into a 500.
   category: z.string(),
   status: z.string(),
 
@@ -63,6 +76,15 @@ export const CreateReportInput = z.object({
   // call handed out. Defaulted to empty so a caller with no interest in
   // attachments — the REST door, a script — sends the body it always did.
   attachments: z.array(AttachmentInput).max(MAX_ATTACHMENTS).default([]),
+})
+
+// The one thing an admin may change about somebody else's report. Deliberately
+// not a general `UpdateReportInput`: the message, the category and the captured
+// context are the reporter's account of what happened, and an endpoint that
+// could rewrite them would be a way to edit a record of what was said.
+export const UpdateReportStatusInput = z.object({
+  id: z.uuid(),
+  status: ReportStatus,
 })
 
 export const ListReportsInput = z.object({
