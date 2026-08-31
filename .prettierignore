@@ -20,3 +20,8 @@ packages/db/drizzle/
 # `skills update` show a spurious diff against the upstream source. Scoped to
 # the vendored skill so that skills written here are still formatted.
 .claude/skills/shadcn/
+
+# Agent worktrees — a whole second checkout of this repo, git-ignored but not
+# prettier-ignored, since prettier does not read .gitignore. The patterns above
+# are anchored to this file's directory, so they miss the copies nested inside.
+.claude/worktrees/
