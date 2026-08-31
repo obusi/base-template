@@ -61,6 +61,8 @@ export const ReportWithAttachmentsSchema = ReportSchema.extend({
   attachments: z.array(AttachmentSchema),
 })
 
+export type ReportWithAttachments = z.infer<typeof ReportWithAttachmentsSchema>
+
 // Written out rather than derived from ReportSchema with `.pick()`: input
 // needs limits that output does not, and half of what a report is stored with
 // is captured by the server rather than sent by the caller.
