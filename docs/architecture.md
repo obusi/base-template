@@ -169,7 +169,7 @@ The one asymmetry is where that folder sits. `api` has it at `src/domains/`,
 while `shared` nests it at `src/contract/domains/`. That package is named for
 who reaches it rather than for what is in it, so what is in it gets a folder —
 and a domain folder at the root would claim every future occupant has domains
-too.
+too, which `features/` beside it does not.
 
 `db` groups by domain too, but a domain is one *file* (`src/schema/<name>.ts`),
 because a db domain has never needed more than a single schema and a folder

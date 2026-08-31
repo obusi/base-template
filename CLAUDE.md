@@ -128,7 +128,7 @@ constraints, not taste — merging any two of the six breaks something specific:
 
 | Package | Holds | Why it cannot be merged |
 |---|---|---|
-| `shared` | the oRPC contract and its zod schemas | A future Expo app imports it without dragging in Drizzle or Better Auth |
+| `shared` | the oRPC contract, its zod schemas, feature flag names | A future Expo app imports it without dragging in Drizzle or Better Auth |
 | `db` | Drizzle schema, client, migrations | Both `auth` and `api` need it; nesting it in `api` creates `auth → api → auth` |
 | `auth` | Better Auth server + client entries | The browser login page calls it directly, bypassing oRPC |
 | `api` | The oRPC router — implements the contract | The layer that composes everything else |
@@ -182,6 +182,16 @@ OpenAPI spec generated from the contract at `/api/spec` and rendered at
 **Auth does not use either path.** Sign in / sign up / sign out go straight to
 Better Auth at `/api/auth`. There is no contract for auth and writing one
 would be a mistake — see `docs/architecture.md` S4.
+
+**Feature flags are release toggles and nothing else.** `FEATURES` names them,
+comma-separated, in the environment; `packages/shared/src/features/` holds the
+list of flags that exist and the parser both sides use. A flag hides work that
+is merged but unfinished, so a branch never has to live longer than a day, and
+it is deleted with the code path it guarded. `.use(requireFeature("x"))` on the
+procedure, `features.isOn("x")` in a Server Component — both, since hiding a
+button leaves `/rpc` open. Kill switches and per-user gates are deliberately
+not this; `packages/shared/src/features/index.ts` says what to reach for
+instead, and `.claude/rules/packages-conventions.md` has the checklist.
 
 ## Boundaries that must not break
 

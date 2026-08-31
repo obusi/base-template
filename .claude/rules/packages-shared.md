@@ -17,6 +17,7 @@ src/
 │   │   ├── schema.ts             zod schemas — the shape
 │   │   └── contract.ts           procedures — input, output, errors, route
 │   └── errors.ts                 codes every domain reuses
+├── features/                   feature flag names and the env parser
 └── dependencies.test.ts        the boundary, checked
 ```
 
@@ -35,8 +36,10 @@ so the rule for admission is written down rather than implied by the name:
 A helper that satisfies both is welcome. One that satisfies only the first is a
 sign the logic belongs to one side and is being shared out of convenience.
 
-Today only the contract is in here, which is why it has a folder of its own
-rather than sitting at `src/`: the folder is the room the rename made.
+`parseFeatures` in `features/` is the first thing in here that runs rather than
+declares, and it passes both tests: the environment says which flags are on,
+and `apps/web` and `packages/api` have to read that string the same way or the
+same deployment answers differently at the two ends.
 
 ## The dependency boundary is the reason this package exists
 

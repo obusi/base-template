@@ -159,9 +159,17 @@ place here yet.
 `lib/` holds framework/platform wiring that every feature indirectly depends
 on to run, never something with business meaning. Right now that's the oRPC
 client switch (`orpc.ts`, `orpc.server.ts`, `orpc-query.ts` — see
-`docs/architecture.md` S4). A new file belongs here only if it's the same
-kind of thing — client setup, config plumbing — not if it does something a
-specific domain cares about.
+`docs/architecture.md` S4), `session.ts`, and `features.ts`. A new file
+belongs here only if it's the same kind of thing — client setup, config
+plumbing — not if it does something a specific domain cares about.
+
+`features.ts` carries `import "server-only"`, and that marker is the rule
+rather than a note: a client component that imports it fails the build. A flag
+read in the browser is a flag whose guarded code was shipped to the browser.
+Branch in the Server Component and pass the answer down — `canEdit={...}`,
+named for what the component may do, so releasing the feature costs that
+component no edit. The procedure behind the page refuses a caller anyway; see
+`packages-conventions.md` for the whole checklist.
 
 At the project root, `instrumentation.ts`, `env.ts`, `next.config.ts`,
 `components.json`, `eslint.config.js`, `postcss.config.mjs`, and

@@ -1,7 +1,7 @@
-// Everything both sides of the app have to agree on. Today that is the API
-// surface as described and nothing more — `packages/api` implements this
-// shape, `apps/web` calls it, and a future Expo app imports this and only
-// this.
+// Everything both sides of the app have to agree on: the API surface as
+// described, and the flags that decide which parts of it are switched on.
+// `packages/api` implements this shape, `apps/web` calls it, and a future Expo
+// app imports this and only this.
 
 // Re-exported so forms can build on the same schemas the server validates
 // with — `CreatePostInput.extend({ ... })` rather than a second declaration
@@ -32,6 +32,15 @@ export {
   MAX_ATTACHMENTS,
   MAX_ATTACHMENT_BYTES,
 } from "./contract/domains/report/attachment"
+
+// Both readers of the environment — `apps/web/lib/features.ts` and
+// `packages/api`'s composition root — build their answer from these.
+export {
+  FEATURES,
+  parseFeatures,
+  type Feature,
+  type FeatureSet,
+} from "./features"
 
 import { postContract } from "./contract/domains/post/contract"
 import { profileContract } from "./contract/domains/profile/contract"
