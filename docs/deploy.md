@@ -345,11 +345,20 @@ to a table something already reads breaks everything that reads it — the
 `profile.role` column is loaded by the navbar on every page under `app/(app)/`,
 so shipping that migration late takes the whole site down rather than one route.
 
-Which way round to do it is a per-migration judgement. Additive changes — a new
-table, a nullable column, a column with a default — are safe to apply *before*
-the merge, and that ordering leaves no gap at all. A migration that drops or
-renames something is not, because the running production code still expects what
-it removes; those go after, and the site is inconsistent in between.
+**Run it before the merge, always.** That ordering leaves no gap at all, and it
+is available for every migration rather than only the additive ones — which is
+the practical payoff of the rule in
+[`.claude/rules/packages-db.md`](../.claude/rules/packages-db.md). A migration
+that reaches `main` is one the *previous* release can already run against, so
+applying it early cannot break the code that is serving people at the time. A
+migration that drops a column drops one that no deployed code has read for a
+release, and a migration that adds one adds something nothing has heard of yet.
+Both are invisible to what is running.
+
+That rule is what makes the ordering trivial, and it is worth reading before
+writing the migration rather than after: a change that has to go *after* the
+merge is a change that was split wrong, not a change with an awkward deploy
+order.
 
 ## Three things that will waste an afternoon
 
