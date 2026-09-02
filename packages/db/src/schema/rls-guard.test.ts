@@ -34,7 +34,6 @@ describe("migrations", () => {
   it("create every table the schema declares", async () => {
     expect(await tableNames(db)).toEqual([
       "account",
-      "migration_probe",
       "post",
       "profile",
       "report",
