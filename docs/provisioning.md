@@ -75,10 +75,11 @@ is what gives a preview its own database. It never applies locally or in
 production, where `DATABASE_URL` is set and wins.
 
 That database arrives empty, so `apps/web/vercel.json` runs
-`packages/db/scripts/deploy.ts` before the build. It applies the migrations, and
-only when `VERCEL_ENV` is `preview` — production stays a hand-run `db:migrate`,
-because a migration that goes wrong there cannot be thrown away with the pull
-request.
+`packages/db/scripts/deploy.ts` before the build. It applies the migrations on
+every deployment, production included; only a laptop, where `VERCEL_ENV` is
+unset, is left to `pnpm db:migrate`. What makes that safe on production is the
+rule in `.claude/rules/packages-db.md` and the test that enforces it — see
+[`architecture.md`](architecture.md) S17.
 
 ### `DATABASE_URL`
 

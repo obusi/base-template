@@ -108,10 +108,19 @@ schema disagree.
 `db:deploy` is the third one, and no person runs it: `apps/web/vercel.json`
 puts it in front of the build command so a Supabase preview branch — which
 arrives empty, with a connection string that exists nowhere else — gets its
-schema. It applies the migrations only when `VERCEL_ENV` is `preview` and
-otherwise exits quietly, so production remains a deliberate, hand-run
-`db:migrate`. Deliberately not a turbo task: turbo caches by task, and a cached
+schema. It runs on **production too**, and only on those two: `VERCEL_ENV`
+unset means a laptop, where `db:migrate` is the local equivalent and stays a
+decision. Deliberately not a turbo task: turbo caches by task, and a cached
 "the migrations already ran" is exactly the wrong thing to remember.
+
+Production is safe to migrate without a person watching only because of the
+section below and the test that enforces it — a migration that reaches `main`
+is one the running release already tolerates, so applying it ahead of the code
+that needs it cannot break what is serving people. Two merges in quick
+succession are two builds racing on one database, and there is no lock: this
+version of drizzle applies every pending migration in a single transaction, so
+the loser fails and rolls back whole rather than interleaving. The script's
+header says why an advisory lock would not help.
 
 It retries a refused connection three times, fifteen seconds apart, and no
 longer — long enough for a database that is a moment behind, and deliberately

@@ -7,17 +7,44 @@
 // a person could copy it from — so either the build applies the migrations or
 // that database stays unusable for the life of the pull request.
 //
-// **Preview only, deliberately.** A preview database is created for one pull
-// request and destroyed with it, so applying every migration from scratch is
-// free to get wrong. Production holds data that a bad migration cannot
-// un-break, and deciding to migrate it automatically is a separate question
-// about ordering, rollback, and expand/contract — not something to inherit as
-// a side effect of wanting working previews. Until that question is answered
-// on purpose, production stays a hand-run `db:migrate`.
+// **Every deployment, preview and production alike.** A preview database is
+// created for one pull request and destroyed with it, so applying every
+// migration from scratch there is free to get wrong. Production is not, and
+// including it took answering the question this comment used to defer: what
+// makes a migration safe to apply without a person watching.
 //
-// One thing to know if that changes: drizzle-kit takes no advisory lock, so two
-// builds against one database can interleave. Harmless here, where each pull
-// request has a database to itself, and not harmless on a shared one.
+// `.claude/rules/packages-db.md` has the answer — a migration has to be one
+// the release before it can still run against — and
+// `src/migrations/safety.test.ts` fails the build on one that is not. With
+// that in front of it, applying a migration ahead of the code that needs it
+// cannot break the code already serving people, because a migration that
+// reaches `main` is one the running release already tolerates. What it
+// replaces was worse than the risk it carries: a hand-run step that nothing
+// reminded anyone about, whose omission left new code running against the old
+// schema for as long as it took somebody to notice.
+//
+// It still runs nowhere else. A laptop leaves `VERCEL_ENV` unset and gets
+// `pnpm db:migrate` instead — the same migrations, without a build around
+// them, and a decision rather than a side effect.
+//
+// **Two builds at once, on the one database every merge now migrates.** Vercel
+// does not serialise deployments, so two merges in quick succession are two
+// builds racing. There is no lock here, and that is deliberate rather than
+// overlooked.
+//
+// This version of drizzle applies every pending migration inside a single
+// transaction (`pg-core/async/session.js`, the `db.transaction` around the
+// loop), and writes its ledger rows in the same one. So the loser of a race
+// does not interleave: it blocks on the locks the winner's DDL already holds,
+// and then fails and rolls back whole — a red build against a schema that is
+// either fully migrated or untouched, never half of each.
+//
+// An advisory lock would turn that red build into a wait, and cannot: a
+// session-level lock does not survive a transaction-mode pooler, which is what
+// this URL is on Vercel and what `prepare: false` below already says. It would
+// read as a guarantee while providing none, which is worse than the red build
+// it was meant to prevent. Re-open this if the connection string ever becomes
+// a direct one.
 //
 // **Why it retries, and why not for long.** Supabase writes the branch's
 // connection string into Vercel and asks for a build in the same breath, so a
@@ -47,10 +74,14 @@ const MIGRATIONS_FOLDER = fileURLToPath(new URL("../drizzle", import.meta.url))
 
 const environment = process.env.VERCEL_ENV
 
-if (environment !== "preview") {
+// Both deployment environments, and nothing else. A laptop leaves `VERCEL_ENV`
+// unset and is left out deliberately: `pnpm db:migrate` is the local
+// equivalent, and a script that migrated whatever `DATABASE_URL` happened to
+// point at would be a surprise rather than a convenience.
+if (environment !== "preview" && environment !== "production") {
   console.log(
-    `db:deploy: VERCEL_ENV is ${environment ?? "unset"}, not "preview" — ` +
-      `nothing to do.`
+    `db:deploy: VERCEL_ENV is ${environment ?? "unset"}, so this is not a ` +
+      `deployment — nothing to do.`
   )
   process.exit(0)
 }
@@ -109,7 +140,9 @@ function retryableCode(error: unknown): string | undefined {
   return undefined
 }
 
-console.log("db:deploy: applying migrations to this preview's database")
+console.log(
+  `db:deploy: applying migrations to this ${environment} deployment's database`
+)
 
 for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
   // A fresh client per attempt: one that failed to authenticate has nothing
