@@ -21,10 +21,6 @@ export const post = pgTable.withRLS(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
 
-    // Throwaway, alongside the migration_probe table. Nullable, so the release
-    // that has not heard of it is unaffected.
-    note: text("note"),
-
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()
