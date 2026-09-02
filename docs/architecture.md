@@ -1268,11 +1268,36 @@ wait fixes that, and a new pull request does, so a long wait buys nothing but
 a slower red build. What the retry is really for is the log line naming the
 error code, which is what distinguishes the two cases at a glance.
 
-`db:deploy` refuses to touch anything but a preview. A preview database is
-discarded with its pull request; production holds data a bad migration cannot
-un-break, and migrating it automatically is a decision about ordering and
-rollback that should be made deliberately rather than inherited from wanting
-working previews.
+`db:deploy` runs on production as well as on previews, and that took deciding
+rather than inheriting. A preview database is discarded with its pull request,
+so applying every migration from scratch there is free to get wrong; production
+holds data a bad migration cannot un-break. What made the automatic path
+acceptable is the constraint in `.claude/rules/packages-db.md` — every migration
+has to be one the release before it can still run against — enforced by
+`packages/db/src/migrations/safety.test.ts`, which fails the build on a
+generated migration that is not. A schema change that reaches `main` is
+therefore already compatible with the code currently serving, and applying it
+before that code deploys closes the window in which new code met an old schema.
+
+The alternative was worse than it sounded. A hand-run `db:migrate` is a step
+nothing reminds anyone about, and forgetting it is not a missing convenience
+but an outage: the deployment goes out, the schema does not move, and every
+route that reads the new column breaks until somebody connects to production by
+hand. Automating a step that is only ever skipped by accident is not the same
+decision as automating one that is skipped on purpose.
+
+Two things follow, and the first is a lock that is deliberately absent. Vercel
+does not serialise deployments, so two merges in quick succession are two builds
+racing on one database — but this version of drizzle applies every pending
+migration inside a single transaction, ledger rows included, so the loser blocks
+on the winner's DDL locks and then fails and rolls back whole. An advisory lock
+would turn that red build into a wait and cannot do so honestly: a session-level
+lock does not survive the transaction-mode pooler this connection string names,
+which is the same fact that forces `prepare: false` on the client. A guarantee
+that does not hold is worse than the red build it replaces. Second, a failed
+migration fails the build before `next build` runs, so the bad day is a
+deployment that never went out rather than one serving code against a
+half-applied schema.
 
 **`DATABASE_URL` stays the primary name, with `POSTGRES_URL` as a fallback.**
 Renaming everything to `POSTGRES_URL` would be simpler — one name, no fallback,

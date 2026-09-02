@@ -312,7 +312,7 @@ Either way the build log is where to confirm the schema and the accounts
 arrived:
 
 ```
-db:deploy: applying migrations to this preview's database
+db:deploy: applying migrations to this preview deployment's database
 db:deploy: done
 seed: created user@example.com (user) — password 12345678
 seed: created admin@example.com (admin) — password 12345678
@@ -327,29 +327,45 @@ having one.
 
 ## Merging a schema change
 
-**Production migrations are a hand-run step, and nothing reminds you.**
-`db:deploy` returns immediately unless `VERCEL_ENV` is `preview`, so a merge
-deploys new code against the old production schema. The reasoning for keeping
-production out of an automatic path is in [`architecture.md`](architecture.md)
-S17; the consequence is this paragraph.
+**Nothing to do.** The build runs `db:deploy` in front of `next build` on
+production exactly as it does on a preview, so a merge migrates the database
+before it serves the code that needs it. There is no hand-run step and no
+window in which new code meets the old schema.
 
-Point `packages/db/.env` at production and run it yourself:
+That is only safe because of the rule in
+[`.claude/rules/packages-db.md`](../.claude/rules/packages-db.md): a migration
+that reaches `main` is one the *previous* release can already run against, so
+applying it ahead of its own deployment cannot break the code serving people at
+that moment. A migration that drops a column drops one no deployed code has
+read for a release; a migration that adds one adds something nothing has heard
+of yet. Both are invisible to what is running.
 
-```bash
-pnpm db:migrate
-```
+`packages/db/src/migrations/safety.test.ts` is what keeps that true. It fails
+the build on a generated migration that the previous release could not survive
+— `DROP COLUMN`, `RENAME`, a new constraint, a `NOT NULL` column with no
+default — unless the migration folder is named `destructive_…`, which is how
+somebody says they meant it. **Do not switch that test off to unblock a merge.**
+It is the reason the automatic path above is allowed to exist, and without it
+a merge applies a schema change to production with nobody reading the SQL.
 
-**How bad the gap is depends on the migration, and it is easy to
-underestimate.** A new table breaks only the pages that read it. A column added
-to a table something already reads breaks everything that reads it — the
-`profile.role` column is loaded by the navbar on every page under `app/(app)/`,
-so shipping that migration late takes the whole site down rather than one route.
+**Two merges in quick succession race, and lose safely.** Vercel does not
+serialise deployments, and there is no lock. There does not need to be one:
+this version of drizzle applies every pending migration inside a single
+transaction, so the second build blocks on the first build's locks and then
+fails and rolls back whole. The database is fully migrated or untouched, never
+half of each, and the losing pull request is a red deployment to redeploy.
+`packages/db/scripts/deploy.ts` explains why an advisory lock would read as a
+guarantee it could not keep over Supabase's pooler.
 
-Which way round to do it is a per-migration judgement. Additive changes — a new
-table, a nullable column, a column with a default — are safe to apply *before*
-the merge, and that ordering leaves no gap at all. A migration that drops or
-renames something is not, because the running production code still expects what
-it removes; those go after, and the site is inconsistent in between.
+**A failed migration fails the build.** `next build` never runs, so the
+deployment does not go out and production keeps serving the previous one
+against the schema it already had. That is the intended shape of the bad day:
+no deploy rather than a half-migrated one.
+
+`pnpm db:migrate` still exists and is still what a laptop uses — `db:deploy`
+returns immediately when `VERCEL_ENV` is unset. Reach for it against production
+only to apply something out of band, and know that the next merge will find its
+ledger already ahead.
 
 ## Three things that will waste an afternoon
 
@@ -412,7 +428,9 @@ the one the ecosystem uses, and it wins wherever it is set, so nothing needs
 undoing to deploy elsewhere.
 
 `packages/db/scripts/deploy.ts` is the piece that would need a decision. It runs
-migrations only when `VERCEL_ENV` is `preview`, and does nothing otherwise. On
-another host, either give it that platform's equivalent signal or run migrations
-from wherever that platform builds — the reasoning for keeping production out of
-it is in [`architecture.md`](architecture.md) S17.
+migrations when `VERCEL_ENV` is `preview` or `production`, and does nothing
+otherwise. On another host, either give it that platform's equivalent signal or
+run migrations from wherever that platform builds — and keep whatever enforces
+`.claude/rules/packages-db.md`, because that is what makes migrating on a deploy
+safe rather than merely convenient. [`architecture.md`](architecture.md) S17 has
+the reasoning.
