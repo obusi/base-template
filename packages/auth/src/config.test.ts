@@ -10,6 +10,7 @@
 // So these tests exist to go red on a version bump that renames a code or
 // relaxes a rule, before the UI silently stops handling it.
 
+import { schema } from "@packages/db"
 import { createTestDb, resetDb, type TestDb } from "@packages/db/testing"
 import { APIError } from "better-auth/api"
 import { beforeAll, beforeEach, describe, expect, it } from "vitest"
@@ -355,5 +356,73 @@ describe("google sign-in", () => {
     expect(result.url).toBeTruthy()
     expect(new URL(result.url!).origin).toBe("https://accounts.google.com")
     expect(result.url).toContain("client_id=test-client-id")
+  })
+})
+
+describe("rate limiting", () => {
+  // Every test above calls `auth.api.*`, which reaches the handler directly.
+  // The limiter does not live there — Better Auth runs it in the router's
+  // `onRequest`, so it sees HTTP requests and nothing else. A test that went
+  // through `auth.api.signInEmail` would pass no matter what this config said.
+  function signInRequest(ip: string) {
+    return new Request("http://localhost:3000/api/auth/sign-in/email", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        // What the limiter counts by. Vercel sets it; a test that left it out
+        // would exercise the fallback where every caller shares one bucket.
+        "x-forwarded-for": ip,
+      },
+      body: JSON.stringify({ email: EMAIL, password: "not-it-at-all" }),
+    })
+  }
+
+  // `enabled` is off outside production, which is the default this template
+  // keeps — so the test turns it on rather than proving the default.
+  const limited = () => createAuth(db, { rateLimit: { enabled: true } })
+
+  it("refuses a fourth sign-in attempt from the same address", async () => {
+    const auth = limited()
+
+    const statuses: number[] = []
+    for (let attempt = 0; attempt < 4; attempt++) {
+      statuses.push((await auth.handler(signInRequest("203.0.113.7"))).status)
+    }
+
+    // The first three are wrong-password refusals; the fourth never reaches
+    // the password check. Pinning the count is the point — Better Auth ships
+    // three per ten seconds for this path as a default, and a version that
+    // loosened it would otherwise change this template's security silently.
+    expect(statuses.slice(0, 3)).toEqual([401, 401, 401])
+    expect(statuses[3]).toBe(429)
+  })
+
+  it("counts each address separately", async () => {
+    const auth = limited()
+
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await auth.handler(signInRequest("203.0.113.7"))
+    }
+
+    // Without this, a limiter that had fallen back to one shared bucket —
+    // which is what happens when no client IP can be resolved — would satisfy
+    // the test above while letting one caller lock out everybody else.
+    const other = await auth.handler(signInRequest("198.51.100.4"))
+
+    expect(other.status).toBe(401)
+  })
+
+  it("keeps the count in the database, where every instance can see it", async () => {
+    const auth = limited()
+
+    await auth.handler(signInRequest("203.0.113.7"))
+
+    // The reason this config exists at all. In memory the row would not be
+    // here, and on a platform that runs more than one process the quota would
+    // multiply by however many the traffic created.
+    const rows = await db.select().from(schema.rate_limit)
+
+    expect(rows).toHaveLength(1)
+    expect(rows[0]!.count).toBe(1)
   })
 })

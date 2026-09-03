@@ -685,6 +685,35 @@ probe table produces:
 Every procedure declares `.output()`. If a handler returns an object carrying
 `passwordHash`, `tsc` rejects it.
 
+### The auth endpoints are rate limited, and nothing else is
+
+Everything above is about a caller who has already been identified. `/api/auth`
+is the door where that is not yet true: anyone can post to `/sign-in/email`
+with no session, and a wrong answer is worth an account.
+
+Better Auth rate limits it — three attempts per ten seconds on `/sign-in`,
+`/sign-up`, `/change-password` and `/change-email`, three per minute on the
+password-reset routes — and enables that in production only. What
+`packages/auth/src/config.ts` changes is where the counter lives: the default
+is a `Map` in one process, and on a platform that runs as many processes as
+the traffic asks for, the quota is three attempts *per instance*. The counter
+goes in the database instead, so every instance reads the same number.
+
+**It counts by client IP**, from `x-forwarded-for`. When no address can be
+resolved Better Auth does not stop limiting — it puts every caller in one
+bucket per path, which turns the protection into a way for one caller to lock
+everybody else out. It says so through `logger.warn` and nowhere else, which
+is why `config.test.ts` pins two addresses being counted separately rather
+than only pinning the refusal.
+
+**`/rpc` and `/api/v1` have none of this**, deliberately. Both sit behind
+`requireAuth` on every procedure except the `post` example's three readers, so
+a caller who can reach anything worth limiting has already been identified and
+can be dealt with as a person rather than as an address. The first genuinely
+public procedure a project adds is what changes that answer, and the guard then
+belongs next to `requireAuth` in `packages/api/src/middleware/` — where it
+covers both doors at once, since both serve the same router.
+
 ### Secrets
 
 - The Supabase `service_role` key is never stored in the project — this stack

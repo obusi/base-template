@@ -15,10 +15,24 @@
 //   3. Run `pnpm format`. The generator emits semicolons. Caught by
 //      `pnpm format:check`.
 //
+// `rate_limit` is the one export not in camelCase, and it is not a slip. The
+// generator names the symbol and the table after `rateLimit.modelName` in
+// `packages/auth/src/config.ts`, and the drizzle adapter then looks the model
+// up by that same string — so the export name is load-bearing, and matching
+// the table's snake_case is the half worth keeping.
+//
 // Nothing below is business logic. Adding a Better Auth plugin changes what
 // the generator emits, so extend by regenerating rather than by hand.
 
-import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core"
+import {
+  pgTable,
+  text,
+  bigint,
+  timestamp,
+  boolean,
+  integer,
+  index,
+} from "drizzle-orm/pg-core"
 
 export const user = pgTable.withRLS("user", {
   id: text("id").primaryKey(),
@@ -91,3 +105,10 @@ export const verification = pgTable.withRLS(
   },
   (table) => [index("verification_identifier_idx").on(table.identifier)]
 )
+
+export const rate_limit = pgTable.withRLS("rate_limit", {
+  id: text("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  count: integer("count").notNull(),
+  lastRequest: bigint("last_request", { mode: "number" }).notNull(),
+})
