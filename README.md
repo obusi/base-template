@@ -12,12 +12,12 @@ run authorization.
 
 ```
 apps/web ──┬─► ui              ┐
-           ├─► contract        │  reachable from the browser
+           ├─► shared          │  reachable from the browser
            ├─► auth/client     ┘
            ├─► auth/server     ┐
            └─► api             ┘  server-side only
                  │
-                 ├─► contract
+                 ├─► shared
                  ├─► auth/server
                  ├─► storage
                  └─► db
@@ -25,14 +25,14 @@ apps/web ──┬─► ui              ┐
 
 | Package | Holds |
 |---|---|
-| `contract` | zod schemas + the oRPC contract — the API described, and nothing more |
+| `shared` | the oRPC contract, its zod schemas, the feature flag names — the API described, and nothing more |
 | `db` | Drizzle schema, client, migrations |
 | `auth` | Better Auth (server + client entry points) |
 | `api` | The oRPC router, implementing the contract |
 | `storage` | The `Storage` port and its Supabase implementation |
 | `ui` | shadcn/ui components on Base UI + Tailwind v4 |
 
-Six packages because merging two of them breaks something specific — `contract`
+Six packages because merging two of them breaks something specific — `shared`
 must stay importable from a future Expo app without dragging in Drizzle, and
 `db` must sit outside `api` or `auth → api → auth` becomes a cycle. `storage`
 is split for a softer reason with the same teeth: it holds the Supabase
