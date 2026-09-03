@@ -36,6 +36,7 @@ describe("migrations", () => {
       "account",
       "post",
       "profile",
+      "rate_limit",
       "report",
       "report_attachment",
       "session",

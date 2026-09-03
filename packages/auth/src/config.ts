@@ -45,6 +45,21 @@ export type AuthOptions = {
    * process-wide variable that every other test in the file would then share.
    */
   allowedHosts?: string[]
+
+  /**
+   * Turns the rate limiter on regardless of `NODE_ENV`.
+   *
+   * Better Auth enables it in production and leaves it off everywhere else,
+   * which is the behaviour this template wants: three sign-in attempts per ten
+   * seconds is correct against a stranger and maddening against a developer
+   * re-running a form. Left undefined, that default stands.
+   *
+   * It is injectable for one reason — a test. `enabled` is the only field
+   * here because the rest of the policy is not a per-deployment decision, and
+   * a project that wants different numbers should say so in `config.ts`
+   * rather than in an environment variable no reviewer reads.
+   */
+  rateLimit?: { enabled?: boolean }
 }
 
 /**
@@ -165,6 +180,42 @@ export function createAuth(database: Database, options: AuthOptions = {}) {
     // answers PROVIDER_NOT_FOUND, and `undefined` is what the test in
     // `config.test.ts` pins as "off until a project configures it".
     socialProviders: options.google ? { google: options.google } : undefined,
+
+    // Better Auth already rate limits these endpoints — three attempts per ten
+    // seconds on /sign-in, /sign-up, /change-password and /change-email, three
+    // per minute on the password-reset routes — and already turns that on in
+    // production. What it defaults to is where the counter lives, and the
+    // default does not survive this repo's deployment target.
+    //
+    // `storage: "memory"` is a Map in one process. Vercel runs as many
+    // processes as the traffic asks for, each with a Map of its own and no
+    // knowledge of the others, so the quota is three attempts *per instance* —
+    // and an attacker generating load is an attacker minting instances. The
+    // limit reads as protection while scaling with the thing it limits.
+    //
+    // The database is the only shared store this template can reach without
+    // asking every project forked from it to run Redis. It costs one read and
+    // one write per request to /api/auth, which nothing else in the app pays
+    // and no page waits on. A project already running Redis should switch to
+    // `secondaryStorage` here; the cost of this default is exactly one round
+    // trip on the endpoints where a wrong answer is worth more.
+    //
+    // `modelName` is not cosmetic. Left out, the table is created as
+    // "rateLimit" — the only camelCase name in a schema of user, session,
+    // report_attachment. The generator names the exported symbol after this
+    // too, which is why `schema/auth.ts` holds `rate_limit` rather than the
+    // camelCase export the other tables use: the drizzle adapter looks the
+    // model up by this exact string.
+    //
+    // Nothing here covers /rpc or /api/v1. They are a different door with a
+    // different guard — every procedure but the post example already refuses
+    // an anonymous caller — and the middleware that would rate limit them
+    // belongs beside `requireAuth`, not here.
+    rateLimit: {
+      storage: "database",
+      modelName: "rate_limit",
+      ...options.rateLimit,
+    },
   })
 }
 
