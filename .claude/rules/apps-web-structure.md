@@ -27,7 +27,7 @@ fetching fits into all of it.
 
 ## `app/` — routing only
 
-Four kinds of file live here, and nothing else.
+Five kinds of file live here, and nothing else.
 
 **Pages.** One thin wrapper per route, with an explicit function body rather
 than a bare re-export — that leaves room for `generateMetadata`, a prefetch,
@@ -54,6 +54,46 @@ become reachable through the doors that already exist.
 by the framework itself. Not a feature, and not a shared component either:
 `Providers` is technically a component, but the reuse rule below is about
 things used in more than one place, and this is used in exactly one.
+
+**Boundaries** — `error.tsx`, `not-found.tsx`, `global-error.tsx`. What the
+framework renders instead of a page, and the only files here that hold real
+markup rather than delegating it. They belong to no domain, so there is no
+`features/` folder that could own them; the screen all three render is
+`components/message-screen.tsx`.
+
+```
+app/not-found.tsx      an unmatched URL, or any notFound() thrown anywhere
+app/error.tsx          a bug anywhere below the root layout
+app/global-error.tsx   the root layout itself threw — replaces the document
+```
+
+**One of each, at the root, and a nested copy would be redundant rather than
+nicer.** The instinct is that `(app)/not-found.tsx` is what keeps the navbar on
+a 404 from `/admin`. It is not: the layouts that survive are decided by *where
+`notFound()` was thrown*, not by which file catches it. `requireAdminPage()`
+throws inside `(app)/(admin)/layout.tsx`, so `(app)/layout.tsx` has already
+rendered and stays — and the root file above renders inside it, navbar
+included. The same file reached by an unmatched URL renders with no navbar,
+because no group layout ran. Add a nested boundary only to say something
+*different* there, never to change what chrome survives.
+
+Three things are easy to get wrong, and the framework catches none of them
+politely:
+
+- `error.tsx` must be a Client Component.
+- `global-error.tsx` must render its own `<html>` and `<body>` — it replaces
+  the root layout rather than sitting inside it, which also means the fonts,
+  `Providers`, and the theme are all absent, and `globals.css` has to be
+  imported there by hand.
+- A boundary must not set a height of its own. It renders both directly under
+  the root layout and nested under `(app)/layout.tsx`, and `min-h-svh` is
+  correct in the first case and 57px of overflow in the second. The page column
+  is on `<body>` in `app/layout.tsx` for exactly that reason; boundaries use
+  `flex-1`.
+
+What `not-found.tsx` *says* is a fourth rule, enforced by nothing: it is a
+security decision, because `requireAdminPage()` answers 404 rather than 403 on
+purpose. The file's own comment carries it.
 
 **Segment guards** — a `layout.tsx` whose job is to decide who may see
 everything under it. The app has three route groups, and the guard is what

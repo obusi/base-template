@@ -16,6 +16,31 @@ on:
   # something reports it.
   workflow_dispatch:
 
+# Kill a run whose commit has already been pushed over. Pushing twice while a
+# run is in flight leaves the first one checking code nobody will merge, and it
+# keeps going to the end anyway — burning a runner, holding the queue, and
+# mailing a failure for a mistake that was fixed a minute ago.
+#
+# **The expression is the whole point, and it is not decoration.** Only pull
+# requests share a group here. A push to main gets `run_id` — unique per run —
+# so every one of them lands in a group of its own and is never cancelled or
+# queued behind another.
+#
+# That asymmetry exists because `cancel-in-progress: false` does not mean "let
+# them run side by side". It means "queue", and GitHub keeps exactly one run
+# pending per group: merge three pull requests in quick succession and the
+# middle run is cancelled before it ever starts. Measured on a throwaway branch
+# rather than read in a doc — three pushes fourteen seconds apart produced
+# in_progress / cancelled / pending.
+#
+# A cancelled run on main is not a spare copy of anything. It is the run that
+# catches the semantic conflict two independently green pull requests can
+# create, which is the reason the `push` trigger above exists at all, and
+# nothing else in the repo would notice it had gone missing.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name == 'pull_request' && 'pr' || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   verify:
     runs-on: ubuntu-latest

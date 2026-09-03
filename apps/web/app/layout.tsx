@@ -55,7 +55,13 @@ export default function RootLayout({
         inter.variable
       )}
     >
-      <body>
+      {/* The page column every route renders into. It lives here rather than
+          in each screen because a boundary — error.tsx, not-found.tsx — renders
+          in two different places: on its own below the root layout, and nested
+          inside app/(app)/layout.tsx when that group is what threw. A height of
+          its own would be right in the first case and 57px of overflow in the
+          second. */}
+      <body className="flex min-h-svh flex-col">
         <Providers>{children}</Providers>
       </body>
     </html>

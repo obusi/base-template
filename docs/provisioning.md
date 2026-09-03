@@ -323,6 +323,46 @@ To confirm both landed:
 gh api repos/OWNER/REPO/rulesets?includes_parents=true
 ```
 
+## Before launch: a Content-Security-Policy
+
+`apps/web/next.config.ts` already sends `X-Frame-Options`, `nosniff`, and
+`Referrer-Policy` on everything this app serves. Those three are true of every
+project, so they ship as defaults. A CSP is not, and it is the one that turns
+a cross-site scripting bug from a compromise into a blocked console message.
+
+It is left out because it has to name the third parties a project actually
+loads, and a template does not know them. A permissive policy reads as
+protection while providing none; a strict one that nobody can debug is deleted
+whole the first time an analytics snippet blanks a page. Both are worse than
+its absence, which is at least honest.
+
+So write it once the project's dependencies have settled, and before real
+users arrive. Start in report-only mode, which logs violations without blocking
+anything:
+
+```ts
+{
+  key: "Content-Security-Policy-Report-Only",
+  value: "default-src 'self'; img-src 'self' data: https:; object-src 'none'; frame-ancestors 'none'",
+}
+```
+
+Add it beside the other three, browse the app — every page, both roles, the
+upload in `/report`, and `/api/docs` — and read what the browser console
+reports. Widen the policy to cover what is genuinely needed, then drop
+`-Report-Only` from the key to start enforcing it.
+
+Two things to expect. Next.js injects inline scripts, so `script-src` needs
+either a nonce (its `middleware` recipe, in the version-matched docs under
+`apps/web/node_modules/next/dist/docs/`) or an allowance that costs most of
+what the policy was for. And the storage domain in `SUPABASE_URL` has to appear
+in `img-src` for attachments to render, since their signed URLs are served from
+there rather than from this app.
+
+Revisit it whenever a script from a new domain is added — a CSP that is edited
+by widening it until the errors stop is a CSP that is on its way back to
+permitting everything.
+
 ## On another Postgres host
 
 The RLS deny-all scheme under [`architecture.md`](architecture.md) S5 is not
