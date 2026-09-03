@@ -792,8 +792,42 @@ server owns. `NOT_FOUND` deliberately covers both "no such row" and "not yours" 
 answering them differently turns the endpoint into a way to discover which ids
 exist.
 
-Logging happens in a single interceptor in `packages/api` that `console.error`s
-undeclared errors only. Swapping in Sentry later is a one-file change.
+### Where an undeclared error is reported
+
+Three places, because no one of them can see all of it:
+
+| Site | Covers | Misses |
+|---|---|---|
+| `onError` in `app/rpc/` and `app/api/v1/` | every call over HTTP | a Server Component's in-process call |
+| Next.js's own server log | anything thrown while rendering on the server | anything thrown in the browser |
+| `useEffect` in `app/error.tsx` | a render that failed in the browser | nothing else — it is the backstop |
+
+The third of those is worth one caveat: React replaces a server error's message
+and stack with a generic string before sending it to the client, so what that
+block can log in production is the `digest` and nothing more. The digest is the
+thread back to the real error in the server log, which is why `error.tsx` puts
+it on screen. Swapping any of the three for Sentry is a change to that block
+alone.
+
+### What the user sees
+
+The right-hand column of the table above is not a figure of speech; it is
+`app/error.tsx`. Without it Next.js renders its own page — no navbar, no theme,
+and on production nothing but *"Application error: a server-side exception has
+occurred"*, which reads to the person in front of it as a site that is down
+rather than one screen that failed.
+
+`app/not-found.tsx` is the same idea for `notFound()`, and its wording carries a
+constraint the error page does not. `requireAdminPage()` answers 404 to a
+signed-in non-admin *so that the answer says nothing* — the reasoning in S5.
+A 404 page that mentions permissions or accounts hands back what the status code
+was chosen to withhold.
+
+Both are single files at the root, because a per-group copy would change
+nothing: the layouts above whatever threw render either way, so the same
+`not-found.tsx` appears under the navbar for a 404 from `/admin` and without one
+for an unmatched URL. `.claude/rules/apps-web-structure.md` has that in full,
+along with the three framework rules these files have to satisfy.
 
 ---
 
