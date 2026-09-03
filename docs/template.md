@@ -36,9 +36,11 @@ Two more principles apply while that is true, on top of the three at the top of
 a way for the people using it to say something is wrong, so that one feature is
 built in rather than left to each fork to rediscover. Unlike `post` it is not
 an example and is not on the list of things to delete: a fork keeps it, and
-extends it. What it deliberately does not carry is anything that would drag a
-dependency in with it — no attachments, no outbox, no rate limiting — each of
-which is described where it is missing.
+extends it. Attachments are the one place it does drag a dependency in, and
+that is what `packages/storage` is for — the port, the bucket, and the seam
+that lets a deployment without one still run (architecture.md S4). What it
+deliberately does not carry is anything else of that shape — no outbox, no
+rate limiting — each of which is described where it is missing.
 
 These two are under constant pressure here, because every dependency added is
 inherited by every project started from this one and those get no update path
