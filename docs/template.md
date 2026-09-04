@@ -137,11 +137,29 @@ compiles whatever it holds, sign-in still succeeds, and the person lands on a
 404 a second later.
 
 Finally, the **migrations**: `packages/db/drizzle/` already contains a
-`CREATE TABLE "post"`. Deleting the schema file does not undo it. For a project
-with no data yet, delete both migration folders and run
-`pnpm db:generate` once to produce a single initial
-migration from the schema that is left. For one that has already deployed,
-generate a normal drop migration instead.
+`CREATE TABLE "post"`. Deleting the schema file does not undo it.
+
+It is the last migration, and on purpose. `_init` holds the eight tables every
+fork keeps; `_post_example` holds this one table, its two indexes and its
+foreign key, and nothing else. So for a project with no data yet, **delete that
+one folder** — what is left is a single initial migration of exactly the schema
+a fork wants, with no regeneration and nothing to review.
+
+That ordering is the whole reason the migrations were squashed. A `post` table
+created in the middle of the history could not be removed without rewriting
+every migration after it, so the choice was between carrying the example
+forever and regenerating from scratch, and the second is a step people get
+wrong.
+
+**Only until the fork generates its own first migration.** After that, `post`
+is no longer last and deleting its folder would strip a row out of the middle
+of the ledger — so this is a thing to do early, before the first table of the
+real project, or not at all.
+
+For a project that has already deployed, none of the above applies: the table
+exists in a database that has to keep working, so generate a drop migration
+instead (`pnpm db:generate --name=destructive_drop_post`, and see
+`.claude/rules/packages-db.md` for why dropping takes two rounds).
 
 `pnpm verify` green means the deletion is complete.
 

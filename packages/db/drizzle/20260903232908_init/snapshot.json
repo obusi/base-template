@@ -1,14 +1,20 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "5cc238ec-7cd0-43ca-86dc-b47a694f3723",
+  "id": "8cffa599-7557-4f0c-bb64-6e08bb0d5326",
   "prevIds": [
-    "b9375222-2cec-4b87-84fd-7c9c4b16f869"
+    "00000000-0000-0000-0000-000000000000"
   ],
   "ddl": [
     {
       "isRlsEnabled": true,
       "name": "account",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": true,
+      "name": "rate_limit",
       "entityType": "tables",
       "schema": "public"
     },
@@ -38,12 +44,6 @@
     },
     {
       "isRlsEnabled": true,
-      "name": "post",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": true,
       "name": "report",
       "entityType": "tables",
       "schema": "public"
@@ -51,12 +51,6 @@
     {
       "isRlsEnabled": true,
       "name": "report_attachment",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": true,
-      "name": "migration_probe",
       "entityType": "tables",
       "schema": "public"
     },
@@ -228,6 +222,58 @@
       "entityType": "columns",
       "schema": "public",
       "table": "account"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rate_limit"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "key",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rate_limit"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "count",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rate_limit"
+    },
+    {
+      "type": "bigint",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "last_request",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rate_limit"
     },
     {
       "type": "text",
@@ -591,97 +637,6 @@
       "name": "id",
       "entityType": "columns",
       "schema": "public",
-      "table": "post"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "title",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "post"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "content",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "post"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "author_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "post"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "note",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "post"
-    },
-    {
-      "type": "timestamp",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "post"
-    },
-    {
-      "type": "timestamp",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "updated_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "post"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "gen_random_uuid()",
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "public",
       "table": "report"
     },
     {
@@ -867,45 +822,6 @@
       "table": "report_attachment"
     },
     {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "gen_random_uuid()",
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "migration_probe"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "label",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "migration_probe"
-    },
-    {
-      "type": "timestamp",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "migration_probe"
-    },
-    {
       "nameExplicit": true,
       "columns": [
         {
@@ -967,55 +883,6 @@
       "entityType": "indexes",
       "schema": "public",
       "table": "verification"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "author_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "post_author_id_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "post"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "created_at",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        },
-        {
-          "value": "id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "post_created_at_id_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "post"
     },
     {
       "nameExplicit": true,
@@ -1120,23 +987,6 @@
     {
       "nameExplicit": false,
       "columns": [
-        "author_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "post_author_id_user_id_fkey",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "post"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
         "reporter_id"
       ],
       "schemaTo": "public",
@@ -1176,6 +1026,16 @@
       "name": "account_pkey",
       "schema": "public",
       "table": "account",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "rate_limit_pkey",
+      "schema": "public",
+      "table": "rate_limit",
       "entityType": "pks"
     },
     {
@@ -1223,16 +1083,6 @@
         "id"
       ],
       "nameExplicit": false,
-      "name": "post_pkey",
-      "schema": "public",
-      "table": "post",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
       "name": "report_pkey",
       "schema": "public",
       "table": "report",
@@ -1249,14 +1099,15 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
       "nameExplicit": false,
-      "name": "migration_probe_pkey",
+      "columns": [
+        "key"
+      ],
+      "nullsNotDistinct": false,
+      "name": "rate_limit_key_key",
       "schema": "public",
-      "table": "migration_probe",
-      "entityType": "pks"
+      "table": "rate_limit",
+      "entityType": "uniques"
     },
     {
       "nameExplicit": false,
