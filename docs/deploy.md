@@ -115,7 +115,7 @@ the repository.
 | **Deploy to production** | **on** | the only one that has to be changed |
 | Production branch name | `main` | appears once the switch above is on |
 | Automatic branching | on | this is the feature |
-| Branch limit | 3 | the real cost control |
+| Branch limit | 5 | the real cost control |
 | **Supabase changes only** | **off** | |
 
 **Deploy to production** is what makes `supabase/config.toml` a statement about
@@ -128,6 +128,19 @@ for it.
 Schema is not part of that. `supabase/migrations/` is empty and
 `[db.migrations]` is disabled, so Drizzle remains the only thing that writes
 tables.
+
+**The branch limit is only half of the arrangement. The other half is on
+GitHub:** repository **Settings → General → Pull Requests → Automatically
+delete head branches**, on. A Supabase preview branch is tied to a git branch,
+so a branch left behind by a merged pull request keeps its database alive —
+billing per branch-hour, holding a slot, and visible nowhere anybody looks. It
+accumulates one per merge until the limit is reached, and then new pull
+requests start failing for a reason that has nothing to do with them.
+
+That switch fires on merge and not on close, so a pull request closed without
+merging still leaves its branch behind. Those have to be deleted by hand, and
+closing a pull request to reopen it as a fresh one — which the section below
+recommends for a refused password — is exactly the case it does not cover.
 
 Three things about the sync were measured on this project rather than assumed,
 and each one matters:
@@ -367,7 +380,7 @@ returns immediately when `VERCEL_ENV` is unset. Reach for it against production
 only to apply something out of band, and know that the next merge will find its
 ledger already ahead.
 
-## Three things that will waste an afternoon
+## Four things that will waste an afternoon
 
 **Reopening a pull request is not opening one.** Supabase creates a database on
 the `opened` event only. Reopen a closed pull request and its check reports
@@ -407,6 +420,23 @@ To rebuild after any preview failure, Redeploy is fine — Vercel reads the
 current environment rather than the failed deployment's, which is exactly how
 Supabase triggers the second build in the first place. Pushing a commit works
 too, and has the advantage of being the thing you were going to do anyway.
+
+**A pull request that fails because the branch limit is full does not say
+so.** What it looks like is a build failure: `Supabase Preview` goes red after
+a few minutes, `Vercel` goes red behind it, and `verify` stays green — which
+reads as a deployment problem in the change under review. It is not. No
+database was created, so there was nothing for `db:deploy` to migrate.
+
+The tell is that the same commit behaves differently on different attempts:
+one pull request whose Vercel build fails and then passes on redeploy, the next
+one failing earlier and harder. Nothing in the diff explains that, and nothing
+in the diff is responsible.
+
+Count the branches before changing any code — Supabase's **Branches** page, and
+`git branch -r` for what GitHub still has. A merged pull request whose branch
+was never deleted is the usual culprit, and it will not appear anywhere that
+suggests it is holding a database open. Delete what is finished, then open a
+fresh pull request.
 
 **Preview variables that name a branch belong to that branch.** Vercel lists
 them as `Preview ⑂ some-branch`. They are what that pull request's database is
