@@ -6,6 +6,7 @@ import { Providers } from "@/app/providers"
 import { env } from "@/env"
 import { cn } from "@packages/ui/lib/utils"
 
+// Deploy smoke test after the GitHub org rename to obusi — revert with this PR.
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" })
 
 const fontMono = Geist_Mono({
