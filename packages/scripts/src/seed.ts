@@ -1,6 +1,7 @@
 // `pnpm seed` — two accounts to develop against, for a database that has none.
 //
-// Run it after `pnpm supabase:reset`, or any other time the database is empty.
+// Run it after `pnpm supabase:reset && pnpm db:migrate`, or any other time the
+// database is empty.
 // It is safe to run twice: an account that already exists is skipped, because
 // signing the same address up again would fail rather than be ignored.
 //
