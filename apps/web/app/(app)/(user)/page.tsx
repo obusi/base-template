@@ -24,10 +24,14 @@ const links = [
 
 export default function Page() {
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center gap-8 p-6">
+    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center gap-8 p-6">
       <div className="flex flex-col gap-2">
         <h1 className="text-2xl font-medium">base-template</h1>
-        <p className="text-sm leading-relaxed text-muted-foreground">
+        {/* Capped separately from the column around it. The page is as wide as
+            it is so that lists and forms have room; a paragraph stretched to
+            the same width runs past the length a reader can track back from
+            without losing the line. */}
+        <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
           A typed full-stack monorepo: Next.js on top of oRPC, Drizzle, and
           Better Auth. Types run from the database schema to the browser without
           hand-written glue, and a page cannot reach the database except through

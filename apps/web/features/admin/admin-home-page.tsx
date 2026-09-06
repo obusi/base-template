@@ -17,7 +17,7 @@ const SECTIONS = [
 
 export function AdminHomePage() {
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6">
+    <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 p-6">
       <div className="flex flex-col gap-2">
         <h1 className="text-xl font-medium">Admin</h1>
         <p className="text-sm text-muted-foreground">
