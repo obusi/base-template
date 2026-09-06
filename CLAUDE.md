@@ -82,8 +82,9 @@ is the local procedure and `docs/provisioning.md` the hosted one.
 ```bash
 pnpm supabase:start   # Postgres on 54322, storage on 54321, studio on 54323
 pnpm supabase:stop
-pnpm supabase:reset   # wipe, then re-apply the migrations — needs it running
+pnpm supabase:reset   # wipe it — needs it running; db:migrate and seed follow
 pnpm seed             # user@example.com + admin@example.com, password 12345678
+pnpm supabase:fresh   # all four above, in order — an empty database to develop on
 ```
 
 `pnpm seed` runs `packages/scripts/src/seed.ts`. It signs both accounts up

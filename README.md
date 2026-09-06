@@ -103,8 +103,9 @@ pnpm dev
 pnpm build
 pnpm format
 pnpm supabase:stop   # frees the memory; the data survives
-pnpm supabase:reset  # wipes it and re-applies the migrations — needs it running
+pnpm supabase:reset  # wipes it — needs it running; db:migrate and seed follow
 pnpm seed            # the two development accounts, safe to run twice
+pnpm supabase:fresh  # start, reset, migrate and seed in one — a database from scratch
 ```
 
 Tests run against **PGlite** — Postgres compiled to WASM, in-process — so they

@@ -103,14 +103,29 @@ interactive API docs are at `/api/docs`.
 
 ```bash
 pnpm supabase:stop     # frees the memory; the data survives
-pnpm supabase:reset    # wipes it and re-applies the migrations
+pnpm supabase:reset    # wipes it, tables and all
+pnpm db:migrate        # puts the tables back
 pnpm seed              # the two accounts again, on the empty database
+pnpm supabase:fresh    # the last three plus start, in order
 ```
 
-Three separate situations rather than a sequence. In particular
-**`supabase:reset` needs the stack running** — it talks to Postgres to drop and
-recreate it, so straight after `supabase:stop` it fails with
-`supabase start is not running`. Start it again first.
+`supabase:stop` stands on its own; the last three are one sequence.
+**`supabase:reset` leaves a database with no tables in it** — it drops the
+schema and the Drizzle migrations are not part of what it replays, so
+`db:migrate` is what makes the database usable again and `seed` is what makes it
+loggable-into. Stopping after `reset` gives an app where every request fails on
+a missing relation.
+
+They are separate commands rather than one because a migration is also worth
+running on its own — after pulling a branch that added one, or after
+`db:generate` — and a command that wipes the database first is a dangerous thing
+to reach for out of habit. `pnpm supabase:fresh` is the sequence anyway, for
+when starting over is exactly what you meant; it begins with `supabase:start`,
+so it works from a stopped stack too.
+
+In particular **`supabase:reset` needs the stack running** — it talks to
+Postgres to drop and recreate it, so straight after `supabase:stop` it fails
+with `supabase start is not running`. Start it again first.
 
 Stopping keeps everything: the data lives in two Docker volumes
 (`supabase_db_…` and `supabase_storage_…`) that `stop` does not touch, so
@@ -119,6 +134,6 @@ uploaded files. Removing those volumes by hand is the only thing besides
 `supabase:reset` that loses data.
 
 `supabase:reset` also recreates the bucket from `config.toml` and empties it.
-`pnpm seed` works while `pnpm dev` is running, so an empty database with a
-working login is two commands and no restart.
+`pnpm db:migrate` and `pnpm seed` both work while `pnpm dev` is running, so an
+empty database with a working login is three commands and no restart.
 
