@@ -2,7 +2,12 @@
 
 // The signed-in half of the navbar's right side — an avatar that opens a menu
 // with the account's identity, a link to the profile page, a placeholder
-// Settings destination, and sign out.
+// Settings destination, the theme control, and sign out.
+//
+// The theme control is here rather than in the navbar only while there is a
+// session: a signed-out visitor gets the single-icon version beside "Sign in"
+// instead, because there is no menu to put it in. components/theme-toggle.tsx
+// holds both shapes and says why.
 //
 // Settings stays `href="#"` on purpose, same as the Terms and Privacy links
 // in terms-notice.tsx: where it points is a product decision, not one this
@@ -31,6 +36,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@packages/ui/components/dropdown-menu"
+
+import { ThemeToggleGroup } from "@/components/theme-toggle"
 
 export function UserMenu({
   name,
@@ -95,6 +102,16 @@ export function UserMenu({
           <DropdownMenuItem render={<a href="#" />}>Settings</DropdownMenuItem>
           {extraItems}
         </DropdownMenuGroup>
+
+        <DropdownMenuSeparator />
+
+        {/* Not a DropdownMenuItem: the row holds a control rather than being
+            one, so it must not take focus or close the menu when clicked.
+            The label carries the meaning the three icons only imply. */}
+        <div className="flex items-center justify-between gap-4 px-2 py-1.5">
+          <span className="text-sm">Theme</span>
+          <ThemeToggleGroup />
+        </div>
 
         <DropdownMenuSeparator />
         <DropdownMenuGroup>

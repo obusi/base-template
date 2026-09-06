@@ -13,6 +13,9 @@
 //
 // "Report a problem" is not here — it sits in the account menu, because
 // reporting needs a session anyway and a signed-out navbar has no use for it.
+// The theme control is in both places for the opposite reason: everyone needs
+// it, signed in or not, so it sits beside "Sign in" for a visitor and moves
+// into the account menu once there is a menu to hold it.
 // Neither is a link to /admin/reports: knowing whether to render one would
 // mean reading the caller's role on every page in the app, and an admin can
 // type the URL. See
@@ -23,6 +26,7 @@ import Link from "next/link"
 
 import { buttonVariants } from "@packages/ui/components/button"
 
+import { ThemeToggle } from "@/components/theme-toggle"
 import { authPath, isAdmin, UserMenu } from "@/features/auth"
 import { ReportMenuItem } from "@/features/report"
 import { getSession } from "@/lib/session"
@@ -38,14 +42,19 @@ export async function NavBar() {
 
   return (
     <header className="border-b">
-      <div className="mx-auto flex h-14 max-w-2xl items-center justify-between gap-4 px-6">
-        <div className="flex items-center gap-6">
+      {/* The row does not fit a 375px phone with everything on it — wordmark,
+          one link, the theme button and two auth buttons come to 415px — so
+          below `sm` the gaps tighten and the wordmark drops to its icon,
+          which still links home. The padding stays at `px-6` at every width:
+          it is what lines the bar up with the `p-6` on every page below it. */}
+      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-2 px-6 sm:gap-4">
+        <div className="flex items-center gap-4 sm:gap-6">
           <Link
             href={admin ? "/admin" : "/"}
-            className="flex items-center gap-2 font-medium"
+            className="flex items-center gap-2 font-medium whitespace-nowrap"
           >
             <GalleryVerticalEndIcon className="size-5" />
-            <span>base-template</span>
+            <span className="hidden sm:inline">base-template</span>
           </Link>
 
           <Link
@@ -65,6 +74,8 @@ export async function NavBar() {
           />
         ) : (
           <div className="flex items-center gap-2">
+            <ThemeToggle />
+
             <Link
               href={authPath("/signin")}
               className={buttonVariants({ variant: "ghost", size: "sm" })}
